@@ -1,0 +1,653 @@
+%/**
+  * @module    = lillib:xml
+  * @cvs       = $Id: xml.lil,v 1.18 2010-08-19 16:02:44 hkhana Exp $
+  * @copyright = Copyright (c) 2003-2005, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @desc      = XML interface for LiLFeS
+  * This module provides tools for handling XML and
+  * XHTML documents.
+%*/
+
+:- module("lillib:xml").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+
+%% XML support
+
+%/**
+  * @predicate = stringize_xml_document(+$XML, -$String)
+  * @param     = +$XML/xml : Feature structure representation of XML
+  * @param     = -$String/string : XML document
+  * @desc      = Make XML document
+  * Convert feature structure representation of XML into XML document
+%*/
+stringize_xml_document <- [pred].
+
+%/**
+  * @predicate = encode_xmltag_string(+$InStr, -$OutStr)
+  * @param     = +$InStr/string : input string
+  * @param     = -$OutStr/string : converted string
+  * @desc      = encode special characters in XML tags
+%*/
+encode_xmltag_string <- [pred].
+%encode_xml_string <- [pred].  %% implemented as built-in
+
+xml_attribute <- [bot] + [XML_ATTR\string(0), XML_ATTR_VAL\string(1)].
+xml <- [bot] + [XML_TAG\string(0), XML_ATTRIBUTES\list(1)].
+xml_document <- [xml] + [XML_TEXT\bot(10)].
+xml_pi <- [xml].
+xml_empty_tag <- [xml].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% XHTML support
+
+%/**
+  * @predicate = stringize_xhtml_document(+$XHTML, -$String)
+  * @param     = +$XHTML/xhtml_document : Feature structure representation of XHTML
+  * @param     = -$String/string : XHTML document
+  * @desc      = Make XHTML document
+  * Convert feature structure representation of XHTML into XHTML document
+%*/
+stringize_xhtml_document <- [pred].
+
+%/**
+  * @predicate = stringize_xhtml_fragment(+$XHTML, -$String)
+  * @param     = +$XHTML/xhtml_tag : Feature structure representation of XHTML
+  * @param     = -$String/string : XHTML fragment
+  * @desc      = Make XHTML fragment
+  * Convert feature structure representation of XHTML into XHTML fragment
+  * This predicate does not assume document.  Any XHTML fragments can be converted.
+%*/
+stringize_xhtml_fragment <- [pred].
+
+%/**
+  * @predicate = stringize_xhtml_cgi(+$XHTML, -$Response)
+  * @param     = +$XHTML/xhtml_document : Feature structure representation of XHTML
+  * @param     = -$String/string : CGI response
+  * @desc      = Make CGI response
+  * Convert feature structure representation of XHTML into CGI response
+%*/
+stringize_xhtml_cgi <- [pred].
+
+%/**
+  * @predicate = xhtml_to_xml(+$XHTML, -$XML)
+  * @param     = +$XHTML/xhtml_document : Feature structure representation of XHTML
+  * @param     = -$XML/xml_document: Feature structure representation of XML
+  * @desc      = Convert xhtml_document into xml_document
+  * Convert feature structure representation of XHTML into feature structure representation of XML
+%*/
+xhtml_to_xml <- [pred].
+
+xhtml_version <- [bot].
+xhtml_version_xhtml <- [xhtml_version].
+xhtml_version_html <- [xhtml_version].
+xhtml_1_1 <- [xhtml_version_xhtml].
+xhtml_1_0 <- [xhtml_version_xhtml].
+xhtml_1_0_strict <- [xhtml_version_xhtml].
+xhtml_1_0_transitional <- [xhtml_version_xhtml].
+xhtml_1_0_frameset <- [xhtml_version_xhtml].
+html_4_01 <- [xhtml_version_html].
+html_4_01_strict <- [xhtml_version_html].
+html_4_01_transitional <- [xhtml_version_html].
+html_4_01_frameset <- [xhtml_version_html].
+html_3_2 <- [xhtml_version_html].
+
+xhtml_document <- [bot] + [XHTML_VERSION\xhtml_version(0), XHTML_CONTENT_TYPE\string(1), XHTML_TITLE\string(1), XHTML_CSS\bot(2), XHTML_XSL\bot(3), XHTML_BODY\bot(10)].
+
+xhtml_tag_base <- [bot] + [XHTML_CLASS\string(0), XHTML_ID\string(1), XHTML_NAME\string(2), XHTML_ATTRIBUTES\list(4)].
+xhtml_tag <- [xhtml_tag_base] + [XHTML_TEXT\bot(10)].
+xhtml_empty_tag <- [xhtml_tag_base].
+xhtml_h1 <- [xhtml_tag].
+xhtml_h2 <- [xhtml_tag].
+xhtml_h3 <- [xhtml_tag].
+xhtml_h4 <- [xhtml_tag].
+xhtml_h5 <- [xhtml_tag].
+xhtml_p <- [xhtml_tag].
+xhtml_a <- [xhtml_tag] + [A_HREF\string(5), A_TARGET\string(6), A_TYPE\string(7)].
+xhtml_div <- [xhtml_tag].
+xhtml_span <- [xhtml_tag].
+xhtml_pre <- [xhtml_tag].
+xhtml_tr <- [xhtml_tag].
+xhtml_td <- [xhtml_tag].
+xhtml_th <- [xhtml_tag].
+xhtml_table <- [xhtml_tag].
+xhtml_caption <- [xhtml_tag].
+xhtml_ul <- [xhtml_tag].
+xhtml_ol <- [xhtml_tag].
+xhtml_li <- [xhtml_tag].
+xhtml_br <- [xhtml_empty_tag].
+xhtml_hr <- [xhtml_empty_tag].
+xhtml_frameset <- [xhtml_tag] + [FRAME_COLS\string(6), FRAME_ROWS\string(7)].
+xhtml_frame <- [xhtml_empty_tag] + [FRAME_SRC\string(5)].
+xhtml_form <- [xhtml_tag] + [FORM_METHOD\string(5), FORM_TARGET\string(6), FORM_ACTION\string(7)].
+xhtml_input <- [xhtml_empty_tag] + [INPUT_TYPE\string(5), INPUT_VALUE\string(6), INPUT_SIZE\string(7)].
+xhtml_textarea <- [xhtml_tag] + [TEXTAREA_ROWS\string(5), TEXTAREA_COLS\string(6), TEXTAREA_WRAP\string(7)].
+xhtml_select <- [xhtml_tag] + [SELECT_NAME\string(5)].
+xhtml_option <- [xhtml_tag] + [OPTION_VALUE\string(5)].
+xhtml_img <- [xhtml_empty_tag] + [IMG_SRC\string(5), IMG_ALT\string(6), IMG_HEIGHT\string(7), IMG_WIDTH\string(8),
+				  IMG_USEMAP\string(10), IMG_ISMAP\string(11)].
+xhtml_script <- [xhtml_tag] + [SCRIPT_SRC\string(5), SCRIPT_TYPE\string(6), SCRIPT_CHARSET\string(7)].
+xhtml_object <- [xhtml_tag] + [OBJECT_NAME\string(5), OBJECT_DATA\string(6), OBJECT_TYPE\string(7),
+			       OBJECT_ARCHIVE\string(10), OBJECT_CLASSID\string(11), OBJECT_CODETYPE\string(12), OBJECT_CODEBASE\string(13),
+			       OBJECT_STANDBY\string(15), OBJECT_HEIGHT\string(16), OBJECT_WIDTH\string(17),
+			       OBJECT_USEMAP\string(20), OBJECT_ISMAP\string(21)].
+xhtml_param <- [xhtml_empty_tag] + [PARAM_NAME\string(5), PARAM_VALUE\string(6), PARAM_VALUETYPE\string(7), PARAM_TYPE\string(8)].
+xhtml_map <- [xhtml_tag] + [MAP_NAME\string(5)].
+xhtml_area <- [xhtml_empty_tag] + [AREA_ALT\string(5), AREA_HREF\string(6), AREA_NOHREF\string(7), AREA_SHAPE\string(8), AREA_COORDS\string(9)].
+
+%% extension
+xhtml_fs <- [xhtml_tag] + [SHARED_ID\string(5)].
+xhtml_feat <- [xhtml_tag] + [FEAT_EDGE\string(5)].
+xhtml_tree <- [xhtml_tag].
+xhtml_node <- [xhtml_tag].
+xhtml_dtr <- [xhtml_tag] + [DTR_EDGE\string(5)].
+xhtml_type <- [xhtml_tag].
+xhtml_decimal <- [xhtml_tag].
+xhtml_float <- [xhtml_tag].
+xhtml_doublequoted <- [xhtml_tag].
+xhtml_singlequoted <- [xhtml_tag].
+xhtml_tfstoxml <- [xhtml_tag].
+xhtml_treetoxml <- [xhtml_tag].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = treetoxml(+$Tree, +$NS, -$XML)
+  * @param     = +$Tree/list : list representation of tree
+  * @param     = +$NS/string : namespace of tree tag
+  * @param     = -$XML/string : XML document
+  * @desc      = Make XML representation of tree
+  * Convert list expression of tree into XML representation
+%*/
+%/**
+  * @predicate = treetoxml(+$Tree, -$XML)
+  * @param     = +$Tree/list : list representation of tree
+  * @param     = -$XML/string : XML document
+  * @desc      = Make XML representation of tree
+  * Convert list expression of tree into XML representation
+%*/
+treetoxml <- [pred].
+'treetoxml/2' <- ['pred/2', treetoxml].
+'treetoxml/3' <- ['pred/3', 'treetoxml/2'].
+treetoxml_old <- [pred].
+
+:- ensure_loaded("dattypes").
+
+'*xhtml_fs_namespace*' <- [variable].
+'*xhtml_fs_version*' <- [variable].
+:-
+    define_string_variable('*xhtml_fs_namespace*'),
+    set_variable('*xhtml_fs_namespace*', "fs"),
+    define_string_variable('*xhtml_fs_version*'),
+    set_variable('*xhtml_fs_version*', "2.0").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("strings").
+:- ensure_loaded("io").
+:- ensure_loaded("debug").
+:- ensure_loaded("lists").
+
+tfstoxml_dispatch <- [pred].
+treetoxml_dispatch <- [pred].
+
+attach_namespace <- [pred].
+attach_namespace($In, $Out) :-
+    get_variable('*xhtml_fs_version*', "1.0"),
+    !,
+    $In = $Out.
+attach_namespace($In, $Out) :-
+    get_variable('*xhtml_fs_version*', "2.0"),
+    !,
+    get_variable('*xhtml_fs_namespace*', $FSNS),
+    ($FSNS = "" ->
+     $In = $Out ;
+     concatenate_string([$FSNS, ":", $In], $Out)).
+attach_namespace(_, _) :-
+    get_variable('*xhtml_fs_version*', $NS),
+    error_message("Unknown xhtml_fs version: ~s\n", [$NS]),
+    fail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+encode_xmltag_string($InStr, $OutStr) :-
+    (regex_match("^[0-9]", $InStr) ->
+     $Str1 is "_num_" + $InStr
+     ;
+     $Str1 = $InStr),
+    (regex_subst("[!""#$%&'()*+,/[.-.].:;<=>?[.[.]\[.].]^_`{|}~]", ["g"], "_", $Str1, $OutStr) ->
+     true ; $Str1 = $OutStr).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+primitive_to_string <- [pred].
+primitive_to_string($String & string, $String) :-
+    is_string($String),
+    !.
+primitive_to_string($Int & integer, $String) :-
+    is_integer($Int),
+    !,
+    inttostr($Int, $String).
+primitive_to_string($Flo & float, $String) :-
+    is_float($Flo),
+    !,
+    floattostr($Flo, $String).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+newline_string <- [pred].
+newline_string($NL) :-
+    listtostr([10], $NL).
+
+new_indent <- [pred].
+new_indent($Indent, $NewIndent) :-
+    strcat("  ", $Indent, $NewIndent).
+
+stringize_attributes <- [pred].
+stringize_attributes([], "") :- !.
+stringize_attributes([XML_ATTR\$Attr & XML_ATTR_VAL\$Val|$Attributes],
+		     $String) :-
+    stringize_attributes($Attributes, $String2),
+    concatenate_string([" ", $Attr, "=""", $Val, """", $String2], $String).
+
+stringize_xml_sub <- [pred].
+stringize_xml_sub($Prim, $Indent, $String) :-
+    primitive_to_string($Prim, $Str),
+    !,
+    strcat($Indent, $Str, $String).
+stringize_xml_sub([], _, "") :-
+    !.
+stringize_xml_sub([$Doc], $Indent, $String) :-
+    !,
+    stringize_xml_sub($Doc, $Indent, $String).
+stringize_xml_sub([$Doc|$Docs], $Indent, $String) :-
+    !,
+    stringize_xml_sub($Doc, $Indent, $String1),
+    stringize_xml_sub($Docs, $Indent, $String2),
+    newline_string($NL),
+    concatenate_string([$String1, $NL, $String2], $String).
+stringize_xml_sub(xml_empty_tag &
+		  XML_TAG\$Tag &
+		  XML_ATTRIBUTES\$Attributes,
+		  $Indent, $String) :-
+    !,
+    (is_string($Tag) ->
+     stringize_attributes($Attributes, $AttrStr),
+     concatenate_string([$Indent, "<", $Tag, $AttrStr, " />"], $String)   %% for XHTML
+%%     concatenate_string([$Indent, "<", $Tag, $AttrStr, ">"], $String)   %% for HTML 3.2
+     ;
+     error_message("XML_TAG requires string\n"),
+     $String = "").
+stringize_xml_sub(xml_pi &
+		  XML_TAG\$Tag &
+		  XML_ATTRIBUTES\$Attributes,
+		  $Indent, $String) :-
+    !,
+    (is_string($Tag) ->
+     stringize_attributes($Attributes, $AttrStr),
+     concatenate_string([$Indent, "<?", $Tag, $AttrStr, "?>"], $String)
+     ;
+     error_message("XML_TAG requires string\n"),
+     $String = "").
+stringize_xml_sub(xml_document &
+		  XML_TAG\$Tag &
+		  XML_ATTRIBUTES\$Attributes &
+		  XML_TEXT\$Text,
+		  $Indent, $String) :-
+    !,
+    (is_string($Tag) ->
+     stringize_attributes($Attributes, $AttrStr),
+     (is_string($Text) ->
+      concatenate_string([$Indent, "<", $Tag, $AttrStr, ">", $Text, "</", $Tag, ">"],
+			 $String)
+      ;
+      new_indent($Indent, $NewIndent),
+      stringize_xml_sub($Text, $NewIndent, $TextStr),
+      newline_string($NL),
+      concatenate_string([$Indent, "<", $Tag, $AttrStr, ">", $NL,
+			  $TextStr, $NL,
+			  $Indent, "</", $Tag, ">"],
+			 $String))
+     ;
+     error_message("XML_TAG requires string\n"),
+     $String = "").
+
+stringize_xml_document($XML, $String) :-
+    stringize_xml_sub($XML, "", $String1),
+    newline_string($NL),
+    strcat($String1, $NL, $String).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+xhtml_to_xml_special <- [pred].
+%% xhtml_to_xml_special(xhtml_fs & XHTML_TEXT\$FS, $Attr,
+%% 		     XML_TAG\"fs" & XML_ATTRIBUTES\$Attr & XML_TEXT\$FSStr) :-
+%%     tfstoxml($FS, $FSStr).
+xhtml_to_xml_special(xhtml_tfstoxml & XHTML_TEXT\$FS,
+		     $FSStr) :-
+    get_variable('*xhtml_fs_namespace*', $NS),
+    get_variable('*xhtml_fs_version*', $Version),
+    tfstoxml_dispatch($Version, $FS, $NS, $FSStr).
+xhtml_to_xml_special(xhtml_treetoxml & XHTML_TEXT\$Tree,
+		     $TreeStr) :-
+    get_variable('*xhtml_fs_namespace*', $NS),
+    get_variable('*xhtml_fs_version*', $Version),
+    treetoxml_dispatch($Version, $Tree, $NS, $TreeStr).
+
+make_attribute_list <- [pred].
+make_attribute_list([], []).
+make_attribute_list([($Attr, $Val)|$List],
+		    [XML_ATTR\$Attr & XML_ATTR_VAL\$Val|$AttrList]) :-
+    is_string($Val),
+    !,
+    make_attribute_list($List, $AttrList).
+make_attribute_list([_|$List], $AttrList) :-
+    make_attribute_list($List, $AttrList).
+
+xhtml_to_xml_dispatch <- [pred].
+xhtml_to_xml_dispatch(xhtml_h1, "h1", []).
+xhtml_to_xml_dispatch(xhtml_h2, "h2", []).
+xhtml_to_xml_dispatch(xhtml_h3, "h3", []).
+xhtml_to_xml_dispatch(xhtml_h4, "h4", []).
+xhtml_to_xml_dispatch(xhtml_h5, "h5", []).
+xhtml_to_xml_dispatch(xhtml_p, "p", []).
+xhtml_to_xml_dispatch(xhtml_a & A_HREF\$HRef & A_TARGET\$Target & A_TYPE\$Type, "a", $Attr) :-
+    make_attribute_list([("href", $HRef), ("target", $Target), ("type", $Type)], $Attr).
+xhtml_to_xml_dispatch(xhtml_div, "div", []).
+xhtml_to_xml_dispatch(xhtml_span, "span", []).
+xhtml_to_xml_dispatch(xhtml_pre, "pre", []).
+xhtml_to_xml_dispatch(xhtml_tr, "tr", []).
+xhtml_to_xml_dispatch(xhtml_td, "td", []).
+xhtml_to_xml_dispatch(xhtml_th, "th", []).
+xhtml_to_xml_dispatch(xhtml_table, "table", []).
+xhtml_to_xml_dispatch(xhtml_caption, "caption", []).
+xhtml_to_xml_dispatch(xhtml_ul, "ul", []).
+xhtml_to_xml_dispatch(xhtml_ol, "ol", []).
+xhtml_to_xml_dispatch(xhtml_li, "li", []).
+xhtml_to_xml_dispatch(xhtml_br, "br", []).
+xhtml_to_xml_dispatch(xhtml_hr, "hr", []).
+xhtml_to_xml_dispatch(xhtml_frameset & FRAME_COLS\$Cols & FRAME_ROWS\$Rows,
+		      "frameset", $Attr) :-
+    make_attribute_list([("cols", $Cols), ("rows", $Rows)], $Attr).
+xhtml_to_xml_dispatch(xhtml_frame & FRAME_SRC\$Src, "frame", $Attr) :-
+    make_attribute_list([("src", $Src)], $Attr).
+xhtml_to_xml_dispatch(xhtml_form & FORM_METHOD\$Method & FORM_TARGET\$Target & FORM_ACTION\$Action,
+		      "form", $Attr) :-
+    make_attribute_list([("method", $Method), ("target", $Target), ("action", $Action)], $Attr).
+xhtml_to_xml_dispatch(xhtml_input & INPUT_TYPE\$Type & INPUT_VALUE\$Value & INPUT_SIZE\$Size,
+		      "input", $Attr) :-
+    make_attribute_list([("type", $Type), ("value", $Value), ("size", $Size)], $Attr).
+xhtml_to_xml_dispatch(xhtml_textarea & TEXTAREA_ROWS\$Rows & TEXTAREA_COLS\$Cols &
+		      TEXTAREA_WRAP\$Wrap, "textarea", $Attr) :-
+    make_attribute_list([("rows", $Rows), ("cols", $Cols), ("wrap", $Wrap)], $Attr).
+xhtml_to_xml_dispatch(xhtml_select & SELECT_NAME\$Name, "select", $Attr) :-
+    make_attribute_list([("name", $Name)], $Attr).
+xhtml_to_xml_dispatch(xhtml_option & OPTION_VALUE\$Value, "option", $Attr) :-
+    make_attribute_list([("value", $Value)], $Attr).
+xhtml_to_xml_dispatch(xhtml_img & IMG_SRC\$Src & IMG_ALT\$Alt & IMG_HEIGHT\$Height & IMG_WIDTH\$Width &
+		      IMG_USEMAP\$UseMap & IMG_ISMAP\$IsMap, "img", $Attr) :-
+    make_attribute_list([("src", $Src), ("alt", $Alt), ("height", $Height), ("width", $Width),
+			 ("usemap", $UseMap), ("ismap", $IsMap)], $Attr).
+xhtml_to_xml_dispatch(xhtml_script & SCRIPT_SRC\$Src & SCRIPT_TYPE\$Type & SCRIPT_CHARSET\$Charset, "script", $Attr) :-
+    make_attribute_list([("src", $Src), ("type", $Type), ("script", $Charset)], $Attr).
+xhtml_to_xml_dispatch(xhtml_object & OBJECT_NAME\$Name & OBJECT_DATA\$Data & OBJECT_TYPE\$Type &
+		      OBJECT_ARCHIVE\$Archive & OBJECT_CLASSID\$ClassID & OBJECT_CODETYPE\$CodeType & OBJECT_CODEBASE\$CodeBase &
+		      OBJECT_STANDBY\$Standby & OBJECT_HEIGHT\$Height & OBJECT_WIDTH\$Width &
+		      OBJECT_USEMAP\$UseMap & OBJECT_ISMAP\$IsMap,
+		      "object", $Attr) :-
+    make_attribute_list([("name", $Name), ("data", $Data), ("type", $Type),
+			 ("archive", $Archive), ("classid", $ClassID), ("codetype", $CodeType), ("codebase", $CodeBase),
+			 ("standby", $Standby), ("height", $Height), ("width", $Width),
+			 ("usemap", $UseMap), ("ismap", $IsMap)],
+			$Attr).
+xhtml_to_xml_dispatch(xhtml_param & PARAM_NAME\$Name & PARAM_VALUE\$Value & PARAM_VALUETYPE\$ValueType & PARAM_TYPE\$Type,
+		      "param", $Attr) :-
+    make_attribute_list([("name", $Name), ("value", $Value), ("valuetype", $ValueType), ("type", $Type)], $Attr).
+xhtml_to_xml_dispatch(xhtml_map & MAP_NAME\$Name, "map", $Attr) :-
+    make_attribute_list([("name", $Name)], $Attr).
+xhtml_to_xml_dispatch(xhtml_area & AREA_ALT\$Alt & AREA_HREF\$Href & AREA_NOHREF\$NoHref & AREA_SHAPE\$Shape & AREA_COORDS\$Coords,
+		      "area", $Attr) :-
+    make_attribute_list([("alt", $Alt), ("href", $Href), ("nohref", $NoHref), ("shape", $Shape), ("coords", $Coords)], $Attr).
+
+%% extended tags
+xhtml_to_xml_dispatch(xhtml_fs & SHARED_ID\$SharedID, $Tag, $Attr) :-
+    attach_namespace("fs", $Tag),
+    make_attribute_list([("shared_id", $SharedID)], $Attr).
+xhtml_to_xml_dispatch(xhtml_feat & FEAT_EDGE\$Edge, $Tag, $Attr) :-
+    attach_namespace("feat", $Tag),
+    make_attribute_list([("edge", $Edge)], $Attr).
+xhtml_to_xml_dispatch(xhtml_tree, $Tag, []) :-
+    attach_namespace("tree", $Tag).
+xhtml_to_xml_dispatch(xhtml_node, $Tag, []) :-
+    attach_namespace("node", $Tag).
+xhtml_to_xml_dispatch(xhtml_dtr & DTR_EDGE\$Edge, $Tag, $Attr) :-
+    attach_namespace("dtr", $Tag),
+    make_attribute_list([("edge", $Edge)], $Attr).
+xhtml_to_xml_dispatch(xhtml_type, $Tag, []) :-
+    attach_namespace("type", $Tag).
+xhtml_to_xml_dispatch(xhtml_decimal, $Tag, []) :-
+    attach_namespace("decimal", $Tag).
+xhtml_to_xml_dispatch(xhtml_float, $Tag, []) :-
+    attach_namespace("float", $Tag).
+xhtml_to_xml_dispatch(xhtml_doublequoted, $Tag, []) :-
+    attach_namespace("doublequoted", $Tag).
+xhtml_to_xml_dispatch(xhtml_singlequoted, $Tag, []) :-
+    attach_namespace("singlequoted", $Tag).
+
+xhtml_to_xml($Prim, $XML) :-
+    primitive_to_string($Prim, $XML),
+    !.
+xhtml_to_xml([], []) :- !.
+xhtml_to_xml([$XHTML|$XHTMLList], [$XML|$XMLList]) :-
+    !,
+    xhtml_to_xml($XHTML, $XML),
+    xhtml_to_xml($XHTMLList, $XMLList).
+xhtml_to_xml($XML & xml, $XML) :- !.
+xhtml_to_xml($XHTML, $XML) :-
+    xhtml_to_xml_special($XHTML, $XML),
+    !.
+xhtml_to_xml($XHTML & xhtml_tag_base &
+	     XHTML_CLASS\$Class & XHTML_ID\$ID & XHTML_NAME\$Name & XHTML_ATTRIBUTES\$XHTMLAttr,
+	     $XML & XML_TAG\$XMLTag & XML_ATTRIBUTES\$XMLAttributes) :-
+    make_attribute_list([("class", $Class), ("id", $ID), ("name", $Name)], $Attr),
+    append($Attr, $XHTMLAttr, $BaseAttr),
+    xhtml_to_xml_dispatch($XHTML, $XMLTag, $AddAttr),
+    append($AddAttr, $BaseAttr, $XMLAttributes),
+    ($XHTML = XHTML_TEXT\$Text ->
+     $XML = XML_TEXT\$XMLText,
+     xhtml_to_xml($Text, $XMLText) ;
+     true).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+map_xhtml_doctype <- [pred].
+%% HTML support
+map_xhtml_doctype(html_4_01,
+		  "<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"" ""http://www.w3.org/TR/html4/loose.dtd"">") :- !.
+map_xhtml_doctype(html_4_01_strict,
+		  "<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.01//EN"" ""http://www.w3.org/TR/html4/strict.dtd"">") :- !.
+map_xhtml_doctype(html_4_01_transitional,
+		  "<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"" ""http://www.w3.org/TR/html4/loose.dtd"">") :- !.
+map_xhtml_doctype(html_4_01_frameset,
+		  "<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.01 Frameset//EN"" ""http://www.w3.org/TR/html4/frameset.dtd"">") :- !.
+map_xhtml_doctype(html_3_2,
+		  "<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 3.2 Final//EN"">") :- !.
+%% XHTML support
+map_xhtml_doctype(xhtml_1_1,
+		  ["<?xml version=""1.0""?>",
+		   "<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.1//EN"" ""http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"">"]) :- !.
+map_xhtml_doctype(xhtml_1_0,
+		  ["<?xml version=""1.0""?>",
+		   "<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"">"]) :- !.
+map_xhtml_doctype(xhtml_1_0_strict,
+		  ["<?xml version=""1.0""?>",
+		   "<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Strict//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"">"]) :- !.
+map_xhtml_doctype(xhtml_1_0_transitional,
+		  ["<?xml version=""1.0""?>",
+		   "<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"">"]) :- !.
+map_xhtml_doctype(xhtml_1_0_frameset,
+		  ["<?xml version=""1.0""?>",
+		   "<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Frameset//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd"">"]) :- !.
+
+map_xhtml_content_type <- [pred].
+map_xhtml_content_type(_, $ContentType) :-
+    is_string($ContentType),
+    !.
+map_xhtml_content_type(xhtml_version_html,
+		       "text/html") :- !.
+map_xhtml_content_type(xhtml_version_xhtml,
+		       "application/xhtml+xml") :- !.
+
+make_css_link <- [pred].
+make_css_link($CSS & string, $CSSLink) :-
+    is_string($CSS),
+    !,
+    $CSSLink = [xml_empty_tag &
+		XML_TAG\"link" &
+		XML_ATTRIBUTES\[XML_ATTR\"rel" & XML_ATTR_VAL\"stylesheet",
+				XML_ATTR\"type" & XML_ATTR_VAL\"text/css",
+				XML_ATTR\"href" & XML_ATTR_VAL\$CSS]].
+make_css_link([], []) :-
+    !.
+make_css_link([$CSS & string|$CSSs], $CSSLinks) :-
+    is_string($CSS),
+    !,
+    make_css_link($CSS, $CSSLink),
+    append($CSSLink, $CSSLinks1, $CSSLinks),
+    make_css_link($CSSs, $CSSLinks1).
+make_css_link(_, []).
+
+make_xsl_link <- [pred].
+make_xsl_link($XSL & string, $XSLLink) :-
+    is_string($XSL),
+    !,
+    $XSLLink = [xml_pi &
+		XML_TAG\"xml-stylesheet" &
+		XML_ATTRIBUTES\[XML_ATTR\"type" & XML_ATTR_VAL\"text/xsl",
+				XML_ATTR\"href" & XML_ATTR_VAL\$XSL]].
+make_xsl_link([], []) :-
+    !.
+make_xsl_link([$XSL & string|$XSLs], $XSLLinks) :-
+    is_string($XSL),
+    !,
+    make_xsl_link($XSL, $XSLLink),
+    append($XSLLink, $XSLLinks1, $XSLLinks),
+    make_xsl_link($XSLs, $XSLLinks1).
+make_xsl_link(_, []).
+
+stringize_xhtml_document(XHTML_VERSION\$Version &
+			 XHTML_CONTENT_TYPE\$ContentType &
+			 XHTML_CSS\$CSS &
+			 XHTML_XSL\$XSL &
+			 XHTML_TITLE\$Title &
+			 XHTML_BODY\$Body,
+			 $String) :-
+    map_xhtml_doctype($Version, $DocType),
+    map_xhtml_content_type($Version, $ContentType),
+    make_css_link($CSS, $CSSLink),
+    make_xsl_link($XSL, $XSLLink),
+    get_variable('*xhtml_fs_namespace*', $FSNameSpace),
+    ($FSNameSpace = "" ->
+     $XMLNS_FS_Attributes = [] ;
+     strcat("xmlns:", $FSNameSpace, $XMLNS_FS),
+     $XMLNS_FS_Attributes = [XML_ATTR\$XMLNS_FS & XML_ATTR_VAL\"http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes"]),
+    $XHTML = (XML_TAG\"html" &
+	      XML_ATTRIBUTES\[XML_ATTR\"xmlns" & XML_ATTR_VAL\"http://www.w3.org/1999/xhtml"|$XMLNS_FS_Attributes] &
+%%	      XML_ATTRIBUTES\[] &
+	      XML_TEXT\[(XML_TAG\"head" &
+			 XML_ATTRIBUTES\[] &
+			 XML_TEXT\$Header),
+			$XMLMain]),
+    $Header = [
+	       xml_empty_tag &
+	       XML_TAG\"meta" &
+	       XML_ATTRIBUTES\[XML_ATTR\"http-equiv" & XML_ATTR_VAL\"Content-Type",
+			       XML_ATTR\"content" & XML_ATTR_VAL\$ContentType],
+	       XML_TAG\"title" &
+	       XML_ATTRIBUTES\[] &
+	       XML_TEXT\$Title
+	       |$CSSLink],
+    xhtml_to_xml($Body, $XMLBody),
+    ($Body = xhtml_frameset ->
+     $XMLMain = $XMLBody ;
+     $XMLMain = (XML_TAG\"body" &
+		 XML_ATTRIBUTES\[] &
+		 XML_TEXT\$XMLBody)),
+    stringize_xml_document([$DocType, $XSLLink, $XHTML], $String).
+
+stringize_xhtml_fragment($XHTML, $String) :-
+    xhtml_to_xml($XHTML, $XML),
+    stringize_xml_document($XML, $String).
+
+stringize_xhtml_cgi($XHTML & XHTML_VERSION\$Version & XHTML_CONTENT_TYPE\$ContentType, $Response) :-
+    map_xhtml_content_type($Version, $ContentType),
+    formattostr("Content-Type: ~s\r\n\r\n", [$ContentType], $Header),
+    stringize_xhtml_document($XHTML, $Content),
+    strcat($Header, $Content, $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Convert list to xml
+%% This predicate should be implemented as built-in
+
+treetoxml_dtrs <- [pred].
+treetoxml_dtrs([], _, []).
+treetoxml_dtrs([$Edge, $Dtr|$Dtrs], $FSNS, [$XMLDtr|$XMLDtrs]) :-
+    treetoxml($Dtr, $FSNS, $XMLDtr1),
+    ($FSNS = "" ->
+     $DtrTag = "dtr" ;
+     strcat($FSNS, ":dtr", $DtrTag)),
+    concatenate_string(["<", $DtrTag, " edge=""", $Edge, """>", $XMLDtr1, "</", $DtrTag, ">"], $XMLDtr),
+    treetoxml_dtrs($Dtrs, $FSNS, $XMLDtrs).
+treetoxml($Str & string, _, $Term) :-
+    encode_xml_string($Str, $Term).
+treetoxml([$Str|$Dtrs], $FSNS, $XML) :-
+    ($FSNS = "" ->
+     $TreeTag = "tree" ;
+     strcat($FSNS, ":tree", $TreeTag)),
+    encode_xml_string($Str, $NTS),
+    treetoxml_dtrs($Dtrs, $FSNS, $XMLDtrs),
+    join($XMLDtrs, "", $XMLDtrsStr),
+    concatenate_string(["<", $TreeTag, ">", $NTS, $XMLDtrsStr, "</", $TreeTag, ">"], $XML).
+
+treetoxml($Tree, $XML) :-
+    treetoxml($Tree, "", $XML).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Backward compatibility
+
+tfstoxml_dispatch("1.0", $FS, $FSNS, $XML) :-
+    !,
+    tfstoxml_old($FS, $FSNS, $XML).
+tfstoxml_dispatch("2.0", $FS, $FSNS, $XML) :-
+    !,
+    tfstoxml($FS, $FSNS, $XML).
+tfstoxml_dispatch($Version, _, _, _) :-
+    !,
+    error_message("Unknown xhtml_fs version in tfstoxml/3: ~s\n", [$Version]),
+    fail.
+
+treetoxml_old($Tree, _, $XML) :-
+    output_list($Tree, $Str1),
+    encode_xml_string($Str1, $Str2),
+    concatenate_string(["<tree data=""", $Str2, """>"], $XML).
+
+treetoxml_dispatch("1.0", $Tree, $FSNS, $XML) :-
+    !,
+    treetoxml_old($Tree, $FSNS, $XML).
+treetoxml_dispatch("2.0", $Tree, $FSNS, $XML) :-
+    !,
+    treetoxml($Tree, $FSNS, $XML).
+treetoxml_dispatch($Version, _, _, _) :-
+    !,
+    error_message("Unknown xhtml_fs version in treetoxml/3: ~s\n", [$Version]),
+    fail.
+

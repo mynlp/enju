@@ -1,0 +1,151 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html lang=ja>
+
+<!-- Time-stamp: "2004-05-14 23:13:38 yusuke" -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="prev" href="chap5.ja.html">
+<link rel="stylesheet" type="text/css" href="style-chap6.css">
+<title>Chap. 6  Programming Tips</title>
+</head>
+
+
+
+<body>
+<h1>Programming Tips</h1>
+
+<a href="chap6.html">English version</a>
+
+<ul>
+      <li><a href="#overload">引数の数が異なる述語を定義する</a>
+      <li><a href="#builtin">C++で組み込み述語を実装する</a>
+</ul>
+
+<hr>
+
+<h3><a name="overload">引数の数が異なる述語を定義する</a></h3>
+
+通常の述語の型定義に加えて，それぞれの述語についての型を定義する必要があ
+ります．例えば，<code>Z=X+Y</code>を計算する述語
+<code>inc(X,Y,Z)</code>を定義するとき，<code>Y</code>が省略された場合は
+<code>Y=1</code>とする述語<code>inc(X,Z)</code>も定義したいとします．そ
+のとき，3引数の述語の型'inc/3'と2引数の述語の型'inc/2'を定義します．
+<blockquote>
+<table border=1>
+<tr><td>
+<pre>
+inc &lt;- [pred].
+'inc/2' &lt;- ['pred/2', inc].
+'inc/3' &lt;- ['pred/3', 'inc/2'].
+</pre>
+</td></tr>
+</table>
+</blockquote>
+'inc/2', 'inc/3' はそれぞれ2引数，3引数の述語に対する型です．'pred/2',
+'pred/3'は全ての2引数，3引数の述語の親の型です．'inc/2', 'inc/3'ともプロ
+グラム中ではincという型で記述されるので，inc と単一化可能である必要があ
+ります．また，'inc/3'はincの直接の子供にはなれない('pred/3'は'pred/2'の
+子なので，incと'pred/2'とのleast upper boundが複数できてしまう）ので，
+'inc/2'の子供として定義します．また，/は型名には使えないので，''で囲む必
+要があります．
+
+このように型を定義すると，引数の数が異なる述語を定義することができます．
+<blockquote>
+<table border=1>
+<tr><td>
+<pre>
+inc(X, Y, Z) :-
+    Z is X + Y.
+inc(X, Z) :-
+    inc(X, 1, Z).
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+通常の述語の型定義は<code>inc &lt;- [pred].</code>だけですみますが，実際
+には<code>'inc/3' &lt;- ['pred/3', inc]</code>という型も自動的に生成され
+ています．引数の数が異なる述語を定義するときは，これを明示的に定義する必
+要があるわけです．
+
+<hr>
+
+<h3><a name="builtin">C++の組み込み述語を実装する</a></h3>
+
+LiLFeS では，C++のプログラムを簡単に組み込むことができます．例えば，
+<code>Z=X+Y</code>という計算を行う組み込み述語<code>add(X,Y,Z)</code>の
+C++による実装は，以下のようになります．
+<blockquote>
+<table border=1>
+<tr><td>
+<pre>
+// まず，第一引数が machine クラス，残りが FSP，返り値が bool の
+// 関数を実装します．
+bool add(machine& m, FSP arg1, FSP arg2, FSP arg3 )
+{
+  // ここ以下では，FSP クラス (structur.{h,cpp} で定義されている)
+  // のインスタンスである arg1, arg2, ... を使って，述語の引数に
+  // アクセスします．
+
+  // まず，エラーチェックをします．ここでは，arg1, arg2 は integer
+  // でなければならないので，そのチェックを行います．
+  // 素性構造の処理のためのいろいろなメソッドは FSP クラスで
+  // 提供されています．
+  if ( ! arg1.IsInteger() || ! arg2.IsInteger() ) {
+    // どちらかが integer で無い場合は，メッセージを表示します．
+    // RUNWARN はランタイムワーニングのメッセージを表示するマクロです．
+    RUNWARN( "Arguments of 'add/3' must be integers" );
+    // 組み込み述語を fail させるには，false を返します．
+    return false;
+  }
+
+  // 引数の素性構造を C++ の int 型に変換します．
+  int X = arg1.ReadInteger();
+  int Y = arg2.ReadInteger();
+  // Z = X + Y を計算します．
+  int Z = X + Y;
+
+  // 結果の整数を素性構造に変換します．
+  FSP result = FSP( m, Z );
+
+  // 結果の素性構造を第3引数と単一化します．
+  // 単一化が成功すれば true, 失敗すると false が返ってきます．
+  if ( ! arg3.Unify( result ) ) {
+    // 単一化が失敗した場合は，この組み込み述語も失敗させます．
+    return false;
+  }
+  // 組み込み述語の実行が成功した場合は，true を返します．
+  return true;
+}
+
+// この関数を lilfes の組み込み述語として登録する場合は，
+// LILFES_BUILTIN_PRED_X というマクロを使います．X は述語の
+// 引数の数です．第一引数は C++ の関数名，第二引数は lilfes
+// での述語名です．
+LILFES_BUILTIN_PRED_3(add, add);
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+以上のようなインタフェースでプログラムを実装すれば，どのようなC++ プログ
+ラムも LiLFeS に組み込むことができます．素性構造の処理は FSPクラスを使っ
+て行い，抽象機械の操作（ヒープやスタックへのアクセスなど）は machine ク
+ラスを使って行います．その他，組み込み述語を実装するときに便利なマクロや
+関数はbuiltin.{h,cpp}で定義されていますので，そちらを参照してください．
+
+<hr>
+<a href="chap5.ja.html">5章 エラーメッセージ</a>
+
+<hr>
+<a href="index.ja.html">目次</a>
+<a href="../index.ja.html">LiLFeSドキュメント</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/index-j.html">LiLFeSホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/index-j.shtml">辻井研究室</a>
+
+</body>
+</html>
+

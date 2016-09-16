@@ -1,0 +1,381 @@
+%/**
+  * @module    = lillib:fs
+  * @cvs       = $Id: fs.lil,v 1.2 2009-07-09 02:30:52 yusuke Exp $
+  * @copyright = Copyright (c) 1998--1999, MITSUISHI Yutaka
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @version   = April 07, 1999
+  * @since     = July 08, 1998
+  * @desc      = Useful predicate for manipulating feature structures
+  * Feature-structure manipulating routines
+%*/
+
+:- module("lillib:fs").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+glb <- [pred].
+type_glb <- [pred].
+
+restriction_cycle <- [pred].
+have_cycle <- [pred].
+
+find_diff_point <- [pred].
+
+fail_reason <- [bot].
+failpathbase <- [fail_reason] + [fail_constr\, failpath\, failreason\ fail_reason].
+failtypesbase <- [fail_reason] + [fail_1\, fail_2\].
+failpathtypesbase <- [failpathbase, failtypesbase].
+
+fail_unknown <- [fail_reason] + [fail_desc\].
+fail_types <- [fail_reason, failtypesbase].
+
+fail_other <- [fail_reason, failpathtypesbase].
+fail_1_constr <- [fail_reason, failpathtypesbase].
+fail_2_constr <- [fail_reason, failpathtypesbase].
+
+find_fail_point <- [pred].
+
+find_all_fail_point <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+:- ensure_loaded("lists").
+:- ensure_loaded("tools").
+
+%/**
+  * @predicate = glb(+$FS1, +$FS2, -$FS3)
+  * @desc      = greatest lower bound of feature structures
+  * -$FS3 is the Greatest Lower Bound of $FS1 and $FS2.
+  * Let's try these.
+  * @example =
+  * ?- A=[1,1|A], B=[1,1,1|B], glb(A,B,GLB).
+  * ?- A=[1,2|A], B=[1,2,3|B], glb(A,B,GLB).
+  * @end_example
+%*/
+
+type_supersume <- [pred].
+type_supersume(X,Y) :- type_subsume(Y,X).
+
+msg2 <- [pred].
+msg_feats <- pred.
+msg_nofeat <- pred.
+rec_check_sub <- pred.
+
+glb(X,Y,Z) :- msg2([],X,Y,Z,bot).
+type_glb(X,Y,Z) :- msg_nofeat(X,Y,Z).
+msg2(ML,X,Y,Z,ML) :- rec_check_sub(X,Y,Z,ML), !.
+msg2(ML,X,Y,Z,[(X,Y,Z)|ML]) :-
+             simple(X), !, msg_nofeat(X,Y,Z).
+msg2(ML,X,Y,Z,[(X,Y,Z)|ML]) :-
+             simple(Y), !, msg_nofeat(X,Y,Z).
+msg2(ML,X,Y,Z,NEWML) :- msg_nofeat(X,Y,Z),
+                  type_featurelist(Z,FL),
+                  msg_feats([(X,Y,Z)|ML],X,Y,FL,Z,NEWML).
+
+rec_check_sub(X,Y,Z,[(X1,Y1,Z)|_ML]) :-
+                   identical(X,X1), identical(Y,Y1), !.
+rec_check_sub(X,Y,Z,[_A|ML]) :- rec_check_sub(X,Y,Z,ML).
+
+msg_feats(ML,_X,_Y,[],_Z,ML) :- !.
+msg_feats(ML,X,Y,[F|FR],Z,NEWML) :- follow(X,F,XF),
+                           follow(Y,F,YF),
+                           msg2(ML,XF,YF,ZF,ML2),
+                           follow(Z,F,ZF2), ZF=ZF2,
+                           msg_feats(ML2,X,Y,FR,Z,NEWML).
+
+
+% msg_nofeat(X,Y,bot) only is also Ok.
+%msg_nofeat(X & integer, Y & integer, Z) :- equivalent(X,Y), !, copy(X,Z).
+%msg_nofeat(X & float, Y & float, Z) :- equivalent(X,Y), !, copy(X,Z).
+%msg_nofeat(X & string, Y & string, Z) :- equivalent(X,Y), !, copy(X,Z).
+msg_nofeat(X,Y,Z) :-
+    (is_integer(X), is_integer(Y), equivalent(X,Y) -> copy(X, Z)
+     ;
+     (is_float(X), is_float(Y), equivalent(X,Y) -> copy(X, Z)
+      ;
+      (is_string(X), is_string(Y), equivalent(X,Y) -> copy(X, Z)
+       ;
+       type_supertypes(X,XT),
+       type_supertypes(Y,YT),
+       qsort(XT,type_supersume,XT2),
+       qsort(YT,type_supersume,YT2),
+       member(T1,XT2),
+       member(T2,YT2),
+       type_equal(T1,T2), !,
+       Z=T1))).
+
+
+%/**
+  * @predicate = restriction_cycle(+$FS)
+  * @param     = +$FS/bot
+  * @desc      = restrict cycles in $FS
+%*/
+
+restriction_cycle0 <- [pred].
+restriction_cycle_compound <- [pred].
+
+restriction_cycle($FS) :-
+    restriction_cycle0($FS, []).
+
+restriction_cycle0($FS, $STACK) :-
+    (simple($FS) -> true;
+     type_featurelist($FS, $FF),
+     restriction_cycle_compound($FF, $FS, $STACK)).
+
+restriction_cycle_compound([], _, _).
+restriction_cycle_compound([$F|$FF], $FS, $STACK) :-
+    follow($FS, $F, $FS1),
+    (memberchk_i($FS1, $STACK)
+     ->
+     restriction($FS, $F),
+     restriction_cycle_compound($FF, $FS, $STACK)
+     ;
+     restriction_cycle0($FS1, [$FS|$STACK]),
+     restriction_cycle_compound($FF, $FS, $STACK)).
+
+%/**
+  * @predicate = have_cycle(+$FS)
+  * @param     = +$FS/bot
+  * @desc      = this is true if $FS has a cycle
+%*/
+
+have_cycle0 <- [pred].
+have_cycle_compound <- [pred].
+
+have_cycle($FS) :-
+    \+have_cycle0($FS, []).
+
+have_cycle0($FS, $STACK) :-
+    (simple($FS) -> true;
+     type_featurelist($FS, $FF),
+     have_cycle_compound($FF, $FS, $STACK)).
+
+have_cycle_compound([], _, _).
+have_cycle_compound([$F|$FF], $FS, $STACK) :-
+    follow($FS, $F, $FS1),
+    (memberchk_i($FS1, $STACK)
+     ->
+     fail
+     ;
+     have_cycle0($FS1, [$FS|$STACK]),
+     have_cycle_compound($FF, $FS, $STACK)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = find_diff_point(+$A, +$B, -$PATH, -$AVal, -$BVal)
+  * @param     = +$A/bot
+  * @param     = +$B/bot
+  * @param     = -$PATH/list
+  * @param     = -$AVal/bot
+  * @param     = -$BVal/bot
+  * @desc      = find paths of different values
+%*/
+
+find_diff_point0 <- [pred].
+find_diff_point_loop <- [pred].
+find_diff_point_loop([], _, _, true, _, _, $Visited, $Visited).
+find_diff_point_loop([$Feat|$Feats], $A, $B, $Path, $AVal, $BVal, $InVisited, $OutVisited) :-
+    follow($A, $Feat, $ADtr),
+    follow($B, $Feat, $BDtr),
+    find_diff_point0($ADtr, $BDtr, $Path0, $AVal0, $BVal0, $InVisited, $Visited),
+    ($Path0 = true ->
+     find_diff_point_loop($Feats, $A, $B, $Path, $AVal, $BVal, $Visited, $OutVisited) ;
+%%     $Path = [$Feat|$Path0],
+     append([$Feat], $Path0, $Path),  %% to avoid compile-time type coercion
+     $AVal = $AVal0,
+     $BVal = $BVal0,
+     $Visited = $OutVisited).
+find_diff_point0($A, _, true, _, _, $Visited, $Visited) :-
+    memberchk_i($A, $Visited),  %% already visited
+    !.
+find_diff_point0($A, $B, $Path, $AVal, $BVal, $InVisited, $OutVisited) :-
+    type_equal($A, $B),
+    !,
+    type_featurelist($A, $FeatList),
+    find_diff_point_loop($FeatList, $A, $B, $Path, $AVal, $BVal, [$A|$InVisited], $OutVisited).
+find_diff_point0($A, $B, [], $AVal, $BVal, $Visited, $Visited) :-  %% different point found
+    type_toptype($A, $AVal),
+    type_toptype($B, $BVal).
+
+find_diff_point($A, $B, $Path, $AVal, $BVal) :-
+    find_diff_point0($A, $B, $Path, $AVal, $BVal, [], _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = find_fail_point(+$A, +$B, -$PATH, -$REASON)
+  * @param     = +$A/bot
+  * @param     = +$B/bot
+  * @param     = -$PATH/list
+  * @param     = -$REASON/fail_reason
+  * @desc      = find failure paths of unification of feature structures
+  * This predicate shows us the failing point when we try to unify $A and $B.
+  * $PATH is the path to the failing point, and $REASON is the reason
+  * of its unification failure.  $REASON should be,
+  * <ul>
+  * <li>fail_unknown    : unknown (error, bug of implementation or something?)
+  * <li>fail_types      : incompatible,       type($A) v.s. type($B)
+  * <li>fail_1_constr: incompatible,       type($A) v.s. constraint($B)
+  * <li>fail_2_constr: incompatible, constraint($A) v.s. type($B)
+  * <li>fail_other      : incompatible? constraint($A) v.s. constraint($B) (I'm not sure, ask makino)
+  * </ul>
+%*/
+
+find_fail_point_destructive <- [pred].
+find_fail_point0 <- [pred].
+find_visited <- [pred].
+find_fail_point1 <- [pred].
+
+find_fail_point($A, $B, $PATH, $REASON) :-
+	copy($A, $AX),
+	copy($B, $BX),
+	find_fail_point0($AX, $BX, $PATH, $REASON & fail_reason, [], _), !.
+
+find_fail_point_destructive($A, $B, $PATH, $REASON) :-
+	find_fail_point0($A, $B, $PATH, $REASON & fail_reason, [], _), !.
+
+find_fail_point0($A, $B, $PATH, $REASON, $VLI, $VLO) :-
+	(copy($A,$AX), copy($B,$BX), $AX = $BX -> $REASON = true, $VLI = $VLO)
+	;
+	(
+		find_visited( $VLI, $A, $B ) ->
+		(
+			$VLI = $VLO, $PATH = [], $REASON = fail_unknown & fail_desc\ 0
+		) ; (
+			$REASON = fail_reason,
+			$VL1 = [($A,$B)|$VLI],
+			type_toptype($A, $AT),
+			type_toptype($B, $BT),
+			( $AT \= $BT -> 
+				$PATH = [], $VLI = $VLO, $REASON = fail_1\ $AT & fail_2\ $BT
+			;
+				(
+					$AT = $BT, $REASON1 = fail_reason,
+					copy( $AT, $CONSTR ),
+					type_featurelist($AT, $FL),
+					(
+						( compound($A), compound($B),
+							find_fail_point1($FL, $A, $B, $PATH, $REASON,  $VL1, $VLO) 
+						)
+						;
+						( compound($AT), compound($B),
+							find_fail_point1($FL, $AT, $B, $PATHX, $REASON1,  $VL1, $VLO),
+							type_toptype($A, $ATT),
+							$PATH = [],
+							$REASON = fail_2_constr & 
+								fail_1\ $ATT & 
+								fail_2\ $B & 
+								fail_constr\ $CONSTR  &
+								failpath\ $PATHX &
+								failreason\ $REASON1
+						)
+						;
+						( compound($A), compound($BT),
+							find_fail_point1($FL, $A, $BT, $PATHX, $REASON1,  $VL1, $VLO),
+							$PATH = [],
+							type_toptype($B, $BTT),
+							$REASON = fail_1_constr & 
+								fail_1\ $A  & 
+								fail_2\ $BTT  & 
+								fail_constr\ $CONSTR &
+								failpath\ $PATHX &
+								failreason\ $REASON1
+						)
+						;
+						( compound($B), copy($A, $AX), type_toptype($B, $AX),
+							$AX \= $B,
+							find_fail_point1($FL, $AX, $B, $PATHX, $REASON1,  [], _),
+							$PATH = [],
+							$REASON = fail_other & 
+								fail_1\ $A &
+								fail_2\ $B & 
+								fail_constr\ $CONSTR  &
+								failpath\ $PATHX &
+								failreason\ $REASON1,
+							$VLI = $VLO )
+						;
+						( compound($A), copy($B, $BX), type_toptype($A, $BX),
+							$A \= $BX,
+							find_fail_point1($FL, $A, $BX, $PATHX, $REASON1,  [], _),
+							$PATH = [],
+							$REASON = fail_other & 
+								fail_1\ $A & 
+								fail_2\ $B & 
+								fail_constr\ $CONSTR &
+								failpath\ $PATHX &
+								failreason\ $REASON1,
+							$VLI = $VLO )
+						;
+						$PATH = [], $VLI = $VLO, $REASON = fail_unknown & fail_desc\ 1
+					)
+				)
+			)
+		)
+	).
+
+find_fail_point1([], _$A, _$B, _$PATH, true, $VL, $VL).
+
+find_fail_point1([$F|$R], $A, $B, $PATH, $REASON, $VLI, $VLO) :-
+	(type_havefeature($A, $F) -> follow($A, $F, $AF) ; type_toptype($A, $AT), follow($AT, $F, $AF)),
+	(type_havefeature($B, $F) -> follow($B, $F, $BF) ; type_toptype($B, $BT), follow($BT, $F, $BF)),
+	( $AF = $BF ->
+		find_fail_point1($R, $A, $B, $PATH, $REASON, $VLI, $VLO)
+	;
+		find_fail_point0($AF, $BF, $PATH1, $R1, $VLI, $VLO),
+		( $R1 = fail_reason ->
+			$PATH = [$F | $PATH1], $REASON = $R1
+		;
+			$PATH = [],  $REASON = fail_unknown & fail_desc\ 2
+		)
+	).
+
+
+find_visited([($X,$Y) | _], $A, $B) :-
+	identical($X, $A), identical($Y, $B).
+
+find_visited([_ | $R], $A, $B) :-
+	find_visited($R, $A, $B).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = find_all_fail_point(+$A, +$B, -$PATHs, -$REASONs)
+  * @param     = +$A/bot
+  * @param     = +$B/bot
+  * @param     = -$PATHs/list of list
+  * @param     = -$REASONs/list of fail_reason
+  * @see       = #find_fail_point/4
+  * This predicate finds all the unification failing points in $A and $B.
+  * In this predicate, <a href="#find_fail_point/4">'find_fail_point'</a>
+  * is called to find a failing point
+  * and all the failing points are retrieved by removing the last failing point in $A by
+  * 'restriction' and calling 'find_fail_point' again.
+%*/
+find_all_fail_point0 <- [pred].
+
+find_all_fail_point($A, $B, $PATHs, $REASONs) :-
+    copy($A, $AX), copy($B, $BX),
+    find_all_fail_point0($AX, $BX, $PATHs, $REASONs).
+
+find_all_fail_point0($A, $B, $PATHs, $REASONs) :-
+    (find_fail_point_destructive($A, $B, $PATH, $REASON)
+     ->
+     ($PATH = [] ->
+      $PATHs = [], $REASONs = []
+      ;
+      (follow_if_exists($A, $PATH, _)
+       -> restriction($A, $PATH) ; true),
+
+      (follow_if_exists($B, $PATH, _)
+       -> restriction($B, $PATH) ; true),
+      
+      $PATHs = [$PATH|$PATHs_T],
+      $REASONs = [$REASON|$REASONs_T],
+      find_all_fail_point0($A, $B, $PATHs_T, $REASONs_T))
+     ; $PATHs = [], $REASONs = []).
+

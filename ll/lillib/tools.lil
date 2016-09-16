@@ -1,0 +1,186 @@
+%/**********************************************************************
+  * @module    = lillib:tools
+  * @copyright = Copyright (c) 1998--1999, Roland Steiner
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = Roland Steiner
+  * @version   = 09/11/98
+  * @desc      = Basic tools
+  * Useful predicates galore.
+  **********************************************************************
+%*/
+
+:- module("lillib:tools").
+
+:- module_interface.
+
+min						<- [pred].
+lmin					<- [pred].
+max						<- [pred].
+lmax					<- [pred].
+
+qsort					<- [pred].
+
+repeat					<- [pred].
+while					<- [pred].
+forwhile				<- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lists").
+
+% Minimum/Maximum
+
+%/**
+  * @predicate = min(+A, +B, ?Min)
+  * @param     = +A: number
+  * @param     = +B: number
+  * @param     = ?Min: minimum between A & B
+  * Calculates the minimum between A and B, or succeeds if the minimum is equal to Min
+%*/
+
+min(A,B,A) :- A <= B, !.
+min(_,B,B).
+
+%/**
+  * @predicate = lmin(+L, ?Min)
+  * @param     = +L:	 list of numbers
+  * @param     = ?Min: the minimum number among the list
+  * Calculates the minimum of all numbers given in the list L,
+  * or succeeds if the minimum is equal to Min
+%*/
+
+'lmin/2' <- [lmin,'pred/2'].
+'lmin/3' <- ['lmin/2','pred/3'].
+
+lmin([E|L],Min)			:- lmin(L,E,Min).
+
+lmin([],Min,Min).
+lmin([E|L],CurrMin,Min)	:- E < CurrMin, !, lmin(L,E,Min).
+lmin([_|L],CurrMin,Min)	:- lmin(L,CurrMin,Min).
+
+%/**
+  * @predicate = max(+A, +B, ?Max)
+  * @param     = +A: number
+  * @param     = +B: number
+  * @param     = ?Max: maximum between A & B
+  * Calculates the maximum between A and B, or succeeds if the maximum is equal to Max
+%*/
+
+max(A,B,A) :- A >= B, !.
+max(_,B,B).
+
+%/**
+  * @predicate = lmax(+L, ?Max)
+  * @param     = +L:	 list of numbers
+  * @param     = ?Max: the maximum number among the list
+  * Calculates the maximum of all numbers given in the list L,
+  * or succeeds if the maximum is equal to Max
+%*/
+
+'lmax/2' <- [lmax,'pred/2'].
+'lmax/3' <- ['lmax/2','pred/3'].
+
+lmax([E|L],Max)			:- lmax(L,E,Max).
+
+lmax([],Max,Max).
+lmax([E|L],CurrMax,Max)	:- E > CurrMax, !, lmax(L,E,Max).
+lmax([_|L],CurrMax,Max)	:- lmax(L,CurrMax,Max).
+
+% Sorting
+
+%/**
+  * @predicate = qsort_divide(+List, +Pivot, +CmpPred, +LeftIn, +RightIn, -LeftOut, -RightOut)
+  * @param     = +List:		elements to divide into 'left' and 'right' of pivot element
+  * @param     = +Pivot:		the pivot element
+  * @param     = +CmpPred:	comparison predicate. predicates for which 'CmpPred(X,Pivot)' is true go to the left, others right
+  * @param     = +LeftIn:		elements sorted to the left so far
+  * @param     = +RightIn:	elements sorted to the right so far
+  * @param     = -LeftOut:	finished left list
+  * @param     = -RightOut:	finished right list
+  * sorts elements to the left and right
+%*/
+
+qsort_divide	<- [pred].
+
+qsort_divide([], _, _, Left, Right, Left, Right).
+
+qsort_divide([E|L], P, CP, LIn, RIn, LOut, ROut) :-	copy(CP, CPred),									% avoid binding
+													CPred = arg1\P & arg2\E,
+													\+ call(CPred) ->										% note reversal!
+														qsort_divide(L, P, CP, [E|LIn], RIn, LOut, ROut)
+													;
+														qsort_divide(L, P, CP, LIn, [E|RIn], LOut, ROut).
+
+%/**
+  * @predicate = qsort(+List, +CmpPred, -Sorted)
+  * @param     = +List:		list of elements to sort
+  * @param     = +CmpPred:	comparison predicate. needs to be 2-ary. If true for 2 elements (A,B) then they are in correct order, otherwise they have to be switched
+  * @param     = -Sorted:		sorted output list.
+  * sorts the elements in List according to the comparison prediate with QuickSort
+%*/
+
+qsort([], _, []).
+
+qsort([A], _, [A]) :-		!.
+
+qsort([A,B], CP, [L,R]) :-	!,
+							copy(CP, CPred),								% to make sure against any exotic calls
+							CPred = arg1\B & arg2\A,						% note reversal because of 'not'!
+							(\+ call(CPred) ->
+								L = A, R = B
+							;
+								L = B, R = A
+							).
+
+qsort([P|L], CP, Srt) :-	qsort_divide(L, P, CP, [], [], Left, Right),
+							qsort(Left, CP, LSrt),
+							qsort(Right, CP, RSrt),
+							append(LSrt, [P|RSrt], Srt).
+
+% Repetition: enter the predicate over and over (until the predicate fails in the case of 'loop/1')
+
+%/**
+  * @predicate = repeat
+  * succeeds over and over. To be used in backtracking
+%*/
+
+repeat.
+
+repeat :- repeat.
+
+%/**
+  * @predicate = while(+P)
+  * @param     = +P : predicate
+  * succeeds as long as P succeeds.
+  * NOTE: P does NOT backtrack and is NOT bound/unified, e.g.:<br>
+  * "?- while(member(E,[1,2])), print(E), fail."<br>
+  * will NOT print "1,2", but result in an endless loop where E is always 'bot'!
+  * To achieve the intended effect, use 'pforall' instead, e.g.,<br>
+  * ":- pforall((member(E,[1,2]), print(E)))."<br>
+  * 'while' is useful for looping on arrays other predicates that normally only succeed only once, e.g.:<br>
+  * ?- set_var(v1,0), while((get_var(v1,$V), $V < 5)), get_var(v1,$V), print($V), increment(v1), fail.<br>
+  * (Here please note that since $V is not bound after 'while', the value of the variable has to be fetched again).
+%*/
+
+while(P) :- \+ call(P), !, fail.		% 'not/1' prevents binding, which is necessary!
+
+while(_).
+
+while(P) :- while(P).
+
+%/**
+  * @predicate = forwhile(Var,L,P)
+  * @param     = Var: the variable
+  * @param     = L:	 lower(current) value
+  * @param     = P:	 looping condition (predicate)
+  * increments the variable starting from L, as long as the predicate succeeds
+  * NOTE: P is NOT bound and does NOT backtrack! See also above under 'while'
+%*/
+
+forwhile(L,L,P)		:- \+ call(P), !, fail.
+
+forwhile(L,L,_).
+
+forwhile(Var,L,P)	:- L1 is L + 1,
+					   forwhile(Var,L1,P).
+

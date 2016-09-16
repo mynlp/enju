@@ -1,0 +1,296 @@
+/**
+  *   Copyright (c) 2001-2005, MIYAO Yusuke
+  *   You may distribute this file under the terms of the Artistic License.
+  *
+  *   Name: fs.css
+  *   Author: MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  *   Stylesheet for browsing feature structures & trees
+  *
+  */
+
+/***** Basic types *****/
+
+type {
+  font-style: italic;
+  color: red;
+}
+
+decimal {
+  color: green;
+}
+
+float {
+  color: green;
+}
+
+doublequoted {
+  color: #505050;
+}
+
+singlequoted {
+  font-style: italic;
+  color: red;
+}
+
+.type {
+  font-style: italic;
+  color: red;
+}
+
+.decimal {
+  color: green;
+}
+
+.float {
+  color: green;
+}
+
+.doublequoted {
+  color: #505050;
+}
+
+.singlequoted {
+  font-style: italic;
+  color: red;
+}
+
+/***** Feature structure *****/
+
+table.fs {
+/*
+  display: inline-table;
+*/
+  text-align: left;
+  empty-cells: show;
+  white-space: nowrap;
+  text-indent: 0;
+  font-size: x-small;
+  border-style: none;
+  border-collapse: separate;
+  border-spacing: 0px;
+  padding: 0px;
+}
+
+table.fs span.edge_fs {
+  font-weight: bold;
+  border-style: none;
+}
+
+table.fs span.shared_id {
+  border-style: solid;
+  border-color: blue;
+  border-width: 1px;
+  color: blue;
+  padding: 0px 1px;
+}
+
+table.fs tr {
+  display: table-row;
+  line-height: 1;
+  border-style: none;
+}
+
+table.fs td {
+  display: table-cell;
+  line-height: 1;
+  border-style: none;
+  vertical-align: middle;
+}
+
+table.list {
+  font-size: x-small;
+  border-style: none;
+  border-collapse: separate;
+  border-spacing: 0px;
+  padding: 0px;
+}
+
+table.list tr {
+  display: table-row;
+  border-style: none;
+}
+
+table.list td {
+  display: table-cell;
+  border-style: none;
+  vertical-align: middle;
+}
+
+table.fs td.lprn {
+  display: table-cell;
+  line-height: 1;
+  padding: 0pt 3pt 0pt 0pt;
+  border-style: solid;
+  border-color: black;
+  border-width: 1px 0px 1px 1px;
+}
+
+table.fs td.rprn {
+  display: table-cell;
+  line-height: 1;
+  padding: 0pt 3pt 0pt 0pt;
+  border-style: solid;
+  border-color: black;
+  border-width: 1px 1px 1px 0px;
+}
+
+/***** Tree structure *****/
+
+table.tree {
+/*
+  display: inline-table;
+  width: 100%;
+  text-align: left;
+*/
+  empty-cells: show;
+  white-space: nowrap;
+  text-indent: 0;
+  font-size: x-small;
+  border-style: none;
+  padding: 0px;
+  border-collapse: collapse;
+}
+
+table.tree_node {
+/*
+  display: inline-table;
+  width: 100%;
+  text-align: left;
+*/
+  empty-cells: show;
+  white-space: nowrap;
+  text-indent: 0;
+  font-size: x-small;
+  border-style: none;
+  padding: 0px;
+  border-collapse: collapse;
+}
+
+table.tree_node td.tree_node {
+/*  text-align: center; */
+  vertical-align: middle;
+  border-style: none;
+  padding: 0px;
+}
+
+table.tree td.dtr {
+  vertical-align: top;
+  border-style: none;
+  padding: 0;
+}
+
+table.tree td.tree_term {
+  padding: 0 0.5ex 0 0.5ex;
+/*  text-align: center; */
+  vertical-align: top;
+  width: 100%;
+}
+
+table.tree td.tree_space {
+  border-style: none;
+  padding: 0;
+}
+
+table.tree td.left {
+/*  width: 50%; */
+  border-style: solid;
+  border-width: 1px 0px 0px 1px;
+  border-color: black;
+  text-align: left;
+  padding: 0 1ex 0 1ex;
+}
+
+table.tree td.top {
+/*  width: 50%; */
+  border-style: solid;
+  border-width: 1px 0px 0px 0px;
+  border-color: black;
+  padding: 1ex;
+/*  text-align: center; */
+}
+
+table.tree td.right {
+/*  width: 50%; */
+  border-style: solid;
+  border-width: 0px 0px 0px 1px;
+  border-color: black;
+  text-align: left;
+  padding: 0 1ex 0 1ex;
+}
+
+table.tree td.space {
+/*  width: 50%; */
+  border-style: none;
+  padding: 1ex;
+/*  text-align: center; */
+}
+
+table.tree span.edge_tree {
+  color: red;
+  font-style: italic;
+/*  text-align: left; */
+}
+
+/***** Old MoriV Interface *****/
+
+/* Feature structures */
+fs {
+  background: #f9f9ff;
+}
+fs-name {
+  color: red;
+  font-style: italic;
+}
+fs-singlequoted {
+  color: red;
+  font-style: italic;
+}
+fs-doublequoted {
+  color: #404040;
+  font-style: italic;
+}
+fs-decimal {
+  color: blue;
+  font-style: normal;
+}
+fs-float {
+  color: blue;
+  font-style: normal;
+}
+fs-feature {
+  color: black;
+  font-style: normal;
+}
+fs-variable {
+  color: green;
+  font-size: 120%;
+  font-weight: bold;
+}
+
+/* Tree structures */
+tree {
+}
+tree-name {
+  color: red;
+  font-weight: bold;
+}
+tree-doublequoted {
+  color: #404040;
+  font-style: italic;
+}
+tree-singlequoted {
+  color: green;
+  font-style: italic;
+}
+tree-decimal {
+  color: blue;
+  font-style: normal;
+}
+tree-float {
+  color: blue;
+  font-style: normal;
+}
+tree-feature {
+  color: blue;
+}
+

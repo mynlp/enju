@@ -1,0 +1,622 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html lang=ja>
+
+<!-- Time-stamp: "2004-05-14 23:12:59 yusuke" -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="prev" href="chap3.ja.html">
+<link rel="next" href="chap5.ja.html">
+<link rel="stylesheet" type="text/css" href="style-chap4.css">
+<title>Chap. 4  Grammar</title>
+</head>
+
+
+
+<BODY>
+
+<H1>文法</H1>
+
+<a href="chap4.html">English version</a>
+
+<h2>目次</h2>
+
+<ul>
+  <li><a href="#format">書式とコメント</a>
+  <li><a href="#type">型・素性と変数</a>
+  <li><a href="#typedefinition">型定義</a>
+  <li><a href="#feature">素性と制約</a>
+  <li><a href="#predicate">単一化と述語</a>
+  <li><a href="#query">確定節とクエリー</a>
+  <li><a href="#module">モジュール</a>
+  <li><a href="#builtin">特殊な型</a>
+  <li><a href="#misc">その他</a>
+</ul>
+
+<hr noshade>
+
+
+
+<H2><a name="format">書式とコメント</a></H2>
+
+LiLFeSでは、次のものがトークンとして扱われ、文法の最小単位になります。
+<UL>
+  <LI>型名・素性名・変数名
+  <LI>数値（整数及び小数）
+  <LI>文字列（ <TT>"</TT> で囲まれたもの）
+  <LI>コメント
+  <LI> <TT>?-</TT> 　と　　<TT>:-</TT> 　及び　　<TT>&lt;-</TT>
+  <LI>区切り記号（英数字以外の１バイト文字）で、上の５つを表現するもの以外
+</UL>
+
+これらのトークンの間には、任意の数の空白・タブ・改行を入れることができます。
+但し、後述の通り、「素性名とその直後の <TT>\</TT> の間」及び「述語の型名と
+<TT>(</TT> の間」に空白を入れることはできません。
+その他にもいくつかの例外がありますが、順次解説します。
+
+コメントは、次の２つの形が利用できます。
+<UL>
+  <LI> <TT>%/*</TT> が現れてから、最初の <TT>*/</TT> が現れるまで
+       （コメントのネストは不可）
+  <LI> <TT>%</TT> から行末まで（上記のコメントの場合を除く）
+</UL>
+
+<HR NOSHADE>
+
+
+
+<H2><a name="type">型・素性と変数</a></H2>
+
+３章で述べたように、LiLFeSにおける定数は全て「型」として扱われます。
+また、述語も pred 型のsubtypeとなります。型として、英数字・記号・空白・
+２バイト文字（漢字など）を含む全ての文字が使用可能です。
+但し、次のような場合は、型名をプログラム中で '（アポストロフィ）で囲む必要があります。
+<UL>
+  <LI>英小文字または２バイト文字以外で始まる場合
+  <LI>英数字・下線( _ )・２バイト文字以外を含む場合
+</UL>
+なお、アポストロフィ自体を含む型名を書くときには、
+アポストロフィを２つ重ねて下さい。
+
+<CENTER>
+<TABLE BORDER>
+<TR><TD>プログラム中で使える型</td></tr>
+<TR><TD>
+<PRE>
+　　head_subject_schema
+　　東京大学
+　　'ABC'                  % ABC という型
+　　'Good morning!'        % Good morning! という型
+　　'don''t'               % don't という型</PRE>  
+</td></tr>
+</TABLE></CENTER>
+
+素性名として使えるのは、英字または２バイト文字で始まり、
+英数字・下線(_)・２バイト文字のみからなる文字列です。
+型と同じように，アポストロフィで囲めばどのような文字列も素性名とすることが出来ます．
+なお、素性をプログラム中に書く際には、必ず \ が直後に必要になります。
+素性名と \ の間に空白や改行を置くことはできません。
+
+<CENTER><TABLE BORDER>
+<TR><TD>プログラム中で使える素性</td></tr>
+<TR><TD>
+<PRE>
+　　F1\
+　　feature\
+　　素性\
+    'Let me see...'\</PRE>
+</td></tr>
+</TABLE></CENTER>
+
+変数は、英大文字または $ で始まり、英数字・下線・
+２バイト文字のみからなる文字列が使用できます。
+
+<CENTER><TABLE BORDER>
+<TR><TD>プログラム中で使える変数</td></tr>
+<TR><TD>
+<PRE>
+　　X
+　　$var
+　　$1
+　　$変数</PRE>
+</td></tr>
+</TABLE></CENTER>
+
+<HR NOSHADE>
+
+
+
+<H2><a name="typedefinition">型定義</a></H2>
+
+プログラム中で使用する型（定数及び述語）は予め、
+supertype（親の型）とともに型定義がされている必要があります。
+新たな素性を定義する場合は、型定義の際に用いる素性を記述します。
+同名の型や素性を２度以上定義することはできません。<br>
+
+<B>型定義</B>
+<TABLE BORDER>
+<TR><TD><FONT COLOR="red"><B>型</B></FONT> &lt;-
+[ <FONT COLOR="red"><B>supertype１</B></FONT>
+, <FONT COLOR="red"><B>supertype２</B></FONT>,……
+ ] + [
+<FONT COLOR="red"><B>素性１</B></FONT>\
+<FONT COLOR="red"><B>型１</B></FONT>(
+<FONT COLOR="red"><B>優先度１</B></FONT>),
+<FONT COLOR="red"><B>素性２</B></FONT>\
+<FONT COLOR="red"><B>型２</B></FONT>(
+<FONT COLOR="red"><B>優先度２</B></FONT>),……].
+</TABLE>
+
+<CENTER><TABLE BORDER>
+<TR><TD>素性の定義</TD></TR>
+<TR><TD>
+<TABLE>
+<TR><TD>(1) <TD> <TT> p &lt;- pred. </TT>
+<TR><TD>(2) <TD> <TT> 正方形 &lt;- [長方形 , 菱形]. </TT>
+<TR><TD>(3) <TD> <TT> employ &lt;- [act] + [EMPLOYER\, EMPLOYEE\]. </TT>
+<TR><TD>(4) <TD> <TT> book &lt;- [bot] + [TITLE\string(-5),AUTHOR\name(10),PUBLISHER\co(20)].</TABLE></TR><TD>
+</TABLE></CENTER>
+
+&lt;- の左辺には新しい型を書き、右辺には１つ以上のsupertypeを列挙し、
+必要ならば + に続けて加える素性を列挙します。
+supertypeが１つのみの場合、型名の左右の [ ] は省略できます。
+　→例 (1)　２つ以上のsupertypeを , （コンマ）で区切って並べることにより、
+多重継承させることができます。
+　→例 (2)　素性をつける場合、その型や表示の優先度は省略可能です。
+型が省略された場合は bot とみなされます。
+また、素性構造の表示の際に、複数の素性がある場合はアルファベット順に表示されます。
+　→例 (3)　：この場合、EMPLOYEE, EMPLOYERの順に素性が表示されます。
+複数の素性の表示の順序を制御したい場合、括弧内に整数値を書くことにより、
+値の小さい順に表示させることができます。なお、負の値も可能です。
+　→例 (4)　：この場合、TITLE, AUTHOR, PUBLISHER の順に素性が表示されます。
+
+<HR NOSHADE>
+
+
+
+<H2><a name="feature">素性と制約</a></H2>
+
+素性を持つ型に素性の制約を加えるには、 <TT>&</TT>の後に素性名と、
+素性の型または変数を書きます。２つめの例のように、
+素性の中の型の素性も定義することができます。
+下位の素性が複数ある場合、例のように括弧を使うことになります。
+
+<CENTER><TABLE BORDER>
+<TR><TD COLSPAN=2>
+素性の制約と対応するＡＶＭ
+<TR><TD><TT> employ & EMPLOYER\"John" & EMPLOYEE\"Mary"</TT>
+<TD><PRE>
+|~employ         ~|
+| EMPLOYEE:"Mary" |
+|_EMPLOYER:"John"_|
+</PRE>
+<TR><TD>
+<PRE>
+競走馬 & 名前\ ダンスインザダーク &
+         系統\ 'Hail to Reason' &
+         父\(種牡馬 & 名前\サンデーサイレンス &
+                      系統\ 'Hail to Reason')
+</PRE>
+<TD><PRE>
+|~競走馬                        ~|
+| 名前:ダンスインザダーク        |
+| 系統:Hail to Reason            |
+|    |~種牡馬                 ~| |
+| 父:| 名前:サンデーサイレンス | |
+|    |_系統:Hail to Reason    _| |
+|_母:bot                        _|
+</PRE>
+</TABLE></CENTER>
+
+<HR NOSHADE>
+
+
+
+<H2><a name="predicate">単一化と述語</a></H2>
+
+単一化(unification)は、
+<TABLE BORDER><TR><TD>
+<FONT COLOR="red"><B>　（型または変数）</B></FONT>
+= <FONT COLOR="red"><B>（型または変数）　</B></FONT>
+</TABLE>
+の形で書かれます。
+（型または変数）の部分には、素性による制約を書くこともできます。例を参照して下さい。
+
+<CENTER><TABLE BORDER>
+<TR><TD COLSPAN=2>
+単一化とその効果
+<TR><TD><TT> X = man </TT>
+<TD> X に man が代入される。
+<TR><TD><TT> 三角形 = 四角形 </TT>
+<TD> 単一化不能。
+<TR><TD><TT> $馬 & 系統\$1  =  父\系統\$1</TT>
+<TD> $馬 という馬は、父親と同じ系統であることを規定。
+</TABLE></CENTER>
+
+述語(predicate)は、Prologと同様に、
+
+<TABLE BORDER><TR><TD><FONT COLOR="red"><B>　述語名</B></FONT>( <FONT
+COLOR="red"><B>引数１</B></FONT>, <FONT COLOR="red"><B>引数２……
+</B></FONT>)　</TABLE>
+
+の形で書かれます。
+述語の引数の数(arity)は、その述語が始めて使われた時のarityになります。
+同名の述語で、arityが異なるものを指定したい場合の方法については、
+Programming Tipsを参照して下さい。
+
+
+<!--次のような型定義が
+必要です。これは、述語の引数が内部で arg1\, arg2\, …という素性で表現
+されていることによります。<BR><BR>
+
+<CENTER><TABLE BORDER>
+<TR><TD><B>例4.7</B>　複数のarityを持つ述語</TR>
+<TR><TD><PRE>
+p &lt;- [pred].                % pred 型の p を定義
+'p/2' &lt;- ['pred/2', p].     % arity2 の述語を示す型と p のsubtype
+'p/3' &lt;- ['pred/3', 'p/2']. % arity3 の述語を示す型と arity2 の p の subtype
+</PRE></TR>
+</TABLE></CENTER><BR>
+　上記のような型定義をすれば、以後のプログラム中で２引数の p(a,a) と
+３引数の p(a,a,a) の両方を用いることができるようになります。<BR>
+-->
+
+なお、述語の arity の数は、15個までに制限されています。
+
+<HR NOSHADE>
+
+
+
+<H2><a name="query">確定節とクエリー</a></H2>
+
+<FONT>
+Prolog同様に、プログラムは次の形の確定節で表現します。<BR>
+
+<B>確定節</B>
+<TABLE BORDER>
+<TR><TD>(1)<TD>　<B><FONT COLOR="red">述語</FONT><TT> . </TT></B><BR>
+<TR><TD>(2)<TD>　<B><FONT COLOR="red">述語</FONT><TT> :- </TT>
+<FONT COLOR="red">構造１</FONT>
+, <FONT COLOR="red">構造２</FONT>,…… .</B>
+<TR><TD>(3)<TD><B>　<TT>:- </TT><FONT COLOR="red">構造</FONT> .</B>
+</TABLE>
+
+「構造」とは、「単一化」「述語」「カット（後述）」のいずれかを意味します。
+(1)の書式は、頭部のみからなる確定節で、述語が真となる引数を規定します。
+(2)の書式は、頭部と本体からなる確定節で、左辺が成立する時に、
+右辺の構造が成立するか否かを左から順に調べていきます。
+(3)は特殊な書式で、頭部がありません。
+これは、本体の構造を強制的に実行するもので、主に new_type や trace,
+strprintln などを実行させる時に使います。詳しくは第５章を参照して下さい。
+
+一方、通常の節で、頭部が無く本体のみである目標節（ゴール）は、
+クエリーの形で書きます。<BR>
+
+<B>クエリー（目標節）</B>
+<TABLE BORDER>
+?- 
+<FONT COLOR="red"><B>構造１</B></FONT>
+, <FONT COLOR="red"><B>構造２</B></FONT>,…….
+</TABLE>
+
+<TT>?-</TT> はプロンプトではありません。
+LiLFeSでは、Prologと違って、インタプリタへの入力とプログラムの区別がありません。
+ファイルから読みこむ場合でも標準入力からの入力でも、いつでも型定義・確定節・
+クエリーを書くことができます。
+クエリーを入力すると、述語が成功した場合、
+述語の中の全ての変数の値（最汎の型）が返され
+（変数が無い場合は yes ）、
+更にバックトラックをして他の解を探すか否かを問われます。
+
+<TT>Enter ';' for more choices, otherwise press ENTER --&gt; </TT>
+
+ここで ; を入力すると、他の解を探します。また、述語が失敗した場合には 
+no が返されます。
+
+クエリーと強制実行（:-）の違いは、次の例を参照して下さい。
+
+<CENTER><TABLE BORDER>
+<left>
+<TR><TD>?- と :- の違い</TR>
+<TR><TD align="left"><PRE>
+<FONT COLOR="blue">&gt; </FONT>p &lt;- [pred].  q &lt;- [pred].               
+<FONT COLOR="blue">&gt; </FONT>a &lt;- [bot].  b &lt;- [bot].
+<FONT COLOR="blue">&gt; </FONT>p(a,b).
+<FONT COLOR="blue">&gt; </FONT>p(X,X) :- q(X).
+<FONT COLOR="blue">&gt; </FONT>p(b).
+
+<FONT COLOR="blue">&gt; </FONT>?- p(X,Y), q(Y).
+<FONT COLOR="blue">X: a
+Y: b
+Enter ';' for more choices, otherwise press ENTER --&gt;</FONT> ;
+<FONT COLOR="blue">X: [$1] b
+Y: [$1] ...
+Enter ';' for more choices, otherwise press ENTER --&gt;</FONT> ;
+<FONT COLOR="blue">no</FONT>
+<FONT COLOR="red">（クエリーの場合、変数の値が全て表示され、; を入力するとバックトラックされる）</FONT>
+
+<FONT COLOR="blue">&gt; </FONT>:- p(X,Y), X=Y, q(Y), print(Y).
+<FONT COLOR="blue">b</FONT>
+<FONT COLOR="red">（強制実行の場合、何も表示されないが、print 文などにより、
+一部の変数の値を表示することができる。なお、バックトラックは行われない。</FONT>
+</PRE></TR>
+</left>
+</TABLE></CENTER>
+
+カットは、Prologと同様に <TT>!</TT> と書き、そこから先のバックトラックを抑制します。<BR>
+
+<HR NOSHADE>
+
+
+
+<h2><a name="module">モジュール</a></h2>
+
+モジュール化されたLiLFeSプログラムは以下の図のような構成になります．
+
+<center>
+<table border>
+<tr><th>LiLFeSプログラム</th></tr>
+<tr><td align="left">
+<pre>
+    :- module("list:reverse").
+
+    :- module_interface.
+    % 必要なモジュールの読み込み
+    :- ensure_loaded("list/append").
+    % 他のモジュールから見える型の定義
+    reverse <- [pred].
+
+    :- module_implementation.
+    % 他のモジュールから見えない型の定義
+    reverse_sub <- [pred].
+    % 述語の定義
+    reverse_sub([], $X, $X).
+    reverse_sub([$A|$B], $C, $D) :-
+        reverse_sub($B, [$A|$C], $D).
+    reverse($X, $Y) :-
+        reverse($X, [], $Y).
+</pre>
+</td></tr>
+</table>
+</center>
+
+<a href="chap5.ja.html#module">module</a>,
+<a href="chap5.ja.html#module_interface">module_interface</a>,
+<a href="chap5.ja.html#module_implementation">module_implementation</a>
+などは予め定義されているキーワードで，ディレクティブと呼ばれています．
+これらを用いてプログラムをモジュール化します．
+
+<p>
+まずファイルの先頭に，モジュール名を宣言します．
+モジュール名は何でもかまいませんが，一般的には，
+ファイルの存在するパスの"/"を":"に変換した文字列を用います．
+例えば，LILFES_PATH が ~/lilfes/ のとき，~/lilfes/list/reverse.lil
+というファイルのモジュール名(＝モジュール修飾子)は list:reverse とします．
+
+<p>
+次に，module_interface の下に，他のモジュールから見える型の定義をします．
+この例では，reverse 述語を他のモジュールから見えるようにしたいので，
+その型定義をここに書きます．
+ここで宣言された型は，他のモジュールからモジュール修飾子(この場合は
+list:reverse)なしで見えます．
+
+<p>
+最後に，module_implementation の下に他のモジュールから見えない型の定義と，
+述語の定義を記述します．
+ここで宣言された型はそのままでは他のモジュールから見えませんが，
+モジュール修飾子をつけると見ることができます．
+例えば，reverse_sub という型は他のモジュールからは見ることができませんが，
+list:reverse:reverse_sub という型は他のモジュールから見ることができます．
+述語の定義はここに書くのが一般的ですが，
+実際はプログラム中のどこに書いてもかまいません．
+
+<p>
+他のモジュールで定義されている型や述語を利用したいときは，
+<a href="chap5.ja.html#ensure_loaded">ensure_loaded</a>
+ディレクティブを用いてそのモジュールを読み込みます．
+上の例では，list/append (モジュール名はおそらく "list:append")
+というモジュールを読み込んでいるので，
+そのモジュールで定義されている型や述語をここで使うことができます．
+ensure_loaded は module_interface 部にも module_implementation
+部にも記述することができます
+(module_interface 部か module_implementation 部に記述するかによって，
+他のモジュールから見える型が異なってきます．
+これは通常の型宣言と同様になります)．
+
+<h3>注意</h3>
+<ul>
+  <li>ensure_loaded ディレクティブは，以下の順番でモジュールを検索します．
+       <ul>
+	 <li>"ensure_loaded" が呼ばれたファイルが存在するパス．
+	 <li>lilfes が起動されたパス．
+	 <li>LILFES_PATH で指定されたパス．
+	 <li>デフォルトのモジュールパス
+	      (lilfesのインストール時に決定．
+	      デフォルトでは /usr/local/share/lilfes/)．
+       </ul>
+  <li>デフォルトでは，あるモジュールで定義された型の subtype
+       を別のモジュールで定義することができません．
+       他のモジュールでの subtype の定義を許すには，
+       型定義の後ろに "./ extendable" をつけます．
+       <center>
+       <table border>
+       <tr><td><pre>二等辺三角形 <- [三角形] ./ extendable.</pre></td></tr>
+       </table>
+       </center>
+       あるモジュールで定義される全ての型について他のモジュールで
+       subtype の定義を許すときは，
+       <a href="chap5.ja.html#module_extendable">module_extendable</a>
+       ディレクティブを用います．
+  <li>デフォルトでは，モジュール化されたプログラムでは assert
+       で新たな確定節を追加することはできません．ある述語の assert
+       を許したいときは，
+       <a href="chap5.ja.html#dynamic">dynamic</a>ディレクティブを用います．
+  <li>デフォルトでは，述語の型定義と述語定義は，
+       同じモジュール内に記述しなければなりません．
+       他のモジュールでの述語定義を許すには，
+       <a href="chap5.ja.html#multifile">multilfile</a>ディレクティブを用います．
+</ul>
+
+
+<hr noshade>
+
+
+<H2><a name="builtin">特殊な型</a></H2>
+
+<FONT>
+
+<H3>リスト</H3>
+
+リストは、次のいずれかの方法で表記できます。<BR>
+<B>リスト</B>
+<TABLE BORDER><TR><TD> 
+　[<FONT COLOR="red"><B>要素１</B></FONT>
+, <FONT COLOR="red"><B>要素２</B></FONT> , ……]
+<TR><TD>
+　[<FONT COLOR="red"><B>先頭の要素</B></FONT> | 
+<FONT COLOR="red"><B>後続のリスト</B></FONT>]　
+</TABLE>
+
+これらの形で表記されたリストは、list型の subtype になります。
+
+
+<H3>数値</H3>
+
+数値として、整数・小数が扱えます。これらはそれぞれ、integer 型、float 型の subtype になります。
+
+
+<H3>文字列</H3>
+
+文字列は、 " " で囲われたもので、string 型の subtype になります。
+
+<HR NOSHADE>
+
+
+
+<H2><a name="misc">その他</a></H2>
+
+<FONT>
+
+<H3>Don't care</H3>
+
+下線（<TT> _ </TT>）で始まる変数は、Don't care項として扱われ、任意の型との単一化に成功します。
+従って、確定節中の述語の引数のうち、参照しないものに関しては、
+<TT> _ </TT>で埋めておけば、値が何であれ実行に影響を与えません。
+何とでも単一化できるので、bot と書くのと同じ意味になります。
+
+
+<H3>論理和</H3>
+
+確定節やクエリーの右辺の節集合（<TT> , </TT>で区切られたもの、即ち論理積）を、
+<TT> ; </TT>で区切ることにより、論理和を表現できます。
+
+なお、<BR>
+<TT>p(a) = q(x), q(y) ; r(z). </TT> <BR>
+は、<BR>
+<TT>p(a) = q(x), q(y).<BR>
+p(a) = r(z).</TT><BR>
+と等価になります。
+
+
+<H3>if文</H3>
+
+確定節の右辺の構造として、if 〜 then 〜 else 〜 に相当する構造を、次の
+書式で書くことができます。<BR>
+
+<B>if文</B>
+<TABLE BORDER>
+<TR><TD>　<B><FONT COLOR="red">条件の構造１</FONT> ,
+ <FONT COLOR="red">条件の構造２</FONT> , … -&gt;
+<FONT COLOR="red">成功した場合の述語</FONT>
+; <FONT COLOR="red">失敗した場合の述語</FONT></B>　
+</TABLE>
+
+左辺（<TT><B>-></TT></B>の左側）が成功した場合、「成功した場合の述語」が、
+失敗した場合、「失敗した場合の述語」が実行されます。なお、<BR>
+　<TT> P :- Q -> R ; S. </TT><BR>
+という式は、<BR>
+　<TT> P :- Q , ! , R. </TT><BR>
+　<TT> P :- S.</TT><BR>
+と等価です。
+
+
+<CENTER><TABLE BORDER>
+<TR><TD>if文</TR>
+<TR><TD align="left"><PRE>
+<FONT COLOR="blue">&gt;</FONT> p &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> check &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> a &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> b &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> p(a).
+<FONT COLOR="blue">&gt;</FONT> check(X) :- p(X) -&gt; strprintln("succeed") ; strprintln("failed").
+<FONT COLOR="blue">&gt;</FONT> ?- check(a).
+<FONT COLOR="blue">succeed
+; (Current occupation: 9 heap, 3 stack, 10 trail cell(s), 39 instructions)
+yes
+&gt;</FONT> ?- check(b).
+<FONT COLOR="blue">failed
+; (Current occupation: 9 heap, 3 stack, 8 trail cell(s), 62 instructions)
+yes</FONT>
+</PRE></TR>
+</TABLE></CENTER>
+
+
+<H3>否定</H3>
+
+Prologと同様に<TT> \+ </TT> と書き、述語が失敗した時に成功するものです。
+
+<CENTER><TABLE BORDER>
+<TR><TD>否定</TR>
+<TR><TD align="left"><PRE>
+<FONT COLOR="blue">&gt;</FONT> p &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> a &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> b &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> p(a).
+<FONT COLOR="blue">&gt;</FONT> ?- \+ p(a).
+<FONT COLOR="blue">; (Current occupation: 15 heap, 23 stack, 16 trail cell(s), 101 instructions)
+no
+&gt;</FONT> ?- \+ p(b).
+<FONT COLOR="blue">; (Current occupation: 11 heap, 3 stack, 10 trail cell(s), 122 instructions)
+yes</FONT>
+</PRE></TR>
+</TABLE></CENTER>
+
+
+<H3>単一化不能</H3>
+
+確定節の本体の構造として、「単一化不能」が許されます。<TT> \= </TT> は
+　<TT> = </TT> の逆で、単一化に失敗した場合に、成功となります。なお、
+左辺の値と <TT>\= </TT>の前には空白が必要となるので注意して下さい。空
+白が無い場合、素性とみなされてしまいます。
+
+<CENTER><TABLE BORDER>
+<TR><TD>単一化不能</TR>
+<TR><TD align="left"><PRE>
+<FONT COLOR="blue">&gt;</FONT> mammal &lt;- bot.
+<FONT COLOR="blue">&gt;</FONT> birl &lt;- bot.
+<FONT COLOR="blue">&gt;</FONT> cat &lt;- mammal.
+<FONT COLOR="blue">&gt;</FONT> ?- mammal \= cat.
+<FONT COLOR="blue">; (Current occupation: 10 heap, 20 stack, 16 trail cell(s), 12 instructions)
+no
+&gt;</FONT> ?- mammal \= bird.
+<FONT COLOR="blue">; (Current occupation: 10 heap, 3 stack, 12 trail cell(s), 27 instructions)
+yes</FONT>
+</PRE></TR>
+</TABLE></CENTER>
+
+
+
+<hr>
+<a href="chap3.ja.html">3章 型と素性</a>
+<a href="chap5.ja.html">5章 エラーメッセージ</a>
+
+<hr>
+<a href="index.ja.html">目次</a>
+<a href="../index.ja.html">LiLFeSドキュメント</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/index-j.html">LiLFeSホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/index-j.shtml">辻井研究室</a>
+
+</body>
+</html>

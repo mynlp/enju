@@ -1,0 +1,25 @@
+body {
+  color: black;
+  background-color: lightyellow;
+}
+
+h1 {
+  /* font: bold 300% helvetica; */
+  font-weight: bold;
+  font-size: 200%;
+  color: black;
+  border-width: 5pt;
+  border-style: ridge;
+  padding: 10pt 10pt 10pt 10pt;
+}
+
+h3 {
+  border-width: 0pt 0pt 1pt 5pt;
+  border-style: solid;
+  padding: 0pt 0pt 5pt 5pt;
+}
+
+table {
+  background-color: lightgreen;
+}
+

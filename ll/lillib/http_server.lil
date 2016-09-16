@@ -1,0 +1,632 @@
+%/**
+  * @module    = lillib:http_server
+  * @cvs       = $Id: http_server.lil,v 1.16 2006-11-24 11:06:20 yusuke Exp $
+  * @copyright = Copyright (c) 2003-2005, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @desc      = Implementation of HTTP server in LiLFeS
+  * This module implements an HTTP server.
+%*/
+
+:- module("lillib:http_server").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+:- ensure_loaded("lillib/dattypes").
+
+%/**
+  * @predicate = http_server(+$Port)
+  * @param     = +$Port/integer: port number
+  * @desc      = Start HTTP server
+  * This predicate starts an HTTP server on port $Port.
+%*/
+%/**
+  * @predicate = http_server
+  * @desc      = Start HTTP server
+  * This predicate starts an HTTP server on the default port (80).
+%*/
+http_server <- [pred].
+'http_server/0' <- [http_server, 'pred/0'].
+'http_server/1' <- ['http_server/0', 'pred/1'].
+
+%/**
+  * @predicate = http_server_debug(+$Port)
+  * @param     = +$Port/integer: port number
+  * @desc      = Start HTTP server (debug mode)
+  * This predicate starts an HTTP server on port $Port,
+  * and prints debug messages.
+%*/
+%/**
+  * @predicate = http_server_debug
+  * @desc      = Start HTTP server
+  * This predicate starts an HTTP server on the default port (80),
+  * and prints debug messages.
+%*/
+http_server_debug <- [pred].
+'http_server_debug/0' <- [http_server_debug, 'pred/0'].
+'http_server_debug/1' <- ['http_server_debug/0', 'pred/1'].
+
+%/**
+  * @predicate = set_http_file_type(+$Ext, +$FileType)
+  * @param     = +$Ext/string: file extension
+  * @param     = +$FileType/string: file type
+  * @desc      = Set file type of HTTP files
+%*/
+set_http_file_type <- [pred].
+
+%/**
+  * @predicate = unset_http_file_type(+$Ext)
+  * @param     = +$Ext/string: file extension
+  * @desc      = Unset file type of HTTP files
+%*/
+unset_http_file_type <- [pred].
+
+%/**
+  * @variable = '*default_http_port*'(+$Port)
+  * @param    = +$Port/integer : default port
+  * @desc     = specify default port for HTTP server
+%*/
+'*default_http_port*' <- [variable].
+%/**
+  * @variable = '*default_content_type*'(+$ContentType)
+  * @param    = +$ContentType/string : default content type
+  * @desc     = specify default content type
+%*/
+'*default_content_type*' <- [variable].
+%/**
+  * @variable = '*default_content_type_binary*'(+$ContentType)
+  * @param    = +$ContentType/string : default content type for binary data
+  * @desc     = specify default content type for binary data
+%*/
+'*default_content_type_binary*' <- [variable].
+%/**
+  * @variable = '*http_document_root*'(+$Dir)
+  * @param    = +$Dir/string : directory
+  * @desc     = specify document root directory for HTTP server
+%*/
+'*http_document_root*' <- [variable].
+%/**
+  * @variable = '*http_cgi_root*'(+$Dir)
+  * @param    = +$Dir/string : directory
+  * @desc     = specify cgi root directory for HTTP server
+%*/
+'*http_cgi_root*' <- [variable].
+%/**
+  * @variable = '*http_disconnect_request*'(+$Request)
+  * @param    = +$Request/string : HTTP request
+  * @desc     = specify HTTP request to stop a HTTP server
+%*/
+'*http_disconnect_request*' <- [variable].
+
+%/**
+  * @interface = cgi_lilfes(+$CgiLiLFeS, +$QueryString, +$Headers, +$Body, -$Answer)
+  * @param     = +$CgiLiLFeS/string : name of CGI request
+  * @param     = +$QueryString/string : query string
+  * @param     = +$Headers/list of ',/2' : HTTP header
+  * @param     = +$Body/string : body of HTTP request
+  * @param     = -$Answer/string : document
+  * @desc      = handle CGI request
+  * This predicate will be called when "/cgi-lilfes/$CgiLiLFeS?" is
+  * requested to the HTTP server.  Query string, headers, and body of
+  * the request are passed to the variables.  The document must
+  * be returned to $Answer.
+%*/
+%/**
+  * @interface = cgi_lilfes(+$CgiLiLFeS, +$QueryString, +$Body, -$Answer)
+  * @param     = +$CgiLiLFeS/string : name of CGI request
+  * @param     = +$QueryString/string : query string
+  * @param     = +$Body/string : body of HTTP request
+  * @param     = -$Answer/string : document
+  * @desc      = handle CGI request
+  * This predicate will be called when "/cgi-lilfes/$CgiLiLFeS?" is
+  * requested to the HTTP server.  Query string and body of
+  * the request are passed to the variables.  The document must
+  * be returned to $Answer.
+%*/
+%/**
+  * @interface = cgi_lilfes(+$CgiLiLFeS, +$QueryString, -$Answer)
+  * @param     = +$CgiLiLFeS/string : name of CGI request
+  * @param     = +$QueryString/string : query string
+  * @param     = +$Body/string : body of HTTP request
+  * @param     = -$Answer/string : document
+  * @desc      = handle CGI request
+  * This predicate will be called when "/cgi-lilfes/$CgiLiLFeS?" is
+  * requested to the HTTP server.  Query string of the request
+  * is passed to the variables.  The document must
+  * be returned to $Answer.
+%*/
+cgi_lilfes <- [pred].
+'cgi_lilfes/3' <- ['pred/3', cgi_lilfes].
+'cgi_lilfes/4' <- ['pred/4', 'cgi_lilfes/3'].
+'cgi_lilfes/5' <- ['pred/5', 'cgi_lilfes/4'].
+
+%% Types for handling HTTP
+http_response <- [bot] + [RES_CODE\integer(0), RES_MESSAGE\string(1)].
+http_response_text <- [http_response] + [BODY\string(5)].
+http_response_binary <- [http_response] + [BODY_BIN\list(5)].
+http_document <- [http_response] + [CONTENT_TYPE\string(2)].
+http_document_text <- [http_document, http_response_text].
+http_document_binary <- [http_document, http_response_binary].
+http_cgi <- [http_response].
+http_cgi_text <- [http_cgi, http_response_text].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% get path to a file (from the document root)
+http_file_name <- [pred].
+
+%% make a feature structure representing HTTP response
+make_http_response <- [pred].
+'make_http_response/2' <- ['pred/2', make_http_response].
+'make_http_response/3' <- ['pred/3', 'make_http_response/2'].
+'make_http_response/4' <- ['pred/4', 'make_http_response/3'].
+
+make_http_error <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/lists").
+
+'*http_server_handle*' <- [variable].
+'*file_type_mapping*' <- [pred].
+:-
+    define_integer_variable('*default_http_port*'),
+    set_variable('*default_http_port*', 80),
+    define_string_variable('*default_content_type*'),
+    set_variable('*default_content_type*', "text/plain"),
+    define_string_variable('*default_content_type_binary*'),
+    set_variable('*default_content_type_binary*', "application/octet-stream"),
+    define_string_variable('*http_document_root*'),
+    lilfes_flag("package-dir", $PackageDir),
+    set_variable('*http_document_root*', $PackageDir),
+    define_string_variable('*http_cgi_root*'),
+    set_variable('*http_cgi_root*', $PackageDir),
+    define_string_variable('*http_disconnect_request*'),
+    set_variable('*http_disconnect_request*', "/DISCONNECT"),
+    define_variable('*http_server_handle*'),
+    set_variable('*http_server_handle*', handle_invalid),
+    unset_debug_mode("http_server"),
+    declare_array('*file_type_mapping*'(key_string, array_value_string, array_value_integer)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% file types
+
+:-
+    %% texts
+    set_array('*file_type_mapping*'("asc", "text/plain", 0)),
+    set_array('*file_type_mapping*'("css", "text/css", 0)),
+    set_array('*file_type_mapping*'("html", "text/html", 0)),
+    set_array('*file_type_mapping*'("htm", "text/html", 0)),
+    set_array('*file_type_mapping*'("js", "text/javascript", 0)),
+    set_array('*file_type_mapping*'("mml", "text/mathml", 0)),
+    set_array('*file_type_mapping*'("sgml", "text/sgml", 0)),
+    set_array('*file_type_mapping*'("sgm", "text/sgml", 0)),
+    set_array('*file_type_mapping*'("txt", "text/plain", 0)),
+    set_array('*file_type_mapping*'("xhtml", "application/xhtml+xml", 0)),
+    set_array('*file_type_mapping*'("xml", "text/xml", 0)),
+    set_array('*file_type_mapping*'("xsl", "text/xml", 0)),
+    set_array('*file_type_mapping*'("xslt", "text/xml", 0)),
+    %% applications
+    set_array('*file_type_mapping*'("bz", "application/x-bzip", 1)),
+    set_array('*file_type_mapping*'("bz2", "application/x-bzip", 1)),
+    set_array('*file_type_mapping*'("class", "application/x-java-byte-code", 1)),
+    set_array('*file_type_mapping*'("doc", "application/ms-word", 1)),
+    set_array('*file_type_mapping*'("dvi", "application/x-dvi", 1)),
+    set_array('*file_type_mapping*'("exe", "application/x-ms-dos-executable", 1)),
+    set_array('*file_type_mapping*'("gz", "application/x-gzip", 1)),
+    set_array('*file_type_mapping*'("jar", "application/java-archive", 1)),
+    set_array('*file_type_mapping*'("jnlp", "application/x-java-jnlp-file", 1)),
+    set_array('*file_type_mapping*'("pdf", "application/pdf", 1)),
+    set_array('*file_type_mapping*'("ppt", "application/vnd.ms-powerpoint", 1)),
+    set_array('*file_type_mapping*'("ps", "application/postscript", 1)),
+    set_array('*file_type_mapping*'("rtf", "application/rtf", 1)),
+    set_array('*file_type_mapping*'("swf", "application/x-shockwave-flash", 1)),
+    set_array('*file_type_mapping*'("tar", "application/x-tar", 1)),
+    set_array('*file_type_mapping*'("tgz", "application/x-compressed-tar", 1)),
+    set_array('*file_type_mapping*'("wrl", "model/vrml", 1)),
+    set_array('*file_type_mapping*'("xls", "application/vnd.ms-excel", 1)),
+    set_array('*file_type_mapping*'("z", "application/x-compress", 1)),
+    set_array('*file_type_mapping*'("zip", "application/zip", 1)),
+    %% images
+    set_array('*file_type_mapping*'("bmp", "image/bmp", 1)),
+    set_array('*file_type_mapping*'("gif", "image/gif", 1)),
+    set_array('*file_type_mapping*'("ico", "image/x-ico", 1)),
+    set_array('*file_type_mapping*'("jpeg", "image/jpeg", 1)),
+    set_array('*file_type_mapping*'("jpg", "image/jpeg", 1)),
+    set_array('*file_type_mapping*'("pbm", "image/x-portable-bitmap", 1)),
+    set_array('*file_type_mapping*'("pgm", "image/x-portable-graymap", 1)),
+    set_array('*file_type_mapping*'("png", "image/png", 1)),
+    set_array('*file_type_mapping*'("pnm", "image/x-portable-anymap", 1)),
+    set_array('*file_type_mapping*'("ppm", "image/x-portable-pixmap", 1)),
+    set_array('*file_type_mapping*'("svg", "image/svg+xml", 1)),
+    set_array('*file_type_mapping*'("svgz", "image/svg+xml", 1)),
+    set_array('*file_type_mapping*'("tiff", "image/tiff", 1)),
+    set_array('*file_type_mapping*'("tif", "image/tiff", 1)),
+    set_array('*file_type_mapping*'("wmf", "image/x-wmf", 1)),
+    set_array('*file_type_mapping*'("xbm", "image/x-xbitmap", 1)),
+    set_array('*file_type_mapping*'("xpm", "image/x-xpixmap", 1)),
+    %% video & audio
+    set_array('*file_type_mapping*'("asf", "video/x-ms-asf", 1)),
+    set_array('*file_type_mapping*'("avi", "video/x-msvideo", 1)),
+    set_array('*file_type_mapping*'("midi", "audio/x-midi", 1)),
+    set_array('*file_type_mapping*'("mov", "video/quicktime", 1)),
+    set_array('*file_type_mapping*'("mp3", "audio/x-mp3", 1)),
+    set_array('*file_type_mapping*'("mpeg", "video/mpeg", 1)),
+    set_array('*file_type_mapping*'("mpg", "video/mpeg", 1)),
+    set_array('*file_type_mapping*'("qt", "video/quicktime", 1)),
+    set_array('*file_type_mapping*'("rm", "application/vnd.rn-realmedia", 1)),
+    set_array('*file_type_mapping*'("wav", "audio/wav", 1)),
+    set_array('*file_type_mapping*'("wmv", "video/x-ms-wmv", 1)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Utilities
+
+http_file_name($InName, $OutName) :-
+    get_variable('*http_document_root*', $DocRoot),
+    strcat($DocRoot, $InName, $OutName).
+
+http_response_code <- [pred].
+http_response_code("OK", 200).
+http_response_code("No Content", 204).
+http_response_code("Moved Permanently", 301).
+http_response_code("Moved Temporarily", 302).
+http_response_code("Bad Request", 400).
+http_response_code("Unauthorized", 401).
+http_response_code("Forbidden", 403).
+http_response_code("Not Found", 404).
+http_response_code("Method Not Allowed", 405).
+http_response_code("Not Acceptable", 406).
+http_response_code("Request Time-out", 408).
+http_response_code("Unsupported Media Type", 415).
+http_response_code("Internal Server Error", 500).
+http_response_code("Not Implemented", 501).
+http_response_code("Service Unavailable", 503).
+http_response_code("HTTP Version not supported", 505).
+
+coerse_default_content_type <- [pred].
+coerse_default_content_type($Response) :-
+    get_variable('*default_content_type*', $Type),
+    $Response = CONTENT_TYPE\$Type,
+    !.
+coerse_default_content_type(_).
+
+coerse_default_content_type_binary <- [pred].
+coerse_default_content_type_binary($Response) :-
+    get_variable('*default_content_type_binary*', $Type),
+    $Response = CONTENT_TYPE\$Type,
+    !.
+coerse_default_content_type_binary(_).
+
+make_http_response($Message, $Body,
+		   $Response &
+		   RES_CODE\$Code & RES_MESSAGE\$Message &
+		   BODY\$Body) :-
+    is_string($Body),
+    http_response_code($Message, $Code),
+    coerse_default_content_type($Response),
+    !.
+make_http_response($Message, $Body,
+		   $Response &
+		   RES_CODE\$Code & RES_MESSAGE\$Message &
+		   BODY_BIN\$Body) :-
+    $Body = list,
+    http_response_code($Message, $Code),
+    coerse_default_content_type_binary($Response),
+    !.
+make_http_response($Message, $Body,
+		   $Response &
+		   RES_CODE\500 & RES_MESSAGE\$Message &
+		   BODY\$Body) :-
+    coerse_default_content_type($Response).
+
+make_http_response($Message, $Body, $Type, $Response) :-
+    $Response = CONTENT_TYPE\$Type,
+    make_http_response($Message, $Body, $Response).
+
+make_http_response($Body, $Response) :-
+    make_http_response("OK", $Body, $Response).
+
+make_http_error($Message, $Body1, $Response) :-
+    http_response_code($Message, $Code),
+    formattostr("<html>\n<title>~d ~s</title>\n</html>\n<body>\n<h1>~s</h1>\n~s\n</body>\n</html>\n",
+		[$Code, $Message, $Message, $Body1], $Body),
+    make_http_response($Message, $Body, "text/html", $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Send message
+
+send_http_response <- [pred].
+%% CGI
+send_http_response($Handle,
+		   http_cgi_text &
+		   RES_CODE\$Code & RES_MESSAGE\$Message &
+		   BODY\$Body1) :-
+    !,
+    formattostr("\r\n\r\n", $SplitStr),
+    split($Body1, $SplitStr, [$Header|$BodyList]),
+    join($BodyList, "\r\n\r\n", $Body),
+    strlen($Body, $Length),
+    format($Handle, "HTTP/1.0 ~d ~s\r\n", [$Code, $Message]),
+    debug_message("http_server", "Send> HTTP/1.0 ~d ~s\n", [$Code, $Message]),
+    format($Handle, "Content-Length: ~d\r\n", [$Length]),
+    debug_message("http_server", "Send> Content-Length: ~d\n", [$Length]),
+    format($Handle, "~s\r\n\r\n", [$Header]),
+    debug_message("http_server", "Send> ~s\nSend> \n", [$Header]),
+    debug_message("http_server", "Send> ~s\n", [$Body]),
+    write_string($Handle, $Body),
+    flush_output($Handle).
+%% Text file
+send_http_response($Handle,
+		   http_document_text &
+		   RES_CODE\$Code & RES_MESSAGE\$Message &
+		   BODY\$Body & CONTENT_TYPE\$Type) :-
+    !,
+    strlen($Body, $Length),
+    format($Handle, "HTTP/1.0 ~d ~s\r\n", [$Code, $Message]),
+    debug_message("http_server", "Send> HTTP/1.0 ~d ~s\n", [$Code, $Message]),
+    format($Handle, "Content-Length: ~d\r\n", [$Length]),
+    debug_message("http_server", "Send> Content-Length: ~d\n", [$Length]),
+    format($Handle, "Content-Type: ~s\r\n\r\n", [$Type]),
+    debug_message("http_server", "Send> Content-Type: ~s\nSend> \n", [$Type]),
+    debug_message("http_server", "Send> ~s\n", [$Body]),
+    write_string($Handle, $Body),
+    flush_output($Handle).
+%% Binary file
+send_http_response($Handle,
+		   http_document_binary &
+		   RES_CODE\$Code & RES_MESSAGE\$Message &
+		   BODY_BIN\$Body & CONTENT_TYPE\$Type) :-
+    !,
+    length($Body, $Length),
+    format($Handle, "HTTP/1.0 ~d ~s\r\n", [$Code, $Message]),
+    debug_message("http_server", "Send> HTTP/1.0 ~d ~s\n", [$Code, $Message]),
+    format($Handle, "Content-Length: ~d\r\n", [$Length]),
+    debug_message("http_server", "Send> Content-Length: ~d\n", [$Length]),
+    format($Handle, "Content-Type: ~s\r\n\r\n", [$Type]),
+    debug_message("http_server", "Send> Content-Type: ~s\nSend> \n", [$Type]),
+    debug_message("http_server", "Send> (Binary)\n", []),
+    write_stream($Handle, $Body),
+    flush_output($Handle).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Read message
+read_http_header <- [pred].
+read_http_header($Handle, $Args) :-
+    readln_string($Handle, $Line),
+    debug_message("http_server", "Header> ~s\n", [$Line]),
+    ($Line = "" ->
+     $Args = [] ;
+     regex_match("^([^ ]+) +(.+)$", $Line, [_, $Key, $Value]),
+     $Args = [($Key, $Value)|$NextArgs],
+     read_http_header($Handle, $NextArgs)).
+
+read_http_body <- [pred].
+read_http_body($Handle, $Length, $Body) :-
+    read_string($Handle, $Length, $Body),
+    debug_message("http_server", "Body> ~s\n", [$Body]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Receive request
+
+receive_http_request <- [pred].
+receive_http_request($Handle, $Request, $File, $Version, $HeaderArgs, $Body) :-
+    readln_string($Handle, $Line),
+    debug_message("http_server", "Request> ~s\n", [$Line]),
+    regex_match("^(.+) +(.+) +(.+)$", $Line, [_, $Request, $File|$ReqList]),
+    ($ReqList = [$Version] ->
+     true ;
+     $ReqList = [],
+     $Version = "HTTP/0.9"),
+    read_http_header($Handle, $HeaderArgs),
+    (assoc("Content-Length:", $HeaderArgs, $LenStr) ->
+     strtoint($LenStr, $ContentLength) ;
+     $ContentLength is 0),
+    read_http_body($Handle, $ContentLength, $Body),
+    !.
+receive_http_request($Handle, _, _, _, _, _) :-
+    make_http_error("Bad Request", "", $Response),
+    send_http_response($Handle, $Response),
+    fail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% disconnect?
+
+disconnect_text <- [pred].
+disconnect_text("<html><body><h1>Successfully disconnected.</h1></body></html>",
+		"text/html").
+
+disconnect_request <- [pred].
+disconnect_request("GET", $Request, $Response) :-
+    get_variable('*http_disconnect_request*', $Request),
+    $Request \= "",
+    disconnect_text($Body, $Type),
+    make_http_response("OK", $Body, $Type, $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+notfound_message <- [pred].
+notfound_message($FileName, $Response) :-
+    concatenate_string(["The requested URL ", $FileName, " was not found on this server."], $Body),
+    make_http_error("Not Found", $Body, $Response).
+
+file_type <- [pred].
+file_type($FileName, $Type, $IsBin) :-
+    (regex_match("\.([^\.]+)$", $FileName, [_, $Ext]),
+     get_array('*file_type_mapping*'($Ext, $Type, $IsBin)) ->
+     true ;
+     get_variable('*default_content_type*', $Type),
+     $IsBin = 1).
+
+read_file_content <- [pred].
+read_file_content($Handle, "") :-
+    eof_stream($Handle),
+    !.
+read_file_content($Handle, $Answer) :-
+    read_string($Handle, 32768, $Cont1),
+    read_file_content($Handle, $Cont2),
+    strcat($Cont1, $Cont2, $Answer).
+
+read_file_content_binary <- [pred].
+read_file_content_binary($Handle, []) :-
+    eof_stream($Handle),
+    !.
+read_file_content_binary($Handle, $Answer) :-
+    read_stream($Handle, 32768, $Cont1),
+    append($Cont1, $Cont2, $Answer),
+    read_file_content_binary($Handle, $Cont2).
+
+file_test_command <- [pred].
+% fow windows
+file_test_command($FileName, $Test) :-
+    environ("ENJU_WIN", "1"),
+    !,
+    join(["if exist ", $FileName, " (exit 0) else (exit 1)"], "", $Test).
+% fow linux
+file_test_command($FileName, $Test) :-
+    concatenate_string("test -r ", $FileName, $Test).
+
+read_file <- [pred].
+read_file($InFile, $Response) :-
+    (regex_match("/$", $InFile) ->
+     strcat($InFile, "index.html", $File) ;
+     $File = $InFile),
+    http_file_name($File, $FileName),
+    debug_message("http_server", "read_file> ~s\n", [$FileName]),
+    % CHANGE: 2011-07-19: matuzaki
+    % strcat("test -r ", $FileName, $Test),
+    file_test_command($FileName, $Test),
+    (system($Test) ->
+     (open_file_stream($FileName, "r", $FileHandle) ->
+      file_type($FileName, $ContType, $IsBin),
+      ($IsBin = 0 ->
+       read_file_content($FileHandle, $Content) ;
+       read_file_content_binary($FileHandle, $Content)),
+      close($FileHandle),
+      make_http_response("OK", $Content, $ContType, $Response) ;
+      notfound_message($FileName, $Response))
+     ;
+     notfound_message($FileName, $Response)).
+
+cgi_lilfes(_, _, _) :- fail.     %% to inhibit warning
+cgi_lilfes(_, _, _, _) :- fail.  %% to inhibit warning
+
+cgi_lilfes($CgiLiLFeS, $QueryString, _, _, $Answer) :-
+    cgi_lilfes($CgiLiLFeS, $QueryString, $Answer).
+cgi_lilfes($CgiLiLFeS, $QueryString, _, $Body, $Answer) :-
+    cgi_lilfes($CgiLiLFeS, $QueryString, $Body, $Answer).
+
+invoke_cgi <- [pred].
+invoke_cgi($CgiName, $QueryString, $Headers, $Body, $Response) :-
+    regex_match("^/cgi-lilfes/(.*)$", $CgiName, [_, $CgiLiLFeS]),
+    debug_message("http_server", "invoke_lilfes_cgi> ~s\n", [$CgiLiLFeS]),
+    (cgi_lilfes($CgiLiLFeS, $QueryString, $Headers, $Body, $Answer) ->
+     $Response = http_cgi,
+     make_http_response("OK", $Answer, $Response) ;
+     concatenate_string(["CGI LiLFeS", $CgiName, " not acceptable"], $Error),
+     make_http_error("Not Acceptable", $Error, $Response)),
+    !.
+%% invoke_cgi(_, _, $Response) :-
+%%     make_http_response("Method Not Allowd", "", "text/plain", $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Main routine to handle requests
+
+dispatch_http_request <- [pred].
+dispatch_http_request("GET", $File, $Headers, "", $Response) :-
+    (regex_match("^(.+)\?(.*)$", $File, [_, $CgiName, $QueryString]) ->
+     invoke_cgi($CgiName, $QueryString, $Headers, "", $Response)
+     ;
+     read_file($File, $Response)).
+
+dispatch_http_request("POST", $FileName, $Headers, $Body, $Response) :-
+    (regex_match("^(.+)\?(.*)$", $FileName, [_, $CgiName, $QueryString]) ->
+     true ;
+     $CgiName = $FileName,
+     $QueryString = ""),
+    invoke_cgi($CgiName, $QueryString, $Headers, $Body, $Response).
+
+handle_http_request <- [pred].
+handle_http_request($Request, $File, $Headers, $Body, $Response) :-
+    dispatch_http_request($Request, $File, $Headers, $Body, $Response),
+    !.
+handle_http_request(_, $File, _, _, $Response) :-
+    formattostr("Not Implemented: ~s", [$File], $Body),
+    make_http_error("Not Implemented", $Body, $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% main loop
+
+http_server_main <- [pred].
+http_server_main($Handle) :-
+    receive_http_request($Handle, $Request, $File, _, $Headers, $Body),
+    (disconnect_request($Request, $File, $DiscRes) ->
+     !,
+     send_http_response($Handle, $DiscRes),
+     fail ;
+     true),
+    (handle_http_request($Request, $File, $Headers, $Body, $Response) ->
+     true ;
+     make_http_error("Bad Request", "", $Response)),
+    send_http_response($Handle, $Response),
+    fail.
+http_server_main(_).
+
+http_server_loop <- [pred].
+http_server_loop($Handle) :-
+    accept_connection($Handle),
+    http_server_main($Handle),
+    !,
+    close_connection($Handle),
+    http_server_loop($Handle).
+http_server_loop($Handle) :-
+    close_connection($Handle).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% User interface
+
+set_http_file_type($Ext, $FileType) :-
+    set_array('*file_type_mapping*'($Ext, $FileType, 1)).  %% assuming binary data
+unset_http_file_type($Ext) :-
+    unset_array('*file_type_mapping*'($Ext, _, _)).
+
+http_server($Port) :-
+    open_server_stream($Port, $Handle),
+    set_variable('*http_server_handle*', $Handle),
+%    read_http_conf(_),
+    http_server_loop($Handle),
+    fail.
+http_server(_) :-
+    get_variable('*http_server_handle*', $Handle),
+    ($Handle = handle_stream ->
+     close($Handle),
+     set_variable('*http_server_handle*', handle_invalid)
+     ;
+     true).
+http_server :-
+    get_variable('*default_http_port*', $Port),
+    http_server($Port).
+
+http_server_debug($Port) :-
+    set_debug_mode("http_server"),
+    http_server($Port).
+
+http_server_debug :-
+    set_debug_mode("http_server"),
+    http_server.
+

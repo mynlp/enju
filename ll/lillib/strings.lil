@@ -1,0 +1,144 @@
+%/**
+  * @module    = lillib:strings
+  * @cvs       = $Id: strings.lil,v 1.5 2006-02-20 12:24:52 ninomi Exp $
+  * @copyright = Copyright (c) 1998--1999, MITSUISHI Yutaka
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @version   = April 07, 1999
+  * @since     = July 09, 1998
+  * @desc      = String manipulating routies
+  * String manipulating routines
+%*/
+
+:- module("lillib:strings").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+to_upper <- [pred].
+to_lower <- [pred].
+
+%% obsolete
+capital_to_small_letter <- [pred].
+small_to_capital_letter <- [pred].
+
+%% Built-in
+
+%% split <- [pred].
+
+%% chop <- [pred].
+
+%% join <- [pred].
+
+%% concatenate_string <- [pred].
+%% 'concatenate_string/2' <- [concatenate_string, 'pred/2'].
+%% 'concatenate_string/3' <- ['concatenate_string/2', 'pred/3'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lists").
+
+%% chop_sub <- [pred].
+%% chop_sub([], []).
+%% chop_sub([_], []) :- !.
+%% chop_sub([$CHAR|$STRING], [$CHAR|$CHOPPED]) :-
+%%     chop_sub($STRING, $CHOPPED).
+%% chop($IN, $OUT) :-
+%%     strtolist($IN, $INLIST),
+%%     chop_sub($INLIST, $OUTLIST),
+%%     listtostr($OUTLIST, $OUT).
+
+%% split_sub <- [pred].
+%% split_sub([], _, $HD, [], $RTL) :-
+%%      listtostr($HD, $EL),
+%%      $RTL = [$EL].
+%% split_sub($CharList, $DivList, $HD, $TL1, $RTL1) :-
+%%     (append($DivList, $SS, $CharList) ->
+%%      $TL1 = [],
+%%      listtostr($HD, $EL),
+%%      $RTL1 = [$EL|$RTL2],
+%%      split_sub($SS, $DivList, $X, $X, $RTL2)
+%%      ;
+%%      $CharList = [$S|$SS],
+%%      $TL1 = [$S|$TL2],
+%%      split_sub($SS, $DivList, $HD, $TL2, $RTL1)).
+
+%% split($Str, $Div, $List) :-
+%%     (is_string($Div) ->
+%%      strtolist($Div, $DivList) ;
+%%      is_integer($Div),
+%%      $DivList = [$Div]), 
+%%     strtolist($Str, $CharList),
+%%     split_sub($CharList, $DivList, $X, $X, $List).
+
+%% join([], _, "").
+%% join([$STR], _, $STR) :- !.
+%% join([$STR1|$LIST], $STR2, $STRING) :-
+%%     join($LIST, $STR2, $STR3),
+%%     $STRING is $STR1 + $STR2 + $STR3.
+
+%% concatenate_string($X, $Y, $Z) :-
+%%     strcat($X, $Y, $Z).
+
+%% concatenate_string([], "").
+%% concatenate_string([$X|$Y], $Z) :-
+%%     concatenate_string($Y, $W),
+%%     strcat($X, $W, $Z).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = to_upper(+$STR1, -$STR2)
+  * @param     = +$STR1/string : string with small letters
+  * @param     = -$STR2/string : capital letters
+  * @desc      = convert small letters to capital letters
+  * This predicate converts string with small letters to capital letters.
+%*/
+%/**
+  * @predicate = to_lower(+$STR1, -$STR2)
+  * @param     = +$STR1/string : string with capital letters
+  * @param     = -$STR2/string : small letters
+  * @desc      = convert capital letters to small letters
+  * This predicate converts string with capital letters to small letters.
+%*/
+
+small_to_capital_letter_char <- [pred].
+small_to_capital_letter_sub <- [pred].
+capital_to_small_letter_char <- [pred].
+capital_to_small_letter_sub <- [pred].
+
+small_to_capital_letter_char($S,$C) :-
+    ($S >= 97, $S <= 122 -> $C is $S - 32 ;  $C is $S).
+
+small_to_capital_letter_sub([],[]).
+small_to_capital_letter_sub([$S|$SS],[$C|$CC]) :-
+    small_to_capital_letter_char($S,$C),
+    small_to_capital_letter_sub($SS,$CC).
+
+to_upper($SS,$CC) :-
+    strtolist($SS,$SSL),
+    small_to_capital_letter_sub($SSL,$CCL),
+    listtostr($CCL,$CC).
+
+capital_to_small_letter_char($C,$S) :-
+    ($C >= 65, $C <= 90 -> $S is $C + 32 ; $S is $C).
+
+capital_to_small_letter_sub([],[]).
+capital_to_small_letter_sub([$C|$CC],[$S|$SS]) :-
+    capital_to_small_letter_char($C,$S),
+    capital_to_small_letter_sub($CC,$SS).
+
+to_lower($CC,$SS) :-
+    strtolist($CC,$CCL),
+    capital_to_small_letter_sub($CCL,$SSL),
+    listtostr($SSL,$SS).
+
+%% obsolete
+small_to_capital_letter($In, $Out) :-
+    to_upper($In, $Out).
+capital_to_small_letter($In, $Out) :-
+    to_lower($In, $Out).
+

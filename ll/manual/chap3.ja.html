@@ -1,0 +1,464 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html lang=ja>
+
+<!-- Time-stamp: "2004-05-14 23:43:02 yusuke" -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="prev" href="chap2.ja.html">
+<link rel="next" href="chap4.ja.html">
+<link rel="stylesheet" type="text/css" href="style-chap3.css">
+<title>Chap. 3  Types and Features</title>
+</head>
+
+
+<body>
+
+<h1>型と素性</h1>
+
+<a href="chap3.html">English version</a>
+
+<h2>目次</h2>
+
+<ul>
+  <li><a href="#feature_structure">素性構造</a>
+  <li><a href="#type_hierarchy">型階層</a>
+  <li><a href="#type_unification">型の単一化</a>
+  <li><a href="#feature">素性</a>
+  <li><a href="#unification">素性構造の単一化</a>
+  <li><a href="#structure_sharing">構造共有</a>
+  <li><a href="#misc">その他</a>
+</ul>
+
+<hr noshade>
+
+
+<!-- ここから本文 -->
+<h2><a name="feature_structure">素性構造</a></h2>
+
+<p><key>素性構造</key>(<key>feature structure</key>, <key>FS</key>)とは，
+各ノード，各エッジに名前のついた有向グラフのことです．
+ノードについた名前は<a href="#type_hierarchy">型(type)</a>と呼ばれ，
+エッジについた名前は<a href="#feature">素性(feature)</a>と呼ばれます．
+各ノードからどのような素性のエッジが出るか(以下では，
+「各型がどのような素性を持つか」という言い方をします)というのは，
+そのノードの型から一意に決まります．
+各素性の先はまた素性構造になっているので，素性構造とは，
+型と素性からなる再帰的なデータ構造と言うことができます．</p>
+
+<a name="figure_fs">
+<blockquote>
+<table border="0">
+<caption align="bottom">図3.1 素性構造の例</caption>
+<tr><td>
+<pre>
+       名前
+     −−−−→ダンスインザダーク
+    ｜     系統
+→競走馬−−−−−→Hail to Reason
+    ｜＼  父          系統 ↑
+    ｜  −−→種牡馬−−−−
+    ｜          ｜ 名前
+    ｜           −−−→サンデーサイレンス
+    ｜ 母            名前
+     −−→繁殖牝馬−−−−→ダンシングキイ
+              ｜ 系統
+               −−−→Northern Dancer
+</pre>
+</td></tr>
+</table>
+</blockquote>
+</a>
+
+<p>一番左の矢印で指されているノードは，根(root)と呼ばれる特別なノードで，
+どんな素性構造にも必ず一つ存在するノードです．
+また，型<tt>'Hail to Reason'</tt>がついているノードは，
+二つのエッジの先となっています．このような構造を，
+<a href="#structure_sharing">構造共有</a>(後述)と呼びます．</p>
+
+<p>このようなグラフをいちいち書くのは面倒なので，
+一般に次のような<key>AVM</key>(<key>Attribute-Value Matrix</key>)
+で記述します．</p>
+
+<blockquote>
+<table border="0">
+<caption align="bottom">図3.2 素性構造のAVM表記の例</caption>
+<tr><td>
+<pre>
+|~競走馬                        ~|
+| 名前:ダンスインザダーク        |
+| 系統:$1 Hail to Reason         |
+|    |~種牡馬                 ~| |
+| 父:| 名前:サンデーサイレンス | |
+|    |_系統:$1                _| |
+|    |~繁殖牝馬            ~|    |
+| 母:| 名前:ダンシングキイ  |    |
+|_   |_系統:Northern Dancer_|   _|
+</pre>
+</td></tr>
+</caption>
+</table>
+</blockquote>
+
+<p>これは，<a href="#figure_fs">初めの図</a>と同じ構造を表しています．
+角かっこで囲まれた部分が，素性構造です．
+かっこ内の左上に書かれているものが，その素性構造の根の型で，その下に，
+それぞれの素性と，その素性の先の素性構造を書きます．
+<a href="#structure_sharing">構造共有</a>は，ダグ(上の図では，
+"$1")で表します(詳しくは後述)．LiLFeSが素性構造を画面に表示する時も，
+この記述方法を使います．</p>
+
+<p>LiLFeSでは，各素性の先に来る素性構造の根の型を指定することができます．
+例えば，<a href="#figure_fs">上の例</a>では，
+素性'父'の先のノードは型'種牡馬'であるとすれば，
+'競走馬'や'Hail to Reason'が来ることができなくなります．</p>
+
+<hr noshade>
+
+
+<h2><a name="type_hierarchy">型階層</a></h2>
+
+<p><key>型</key>(<key>type</key>)は，階層構造を持っています．
+例えば，三角形の種類について，
+次のような階層構造を作ることができます．</p>
+
+<a name="figure_triangle">
+<blockquote>
+<table border="0">
+<caption align="bottom">図3.3 型階層の例</caption>
+<tr><td>
+<pre>
+正三角形  直角二等辺三角形
+   ＼      ／         ＼
+   二等辺三角形    直角三角形
+          ＼        ／
+             三角形
+               ｜
+              bot
+</pre>
+</td></tr>
+</table>
+</blockquote>
+</a>
+
+<p>線で結ばれた関係はsupertype-subtypeの関係と呼ばれ，上の図では，
+下側がsupertype，上側がsubtypeになっています．
+全ての型(<a href="#bottom">'bot'</a>を除く)は，
+必ず一つ以上のsupertypeを持ちます．
+supertypeはsubtypeを汎化したもの，
+subtypeはsupertypeを特化したものと呼ばれ，上の例では，
+supertypeの概念を特殊化した概念が，subtypeになるようにしています．
+型階層は，このような特殊化・一般化の関係を記述するのに使うのが一般的です．
+また，supertypeを遡っていった型，subtypeをたどっていった型も，
+それぞれsupertype, subtypeと呼ばれます．
+<a href="#figure_triangle">上の図</a>の一番下にある型<a name="bottom">
+'<key><code>bot</code></key>'(<key>bottom</key>)</a>は，
+LiLFeSに組み込みの型で，全ての型のsupertypeとなる型です．</p>
+
+<hr noshade>
+
+
+<h2><a name="type_unification">型の単一化</a></h2>
+
+<p>型と型との間の演算として，
+<key>単一化</key>(<key>unification</key>)が定義されます．
+直観的には，<a href="#figure_triangle">上の図</a>のような型階層の中で，
+二つの型の共通のsubtypeのうち，
+いちばん一般的な型を見つける操作になります．
+このような型を，<key>LUB</key>(<key>Least Upper Bound</key>)と呼びます．</p>
+
+<p>二つの型をそれぞれ<var>X,Y</var>とすると，単一化は，LiLFeSでは
+
+<blockquote>
+<code>
+<pre>
+X = Y
+</pre>
+</code>
+</blockquote>
+
+で表されます(<code>=</code>は中おきの述語)．例えば，
+<a href="#figure_triangle">上記の三角形の例</a>を使うと，
+
+<blockquote>
+<table border="0">
+<tr><td>
+<code>
+<pre>
+> ?- X = 三角形, X = 二等辺三角形.
+X: 二等辺三角形
+> ?- X = 二等辺三角形, X = 直角三角形.
+X: 直角二等辺三角形
+> ?- X = 正三角形, X = 直角三角形.
+no
+</pre>
+</code>
+</td></tr>
+</table>
+</blockquote>
+
+となります．共通のsubtypeが無い時は，失敗します．また，
+<a href="#bottom">'bot'</a>は全ての型のsupertypeなので，
+どんな型<var>X</var>との単一化も成功し，
+結果は<var>X</var>になります．</p>
+
+<p>LiLFeSの型階層では，
+単一化の結果(LUB)は一意に定まらなければならないという制約があります．
+つまり，二つの型の共通のsubtypeが複数あって，
+しかもその中にsupertype-subtypeの関係に無い型の組があるような階層構造は，
+定義できないということです．例えば，
+上の例で'二等辺三角形'と'直角三角形'
+とを直接のsupertypeとする新たな型<var>A</var>を定義しようとすると，
+エラーになります．このような制限があるため，
+PROLOGの述語による表現より弱い表現になるわけですが，そのおかげで，
+型の単一化の処理は高速に行なわれます．</p>
+
+<hr noshade>
+
+
+<h2><a name="feature">素性</a></h2>
+
+<p>各型は，<key>素性</key>(<key>feature</key>)を持つことができます．
+supertypeが素性を持っている場合はその素性を受け継ぎ，それに加えて，
+新たな素性を付け加えることができます．
+複数のsupertypeが存在する時には同じ素性を受け継ぐ可能性がありますが，
+その様な場合は，一つにまとめられます．LiLFeSでは，
+同じ名前の素性を2度以上定義することはできないという制約があります．</p>
+
+<p>例として，次のような型階層を考えます．角かっこ内が，
+その型で新たに定義される素性です．</p>
+
+<a name="figure_poker">
+<blockquote>
+<table border="0">
+<caption align="bottom">表3.4 素性の例</caption>
+<tr><td>
+<pre>
+ストレート[最小の数]  フラッシュ[スート]
+              ＼          ／
+               ポーカーの役
+                    ｜
+                   bot
+</pre>
+</td></tr>
+</table>
+</blockquote>
+</a>
+
+<p>ここで，'ストレート'と'フラッシュ'をsupertypeとする型
+'ストレートフラッシュ'を定義すると，それは，
+'最小の数'と'スート'という2つの素性を初めから持っていることになります．
+もし型'ポーカーの役'に何らかの素性<var>A</var>があったとすると，
+それは'ストレート'と'フラッシュ'にも受け継がれ，
+さらに'ストレートフラッシュ'には，両方の直接のsupertypeから，
+同じ素性<var>A</var>を受け継ぐことになります．このときは，
+素性<var>A</var>は一つに合併され，結局，
+'ストレートフラッシュ'は3つの素性を持つようになります．</p>
+
+<hr noshade>
+
+
+<h2><a name="unification">素性構造の単一化</a></h2>
+
+<p>素性構造の単一化は，まず，根の型を単一化することから始まります．
+それに成功したら，つぎに，各素性をたどっていき，
+その先の素性構造を単一化します．この操作を再帰的に行ない，
+全てのノードで単一化が成功すると，
+全体の素性構造の単一化が成功したことになります．</p>
+
+<p><a href="#figure_poker">ポーカーの役</a>の例を使って，
+次のような2つの素性構造の単一化を考えてみます．
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~ストレート ~|
+|_最小の数:10_|
+|~フラッシュ     ~|
+|_スート:スペード_|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+まず，根の型'ストレート'と'フラッシュ'とを単一化します．
+これの結果は'ストレートフラッシュ'になるので，
+それぞれの素性構造は，次のようになります．
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~ストレートフラッシュ~|
+| 最小の数:10          |
+|_スート:bot          _|
+|~ストレートフラッシュ~|
+| 最小の数:bot         |
+|_スート:スペード     _|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+次に，各素性について，その先の素性構造を単一化します．
+素性'最小の数'の素性構造は型'10'になり，
+素性'スート'の素性構造は型'スペード'になります．そして，
+全てのノードの単一化が成功したので，次のような結果が得られます．
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~ストレートフラッシュ~|
+| 最小の数:10          |
+|_スート:スペード     _|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+</p>
+
+<hr noshade>
+
+
+<h2><a name="structure_sharing">構造共有</a></h2>
+
+<p>素性構造は，一般的なグラフ構造を有することができます．木構造との違いは，
+複数のエッジの先が一つのノードになる可能性があるということです．
+このような構造を，
+<key>構造共有</key>(<key>structure sharing</key>)と呼びます．
+<a href="#figure_fs">初めの例</a>では，型'Hail to Reason'のノードで，
+構造共有が起きています．AVMで表現する時は，
+構造共有が起きているノードを根とする素性構造に対するAVMの前に，
+<key>ダグ</key>(<key>dag</key>)
+$<var>x</var>(<var>x</var>は任意の数字)を書き，
+構造共有が起きている他のノードに同じダグを書いて表します．また，
+構造共有されているノード以降の素性構造はどこか1箇所だけで書くことにし，
+他のところでは省略することにすれば，ループを含む素性構造も，
+有限の記述で表現できます．</p>
+
+<p>構造共有を含む素性構造の単一化は，
+<a href="#unification">前節</a>の方法がそのまま適用できます．ただ，
+構造共有が起きているという情報も，単一化されます．
+例えば，次のような2つの素性構造を単一化する場合，
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~example ~|
+| A:$1 bot |
+| B:$1     |
+|_C:bot   _|
+|~example ~|
+| A:bot    |
+| B:$2 bot |
+|_C:$2    _|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+素性'A'を単一化した時，
+素性'A'と素性'B'の先は構造共有されているという情報が，
+下の構造にも伝えられます．同様に，
+下の構造では素性'B'と素性'C'とが構造共有されているので，
+それが上の素性構造にも伝えられます．結局，
+単一化の結果は次のようになります．
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~example ~|
+| A:$1 bot |
+| B:$1     |
+|_C:$1    _|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+</p>
+
+<hr noshade>
+
+
+<h2><a name="misc">その他</a></h2>
+
+<p>LiLFeSでは，PROLOGと同様に，リストを扱うことができます．</p>
+
+<blockquote>
+<table border="0">
+<tr><td>
+<code>
+<pre>
+> ?- X = [1, 2, 3].
+X: &lt; 1, 2, 3 &gt;
+</pre>
+</code>
+</td></tr>
+</table>
+</blockquote>
+
+<p>リストは，実際には素性構造になっています．
+リストの型は'<code>list</code>'で，
+直接のsubtypeに'<code>cons</code>'と'<code>nil</code>'という型を持ちます．
+また，'<code>cons</code>'は，
+'<code>hd</code>'と'<code>tl</code>'という素性を持ちます．
+Lispの言葉を借りれば，'<code>hd</code>'は'<code>car</code>'にあたり，
+'<code>tl</code>'は'<code>cdr</code>'にあたります．従って，
+上の例のリストは，次のような素性構造であるということになります．</p>
+
+<blockquote>
+<table border="0">
+<tr><td>
+<pre>
+|~cons                ~|
+| hd:1                 |
+|    |~cons         ~| |
+|    | hd:2          | |
+| tl:|    |~cons  ~| | |
+|    | tl:| hd:3   | | |
+|_   |_   |_tl:nil_|_|_|
+</pre>
+</td></tr>
+</table>
+</blockquote>
+
+<p>素性構造ですから，構造共有も表現できます．例えば，次のようにして，
+1と2が交互に無限に続く列を表現することができます．</p>
+
+<blockquote>
+<table border="0">
+<tr><td>
+<code>
+<pre>
+> ?- X = [1, 2 | X].
+X: [$1] &lt; 1, 2 | [$1] ... &gt;
+</pre>
+</code>
+</td></tr>
+</table>
+</blockquote>
+
+<p>LiLFeSでは，述語や素性名なども，全て素性構造として扱われています．
+
+
+
+<hr>
+<a href="chap2.ja.html">2章 インストールと実行</a>
+<a href="chap4.ja.html">4章 文法</a>
+
+<hr>
+<a href="index.ja.html">目次</a>
+<a href="../index.ja.html">LiLFeSドキュメント</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/index-j.html">LiLFeSホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/index-j.shtml">辻井研究室</a>
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+body {
+  color: black;
+  background-color: #88ff88;
+}
+
+h1 {
+  /* font: bold 300% helvetica; */
+  font-weight: bold;
+  font-size: 200%;
+  color: black;
+  border-width: 5pt;
+  border-style: ridge;
+  padding: 10pt 10pt 10pt 10pt;
+}
+
+table {
+  background-color: ivory;
+}
+

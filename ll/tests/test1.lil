@@ -1,0 +1,105 @@
+:- module("test1").
+:- ensure_loaded("testmain").
+
+:- module_implementation.
+
+tA <- [bot] + [A\].
+tB <- [bot] + [B\ list].
+tC <- [bot] + [C\ integer].
+tD <- [bot] + [D\ string].
+
+tAB <- [tA, tB].
+tAC <- [tA, tC].
+tBC <- [tB, tC].
+
+tABC <- [tAB, tAC, tBC].
+tABD <- [tAB, tD].
+
+tBB <- [tB] + [B\ cons].
+%--------------------------------------------------------------------
+
+dynamic_unify <- bot.
+static_unify <- bot.
+
+test_item(dynamic_unify,20,10).
+
+% unify VAR-VAR
+tt(dynamic_unify, 0) :- X = tA, Y = tB, X = Y, equiv(X, tAB).
+
+% unify STR-VAR
+tt(dynamic_unify, 1) :- X = tA & A\ 1, Y = tAB, X = Y, equiv(X, tAB & A\ 1 & B\ list).
+tt(dynamic_unify, 2) :- X = tAB & A\ 1 & B\ [], Y = tB, X = Y, equiv(X, tAB & A\ 1 & B\ []).
+tt(dynamic_unify, 3) :- X = tA & A\ 8, Y = tB, X = Y, equiv(X, tAB & A\ 8 & B\ list).
+tt(dynamic_unify, 4) :- X = tA & A\ 34, Y = tC, X = Y, equiv(X, tAC & A\ 34 & C\ integer).
+tt(dynamic_unify, 5) :- X = tA & A\ 35, Y = tD, X = Y, equiv(X, tABD & A\ 35 & B\ list & D\ string).
+
+% unify VAR-STR
+tt(dynamic_unify, 6) :- X = tAB, Y = tA & A\ 1, X = Y, equiv(X, tAB & A\ 1 & B\ list).
+tt(dynamic_unify, 7) :- X = tB, Y = tAB & A\ 1 & B\ [], X = Y, equiv(X, tAB & A\ 1 & B\ []).
+tt(dynamic_unify, 8) :- X = tB, Y = tA & A\ 8, X = Y, equiv(X, tAB & A\ 8 & B\ list).
+tt(dynamic_unify, 9) :- X = tC, Y = tA & A\ 34, X = Y, equiv(X, tAC & A\ 34 & C\ integer).
+tt(dynamic_unify, 10) :- X = tD, Y = tA & A\ 35, X = Y, equiv(X, tABD & A\ 35 & B\ list & D\ string).
+
+% unify STR-STR
+tt(dynamic_unify, 11) :- X = tA & A\ tA, Y = tA & A\ tB, X = Y, equiv(X, tA & A\ tAB).
+tt(dynamic_unify, 12) :- X = tAB & A\ tA & B\ [], Y = tA & A\ tB, X = Y, equiv(X, tA & A\ tAB & B\ []).
+tt(dynamic_unify, 13) :- X = tA & A\ tA, Y = tAC & A\ tC & C\ 111, X = Y, equiv(X, tAC & A\ tAC & C\ 111).
+tt(dynamic_unify, 14) :- X = tA & A\ 123, Y = tB & B\ [], X = Y, equiv(X, tAB & A\ 123 & B\ []).
+tt(dynamic_unify, 15) :- X = tAB & A\ 124 & B\ [Q|_], Y = tBC & B\ [_, Q] & C\ 123, X = Y, equiv(X, tABC & A\ 124 & B\ [R, R] & C\ 123).
+tt(dynamic_unify, 16) :- X = tA & A\ 124, Y = tD & D\ "testing", X = Y, equiv(X, tABD & A\ 124 & B\ list & D\ "testing").
+tt(dynamic_unify, 17) :- X = tB & B\ Z, Y = tBB, X = Y, equiv(Z, cons).
+tt(dynamic_unify, 18) :- X = tA & A\ (tC & C\ 129 & A\ A\ C\ Z), Y = tA & A\ (Q & A\ Q), X = Y, equiv(Z, 129).
+tt(dynamic_unify, 19) :- X = tA & A\ A\ A\ A\ C\ Z, Y = tA & A\ (Q & A\ (C\ 997 & A\ Q)), X = Y, equiv(Z, 997).
+
+ft(dynamic_unify, 0) :- equal(X, tC), Y = tD, X = Y.
+ft(dynamic_unify, 1) :- equal(X , tC & C\ 1), Y = tD, X = Y.
+ft(dynamic_unify, 2) :- equal(X , tC), Y = tD & D\ "test", X = Y.
+ft(dynamic_unify, 3) :- equal(X , tC & C\ 1), Y = tD & D\ "test", X = Y.
+ft(dynamic_unify, 4) :- equal(X , tA & A\ 1), Y = tA & A\ "test", X = Y.
+ft(dynamic_unify, 5) :- equal(X , tAB & A\ 1 & B\ []), Y = tAC & A\ "test" & C\ 1, X = Y.
+ft(dynamic_unify, 6) :- equal(X , tAB & A\ Q & B\ Q), Y = tAC & A\ R & C\ R, X = Y, printAVM(X).
+ft(dynamic_unify, 7) :- X = tB & B\ nil, Y = tBB, X = Y.
+ft(dynamic_unify, 8) :- X = tA & A\ (tAC & C\ 130 & A\ A\ C\ 131 ), Y = tA & A\ (Q & A\ Q), X = Y.
+ft(dynamic_unify, 9) :- X = tA & A\ A\ A\ A\ C\ 955, Y = tA & A\ (Q & A\ (C\ 997 & A\ Q)), X = Y.
+
+%-------------------------------------------------------------------------
+test_item(static_unify,20,10).
+
+tt(static_unify, 0) :- X = tA, X = tB, equiv(X, tAB).
+tt(static_unify, 1) :- X = tA & A\ 1, X = tAB, equiv(X, tAB & A\ 1 & B\ list).
+tt(static_unify, 2) :- X = tAB & A\ 1 & B\ [], X = tB, equiv(X, tAB & A\ 1 & B\ []).
+tt(static_unify, 3) :- X = tA & A\ 8, X = tB, equiv(X, tAB & A\ 8 & B\ list).
+tt(static_unify, 4) :- X = tA & A\ 34, X = tC, equiv(X, tAC & A\ 34 & C\ integer).
+tt(static_unify, 5) :- X = tA & A\ 35, X = tD, equiv(X, tABD & A\ 35 & B\ list & D\ string).
+tt(static_unify, 6) :- X = tAB, X = tA & A\ 1, equiv(X, tAB & A\ 1 & B\ list).
+tt(static_unify, 7) :- X = tB, X = tAB & A\ 1 & B\ [], equiv(X, tAB & A\ 1 & B\ []).
+tt(static_unify, 8) :- X = tB, X = tA & A\ 8, equiv(X, tAB & A\ 8 & B\ list).
+tt(static_unify, 9) :- X = tC, X = tA & A\ 34, equiv(X, tAC & A\ 34 & C\ integer).
+tt(static_unify, 10) :- X = tD, X = tA & A\ 35, equiv(X, tABD & A\ 35 & B\ list & D\ string).
+
+tt(static_unify, 11) :- X = tA & A\ tA, X = tA & A\ tB, equiv(X, tA & A\ tAB).
+tt(static_unify, 12) :- X = tAB & A\ tA & B\ [], X = tA & A\ tB, equiv(X, tA & A\ tAB & B\ []).
+tt(static_unify, 13) :- X = tA & A\ tA, X = tAC & A\ tC & C\ 111, equiv(X, tAC & A\ tAC & C\ 111).
+tt(static_unify, 14) :- X = tA & A\ 123, X = tB & B\ [], equiv(X, tAB & A\ 123 & B\ []).
+tt(static_unify, 15) :- X = tAB & A\ 124 & B\ [Q|_], X = tBC & B\ [_, Q] & C\ 123, equiv(X, tABC & A\ 124 & B\ [R, R] & C\ 123).
+tt(static_unify, 16) :- X = tA & A\ 124, X = tD & D\ "testing", equiv(X, tABD & A\ 124 & B\ list & D\ "testing").
+tt(static_unify, 17) :- X = tB & B\ Z, X = tBB, equiv(Z, cons).
+tt(static_unify, 18) :- X = tA & A\ (tC & C\ 129 & A\ A\ C\ Z), X = tA & A\ (Q & A\ Q), equiv(Z, 129).
+tt(static_unify, 19) :- X = tA & A\ A\ A\ A\ C\ Z, X = tA & A\ (Q & A\ (C\ 997 & A\ Q)), equiv(Z, 997).
+
+
+ft(static_unify, 0) :- equal( X , tC), X = tD.
+ft(static_unify, 1) :- equal( X , tC & C\ 1), X = tD.
+ft(static_unify, 2) :- equal( X , tC), X = tD & D\ "test".
+ft(static_unify, 3) :- equal( X , tC & C\ 1), X = tD & D\ "test".
+ft(static_unify, 4) :- equal( X , tA & A\ 1), Y = tA & A\ "test", X = Y.
+ft(static_unify, 5) :- equal( X , tAB & A\ 1 & B\ []), X = tAC & A\ "test" & C\ 1.
+ft(static_unify, 6) :- equal( X , tAB & A\ Q & B\ Q), X = tAC & A\ R & C\ R.
+ft(static_unify, 7) :- equal( X , tB & B\ nil), X = tBB.
+ft(static_unify, 8) :- equal( X , tA & A\ (tAC & C\ 130 & A\ A\ C\ 131 )), X = tA & A\ (Q & A\ Q).
+ft(static_unify, 9) :- equal( X , tA & A\ A\ A\ A\ C\ 955 ), X = tA & A\ (Q & A\ (C\ 997 & A\ Q)).
+
+%--------------------------------------------------------------------
+
+
+

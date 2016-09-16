@@ -1,0 +1,214 @@
+%/**
+  * @module    = lillib:dattypes
+  * @cvs       = $Id: dattypes.lil,v 1.1 2004-04-14 13:14:11 yusuke Exp $
+  * @copyright = Copyright (c) 1998--1999, MITSUISHI Yutaka
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @version   = April 07, 1999
+  * @since     = July 08, 1998
+  * @desc      = Definition of basic data types
+  * This module provides useful data types.
+%*/
+
+:- module("lillib:dattypes").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+%binary <- [bot].
+%plus <- [binary].
+%minus <- [binary].
+
+%/*
+  * @type = constant
+  * @desc = a type for constants
+  * Constants should be defined as subtypes of this type.
+%*/
+
+constant <- ['pred/1'] ./ extendable.		%% Constant
+
+%/*
+  * @type = variable
+  * @desc = a type for variables
+  * Variables should be defined as subtypes of this type.
+%*/
+
+variable <- ['pred/1'] ./ extendable.		%% Variable
+
+define_variable <- [pred].
+define_string_variable <- [pred].
+define_integer_variable <- [pred].
+define_float_variable <- [pred].
+init_string_variable <- [pred].
+init_integer_variable <- [pred].
+init_float_variable <- [pred].
+set_variable <- [pred].
+get_variable <- [pred].
+add_variable <- [pred].
+inc_variable <- [pred].
+'inc_variable/1' <- [inc_variable, 'pred/1'].
+'inc_variable/2' <- ['inc_variable/1', 'pred/2'].
+'inc_variable/3' <- ['inc_variable/2', 'pred/3'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+%/**
+  * @predicate = define_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define a new variable
+  * This predicate defines a new variable named $VARIABLE
+%*/
+
+define_variable((variable & $VARIABLE)) :-
+    declare_array($VARIABLE & arg1\array_value).
+
+%/**
+  * @predicate = define_string_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define a new string variable
+  * This predicate defines a new string variable named $VARIABLE
+%*/
+
+define_string_variable((variable & $VARIABLE)) :-
+    declare_array($VARIABLE & arg1\array_value_string).
+
+%/**
+  * @predicate = define_integer_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define a new integer variable
+  * This predicate defines a new integer variable named $VARIABLE
+%*/
+
+define_integer_variable((variable & $VARIABLE)) :-
+    declare_array($VARIABLE & arg1\array_value_integer).
+
+%/**
+  * @predicate = define_float_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define a new float variable
+  * This predicate defines a new float variable named $VARIABLE.
+%*/
+
+define_float_variable((variable & $VARIABLE)) :-
+    declare_array($VARIABLE & arg1\array_value_float).
+
+%/**
+  * @predicate = init_string_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define and initialize a new string variable
+  * This predicate defines a new string variable named $VARIABLE,
+  * and initializes it to "".
+%*/
+
+init_string_variable((variable & $VARIABLE1)) :-
+    copy($VARIABLE1, $VARIABLE2),
+    define_string_variable($VARIABLE1),
+    set_variable($VARIABLE2, "").
+
+%/**
+  * @predicate = init_integer_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define and initialize a new integer variable
+  * This predicate defines a new integer variable named $VARIABLE,
+  * and initializes it to 0.
+%*/
+
+init_integer_variable((variable & $VARIABLE1)) :-
+    copy($VARIABLE1, $VARIABLE2),
+    define_integer_variable($VARIABLE1),
+    set_variable($VARIABLE2, 0).
+
+%/**
+  * @predicate = init_float_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable : name of a variable to be defined
+  * @desc      = define and initialize a new float variable
+  * This predicate defines a new float variable named $VARIABLE,
+  * and initializes it to 0.0.
+%*/
+
+init_float_variable((variable & $VARIABLE1)) :-
+    copy($VARIABLE1, $VARIABLE2),
+    define_float_variable($VARIABLE1),
+    set_variable($VARIABLE2, 0.0).
+
+%/**
+  * @predicate = set_variable(+$VARIABLE, +$VALUE)
+  * @param     = +$VARIABLE/variable : name of a variable
+  * @param     = +$VALUE/bot         : a value to be set
+  * @desc      = set a value to a variable
+  * This predicate lets the value of $VARIABLE be $VALUE.
+%*/
+set_variable((variable & $VARIABLE), $VALUE) :-
+    set_array($VARIABLE & arg1\$VALUE).
+
+%/**
+  * @predicate = get_variable(+$VARIABLE, -$VALUE)
+  * @param     = +$VARIABLE/variable : name of a variable
+  * @param     = -$VALUE/bot         : a value of a variable
+  * @desc      = get a value of a variable
+  * This predicate lets $VALUE be the value of $VARIABLE.
+%*/
+get_variable((variable & $VARIABLE), $VALUE) :-
+    get_array($VARIABLE & arg1\$VALUE).
+
+%/**
+  * @predicate = add_variable(+$VARIABLE, +$VALUE)
+  * @param     = +$VARIABLE/variable (of integer or float) : name of a variable
+  * @param     = +$VALUE/integer or float                  : a value to be added
+  * @desc      = increment the value of a variable
+  * This increases the value of $VARIABLE by $VALUE.
+%*/
+
+add_variable((variable & $VARIABLE1), $VALUE) :-
+    copy($VARIABLE1, $VARIABLE2),
+    get_variable($VARIABLE1, $OLD),
+    $NEW is $OLD + $VALUE,
+    set_variable($VARIABLE2, $NEW).
+
+%/**
+  * @predicate = inc_variable(+$VARIABLE)
+  * @param     = +$VARIABLE/variable (of integer) : a name of a variable
+  * @desc      = increment a variable
+  * This predicate increments a variable
+%*/
+
+inc_variable($VARIABLE1) :-
+    copy($VARIABLE1, $VARIABLE2),
+    get_variable($VARIABLE1, $OLD),
+    $NEW is $OLD + 1,
+    set_variable($VARIABLE2, $NEW).
+
+%/**
+  * @predicate = inc_variable(+$VARIABLE, -$OLD)
+  * @param     = +$VARIABLE/ variable (of integer) : a name of a variable
+  * @param     = -$OLD/ integer                    : an old value of a variable
+  * @desc      = increment a variable
+  * This predicate increments a variable.  $OLD will be an old value
+  * of the variable.
+%*/
+
+inc_variable($VARIABLE1, $OLD) :-
+    copy($VARIABLE1, $VARIABLE2),
+    get_variable($VARIABLE1, $OLD),
+    $NEW is $OLD + 1,
+    set_variable($VARIABLE2, $NEW).
+
+%/**
+  * @predicate = inc_variable(+$VARIABLE, -$OLD, -$NEW)
+  * @param     = +$VARIABLE/ variable (of integer) : a name of a variable
+  * @param     = -$OLD/ integer                    : an old value of a variable
+  * @param     = -$NEW/ integer                    : a new value of a variable
+  * @desc      = increment a variable
+  * This predicate increases the value of $VARIABLE by 1.  $OLD and $NEW are
+  * respectively the old and new value of $VARIABLE.
+%*/
+
+inc_variable($VARIABLE1, $OLD, $NEW) :-
+    copy($VARIABLE1, $VARIABLE2),
+    get_variable($VARIABLE1, $OLD),
+    $NEW is $OLD + 1,
+    set_variable($VARIABLE2, $NEW).
+

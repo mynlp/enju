@@ -1,0 +1,752 @@
+%/**
+  * @module    = lillib:cgiconsole
+  * @cvs       = $Id: cgiconsole.lil,v 1.6 2006-07-07 14:12:59 yusuke Exp $
+  * @copyright = Copyright (c) 2003-2005, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = NAKANISHI Hiroko (n165@is.s.u-tokyo.ac.jp)
+  * @desc      = GUI for LiLFeS interpreter
+  * This module provides GUI for LiLFeS interpreter on a web browser.
+%*/
+
+:- module("lillib:cgiconsole").
+
+:- module_interface.
+
+:- ensure_loaded("lillib/http_server").
+:- ensure_loaded("lillib/xml").
+:- ensure_loaded("lillib/cgi").
+:- ensure_loaded("lillib/dattypes").
+
+%/**
+  * @predicate = moriv_console
+  * @desc      = Invoke GUI interpreter on MoriV.
+  * @jdesc     = MoriV上でGUIインタプリタを起動します。
+%*/
+moriv_console <- [pred].
+%/**
+  * @predicate = moriv_console_debug
+  * @desc      = Invoke GUI interpreter on MoriV with debug messages.
+  * @jdesc     = MoriV上でGUIインタプリタを起動し、ターミナルにデバッグメッセージを表示します。
+%*/
+moriv_console_debug <- [pred].
+
+%/**
+  * @predicate = cgi_console
+  * @desc      = Invoke GUI interpreter on Mozilla FireFox.
+  * @jdesc     = Mozilla FireFox上でGUIインタプリタを起動します。
+%*/
+cgi_console <- [pred].
+%/**
+  * @predicate = cgi_console_debug
+  * @desc      = Invoke GUI interpreter on Mozilla FireFox.
+  * @jdesc     = Mozilla FireFox上でGUIインタプリタを起動し、ターミナルにデバッグメッセージを表示します。
+%*/
+cgi_console_debug <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/strings").
+
+var <- [bot] + [VAR_NAME\string(0), VAR_VAL\(1)].
+
+'*is_initialized*' <- [variable].
+
+'*toppage_name*' <- [variable].
+'*common_menu*' <- [variable].
+'*css*' <- [variable].
+'*xsl*' <- [variable].
+
+% for console
+'*back_track_times*' <- [variable].
+'*back_track_max*' <- [variable].
+'*result_cache*' <- [variable].
+'*string_stream*' <- [variable].
+
+% for dbviewer
+'*db*' <- [pred].
+'*key_type*' <- [variable].
+'*key_index*' <- [variable].
+'*key_list_length*' <- [variable].
+'*num_keys*' <- [variable].
+
+:-
+    init_integer_variable('*is_initialized*'),
+    define_string_variable('*toppage_name*'),
+    set_variable('*toppage_name*', "top"),
+    define_variable('*common_menu*'),
+    set_variable('*common_menu*',
+		 (xhtml_div & XHTML_CLASS\"menu" &
+		  XHTML_TEXT\[(xhtml_a & 
+			       A_TARGET\"_top" & A_HREF\"console?page=top"
+			       & XHTML_TEXT\"Console"),
+			      (xhtml_a & 
+			       A_TARGET\"_top" & A_HREF\"console?page=dbviewer"
+			       & XHTML_TEXT\"DBViewer"),
+			      (xhtml_a &
+			       A_TARGET\"_top" & A_HREF\"console?" & XHTML_TEXT\"Reset"),
+			      (xhtml_a &
+			       A_TARGET\"_blank" & A_HREF\"/index.html" & XHTML_TEXT\"Manual"),
+			      (xhtml_a &
+			       A_TARGET\"_blank" & A_HREF\"http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/" & XHTML_TEXT\"LiLFeS Home Page"),
+			      (xhtml_a &
+			       A_TARGET\"_top" & A_HREF\"/DISCONNECT" & XHTML_TEXT\"Exit")])),
+    define_variable('*css*'),
+    set_variable('*css*', ["/fs.css", "/lillib/cgiconsole.css"]),
+    define_variable('*xsl*'),
+    set_variable('*xsl*', ["/fs.xsl"]),
+    init_integer_variable('*back_track_max*'),
+    set_variable('*back_track_max*', 20),
+    init_integer_variable('*back_track_times*'),
+    define_variable('*result_cache*'),
+    set_variable('*default_http_port*', 27109),
+    define_variable('*string_stream*'),
+    db_open('*db*'(key_inthash, array_value)),
+    define_variable('*key_type*'),
+    set_variable('*key_type*', key_inthash),
+    init_integer_variable('*key_index*'),
+    init_integer_variable('*key_list_length*'),
+    set_variable('*key_list_length*', 200),
+    init_integer_variable('*num_keys*').
+
+%% for backward compatibility
+'*xhtml_version*' <- [variable].
+:-
+    define_variable('*xhtml_version*'),
+    set_variable('*xhtml_version*', html_4_01_frameset).
+
+page <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% initialization & termination
+
+initialize <- [pred].
+initialize :-
+    get_variable('*is_initialized*', 0),
+    set_variable('*is_initialized*', 1),
+    open_string_stream($Handle),
+    set_variable('*string_stream*', $Handle),
+    switch_stdout_stream($Handle),
+    switch_stderr_stream($Handle),
+    !.
+initialize.
+
+terminate <- [pred].
+terminate :-
+    get_variable('*is_initialized*', 1),
+    switch_stderr_to_console,
+    switch_stdout_to_console,
+    get_variable('*string_stream*', $Handle),
+    close($Handle),
+    set_variable('*is_initialized*', 0),
+    !.
+terminate.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Console
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prompt <- [pred].
+prompt("~> ").
+
+newline <- [pred].
+newline($NewLine) :- listtostr([13, 10], $NewLine).
+
+encode_query <- [pred].
+encode_query([], []).
+encode_query([($Key, $Value)|$Assoc], [$Query|$Queries]) :-
+    encode_query_string($Key, $KeyStr),
+    newline($NewLine),
+    (regex_subst("\+", ["g"], "%2B", $Value, $ValueStr1) ->
+     true; $ValueStr1 = $Value),
+    (regex_subst("=", ["g"], "%3D", $ValueStr1, $ValueStr2) ->
+     true; $ValueStr2 = $ValueStr1),
+    (regex_subst($NewLine, ["g"], "%0D%0A", $ValueStr2, $ValueStr3) ->
+     true; $ValueStr3 = $ValueStr2),
+    (regex_subst("\?", ["g"], "%3F", $ValueStr3, $ValueStr4) ->
+     true; $ValueStr4 = $ValueStr3),
+    encode_query_string($ValueStr4, $ValueStr),
+    concatenate_string(["&amp;", $KeyStr, "=", $ValueStr], $Query),
+    debug_message("console", "Key=~s\tValue=~s\tQuery=~s\n", [$Key, $Value, $Query]),
+    encode_query($Assoc, $Queries).
+
+page("top", $Args, $Title, $Page) :-
+    $Title = "LiLFeS GUI Console",
+    (equivalent($Args, bot) ->
+     $InputQuery = "console?page=top:input",
+     $ResultQuery = "console?page=top:result";
+     encode_query($Args, $Query),
+     concatenate_string(["console?page=top:input"|$Query], $InputQuery),
+     concatenate_string(["console?page=top:result"|$Query], $ResultQuery)),
+    $Page = (xhtml_frameset &
+	     FRAME_COLS\"30%, *" &
+	     XHTML_TEXT\
+	      [xhtml_frame & 
+	       FRAME_SRC\$InputQuery &
+	       XHTML_NAME\"input",
+	       xhtml_frame &
+	       FRAME_SRC\$ResultQuery &
+	       XHTML_NAME\"result"]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+page("top:input", $Args, "Input", $Page) :-
+    (assoc("command", $Args, $History) ->
+     encode_xml_string($History, $Text1),
+     newline($NewLine),
+     prompt($Prompt),
+     concatenate_string([$Text1, $NewLine, $Prompt], $Text)
+     ;
+     prompt($Prompt),
+     $Text = $Prompt),
+    $Page = [xhtml_h3 & XHTML_TEXT\"Input" & XHTML_CLASS\"title",
+	     "Press 'Alt+I' to input, 'Alt+E' to execute.",
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_TARGET\"_top" & FORM_ACTION\"console" &
+	      XHTML_TEXT\(xhtml_table & XHTML_CLASS\"dbmenu"
+			   & XHTML_TEXT\
+			   [(xhtml_tr
+			    & XHTML_TEXT\(xhtml_td & XHTML_CLASS\"dbmenu"
+			    & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"]
+			    & XHTML_TEXT\[(xhtml_textarea & XHTML_CLASS\"input"
+					   & TEXTAREA_ROWS\"25" 
+					   & TEXTAREA_COLS\"30"
+					   & XHTML_NAME\"command"
+					   & XHTML_ATTRIBUTES\[XML_ATTR\"accesskey" & XML_ATTR_VAL\"i"]
+					   & XHTML_TEXT\$Text),
+					  (xhtml_input & INPUT_TYPE\"hidden" &
+					   XHTML_NAME\"page" & INPUT_VALUE\"top"),
+					  (xhtml_input & INPUT_TYPE\"submit" &
+					   XHTML_NAME\"enter" & INPUT_VALUE\"Exec"
+& XHTML_ATTRIBUTES\[XML_ATTR\"accesskey" & XML_ATTR_VAL\"e"])
+%					  (xhtml_input & INPUT_TYPE\"reset" &
+%					   INPUT_VALUE\"Clear")
+					  ]))])),
+	     $Menu],
+    get_variable('*common_menu*', $Menu).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+result_yes <- [pred].
+result_yes([xhtml_h4 & XHTML_TEXT\"YES"]).
+result_no <- [pred].
+result_no([xhtml_h4 & XHTML_TEXT\"NO"]).
+
+add_error_message_loop <- [pred].
+add_error_message_loop($Handle, [$EncodedLine, xhtml_br|$Msg]) :-
+    \+eof_stream($Handle),
+    readln_string($Handle, $Line),
+    encode_xml_string($Line, $EncodedLine),
+    add_error_message_loop($Handle, $Msg).
+add_error_message_loop($Handle, []) :-
+    eof_stream($Handle),
+    close($Handle),
+    open_string_stream($NewHandle),
+    switch_stdout_stream($NewHandle),
+    switch_stderr_stream($NewHandle),
+    set_variable('*string_stream*', $NewHandle).
+
+add_error_message <- [pred].
+add_error_message($Result, $OutResult) :-
+    get_variable('*string_stream*', $Handle),
+    add_error_message_loop($Handle, $Msg),
+    append($Msg, $Result, $Result1),
+    ($Result1 = [] ->
+     $OutResult = [];
+     $OutResult = [xhtml_h4 & XHTML_TEXT\$Result1]).
+
+exec_command_dispatch <- [pred].
+% ensure_loaded
+exec_command_dispatch(hd\(ensure_loaded & arg1\$Module), [[]], $Result) :-
+    change_module("lillib:cgiconsole"),
+    (ensure_loaded($Module) ->
+     change_module("lillib:cgiconsole"),
+     result_yes($Result);
+     change_module("lillib:cgiconsole"),
+     result_no($Result)),
+    !.
+% ordinary predicates without variables
+exec_command_dispatch(hd\$Pred, [[]], $Result) :-
+    call($Pred),
+    result_yes($Result), !.
+% ordinary predicates with variables
+exec_command_dispatch(hd\$Pred, hd\$Variables, $Result) :-
+    set_variable('*back_track_times*', 0),
+    get_variable('*back_track_max*', $Max),
+    findall($Variables,
+	    (call($Pred),
+	     inc_variable('*back_track_times*', $Times),
+	     $Times < $Max),
+	    $ResultList),
+    ($ResultList = [] ->
+     result_no($Result);
+     set_variable('*result_cache*', $ResultList),
+     $Result = [xhtml_frameset & FRAME_ROWS\"20%, *"
+		& XHTML_TEXT\
+		[xhtml_frame & FRAME_SRC\"console?page=top:vars"
+		 & XHTML_NAME\"vars",
+		 xhtml_frame & FRAME_SRC\"console?page=top:small_result"
+		 & XHTML_NAME\"small_result"]
+		]),
+    !.
+% others (such as type definitions)
+exec_command_dispatch(_, [], $Result) :-
+    result_yes($Result), !.
+% failure
+exec_command_dispatch(_, _, $Result) :-
+    result_no($Result).
+
+exec_command <- [pred].
+exec_command($Command, $Result) :-
+    debug_message("console", "Evaluating command: ~s\n", [$Command]),
+    (eval($Command, $CommandFS, $Variables) ->
+     exec_command_dispatch($CommandFS, $Variables, $Result1);
+     result_no($Result1)),
+    add_error_message($Result1, $Result).
+
+remove_newline <- [pred].
+remove_newline($Str, $Str1) :-
+    newline($NewLine),
+    concatenate_string($NewLine, "+$", $Regex),
+    (regex_subst($Regex, "", $Str, $Str2),
+     remove_newline($Str2, $Str1);
+     $Str1 = $Str).
+
+last_line <- [pred].
+last_line($Str, $Line) :-
+    newline($NewLine),
+    remove_newline($Str, $Str1),
+    split($Str1, $NewLine, $List),
+    last($List, $Line1),
+    prompt($Prompt),
+    regex_subst($Prompt, "", $Line1, $Line2),
+    (regex_subst("^ *(:|\?)- *", "", $Line2, $Line) ->
+     true; $Line = $Line2).
+
+page("top:result", $Args, "Result", $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"Result" & XHTML_CLASS\"title"|
+	     $Result],
+    (assoc("command", $Args, $Command) ->
+     last_line($Command, $Line),
+     exec_command($Line, $Result);
+     $Result = []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_variable_names <- [pred].
+get_variable_names($Results, ["All"|$Vars]) :-
+    $Results = [$Result|_],
+    findall($Var, 
+	    member([$Var|_], $Result),
+	    $Vars).
+
+make_variable_row <- [pred].
+make_variable_row($N, $Vars, $Row) :-
+    inttostr($N, $NStr),
+    concatenate_string(["Result ", $NStr], $Index),
+    findall($Elem,
+	    (member($Name, $Vars),
+	     concatenate_string(["console?page=top:small_result&amp;index=",
+				 $NStr, "&amp;var=", $Name], $Query),
+	     $Link = (xhtml_a & A_HREF\$Query
+		      & A_TARGET\"small_result" & XHTML_TEXT\$Name),
+	     $Elem = xhtml_td & XHTML_TEXT\$Link),
+	    $ElemList),
+    $Row = (xhtml_tr & XHTML_TEXT\
+	    [xhtml_td & XHTML_TEXT\$Index|$ElemList]).
+				 
+make_variable_table <- [pred].
+make_variable_table($Results, $Table) :-
+    length($Results, $NumResults),
+    get_variable_names($Results, $Vars),
+    make_num_list(0, $NumResults, $NumList),
+    findall($Row,
+	    (member($N, $NumList),
+	     make_variable_row($N, $Vars, $Row)),
+	    $Table).
+
+page("top:vars", _, "Variables", $Page) :-
+    get_variable('*result_cache*', $Result),
+    make_variable_table($Result, $Table),
+    $Page = [xhtml_table & XHTML_TEXT\$Table].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+make_all_var_result <- [pred].
+make_all_var_result([], []).
+make_all_var_result([[$Var, $Val]|$Result], [VAR_NAME\$Var & VAR_VAL\$Val|$Rows]) :-
+    make_all_var_result($Result, $Rows).
+
+page("top:small_result", $Args, "Result", $Page) :-
+    get_variable('*result_cache*', $Results),
+    (assoc("index", $Args, $Index),
+     assoc("var", $Args, $Var) ->
+     strtoint($Index, $IndexNum),
+     nth($Results, $IndexNum, $Result),
+     ($Var = "All" ->
+%     $Page = [xhtml_tfstoxml & XHTML_TEXT\$Result]);
+      make_all_var_result($Result, $FS);
+      member([$Var, $FS], $Result)),
+      $Page = [xhtml_tfstoxml & XHTML_TEXT\$FS];
+     $Page = []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+toppage <- [pred].
+toppage($Title, $Toppage) :-
+    get_variable('*toppage_name*', $Name),
+    (page($Name, _, $Title, $Toppage) ->
+     true;
+     $Toppage = xhtml_h3 & XHTML_TEXT\"ERROR").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DB Viewer
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+page("dbviewer", _, $Title, $Page) :-
+%    switch_stdout_to_console,
+%    switch_stderr_to_console,
+    $Title = "LiLDB Viewer",
+    $Page = (xhtml_frameset &
+	     FRAME_ROWS\"30%, *" &
+	     XHTML_TEXT\[xhtml_frame & 
+			 FRAME_SRC\"console?page=dbviewer:input" &
+			 XHTML_NAME\"input",
+			 xhtml_frame &
+			 FRAME_SRC\"console?page=dbviewer:value" &
+			 XHTML_NAME\"value"]).
+
+key_choice <- [pred].
+key_choice($Choice) :-
+    $Choice = ["Key",
+	       (xhtml_select & XHTML_NAME\"key_type"
+		& XHTML_TEXT\
+		[xhtml_option & OPTION_VALUE\"key_inthash"
+		 & XHTML_TEXT\"inthash"
+		 & XHTML_ATTRIBUTES\[XML_ATTR\"selected" & XML_ATTR_VAL\"true"],
+		 xhtml_option & OPTION_VALUE\"key_integer"
+		 & XHTML_TEXT\"integer",
+		 xhtml_option & OPTION_VALUE\"key_float"
+		 & XHTML_TEXT\"float",
+		 xhtml_option & OPTION_VALUE\"key_string"
+		 & XHTML_TEXT\"string",
+		 xhtml_option & OPTION_VALUE\"key_type"
+		 & XHTML_TEXT\"type",
+		 xhtml_option & OPTION_VALUE\"key_fs"
+		 & XHTML_TEXT\"fs"])].
+		
+value_choice <- [pred].
+value_choice($Choice) :-
+    $Choice = ["Value", 
+	       (xhtml_select & XHTML_NAME\"value_type"
+		& XHTML_TEXT\
+		[xhtml_option & XHTML_TEXT\"value" & 
+		 OPTION_VALUE\"array_value" &
+		 XHTML_ATTRIBUTES\[XML_ATTR\"selected" & XML_ATTR_VAL\"true"],
+		 xhtml_option & XHTML_TEXT\"integer" & 
+		 OPTION_VALUE\"array_value_integer",
+		 xhtml_option & XHTML_TEXT\"float" & 
+		 OPTION_VALUE\"array_value_float",
+		 xhtml_option & XHTML_TEXT\"type" & 
+		 OPTION_VALUE\"array_value_type",
+		 xhtml_option & XHTML_TEXT\"string" & 
+		 OPTION_VALUE\"array_value_string"])].
+    
+page("dbviewer:input", _, "Input", $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"LiLFeS DB Viewer" & XHTML_CLASS\"title",
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_TARGET\"value" & FORM_ACTION\"console" &
+	      XHTML_TEXT\(xhtml_table & XHTML_CLASS\"dbmenu"
+			   & XHTML_TEXT\
+			   [(xhtml_tr
+			    & XHTML_TEXT\(xhtml_td & XHTML_CLASS\"dbmenu"
+			    & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"]
+			    & XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Module "),
+					  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+					   INPUT_SIZE\"40" & XHTML_NAME\"module"),
+					  (xhtml_input & INPUT_TYPE\"hidden" &
+					   XHTML_NAME\"page" & INPUT_VALUE\"dbviewer:value"),
+					  (xhtml_input & INPUT_TYPE\"submit" &
+					   XHTML_NAME\"load" & INPUT_VALUE\"Load"),
+					  (xhtml_input & INPUT_TYPE\"reset" &
+					   INPUT_VALUE\"Clear")]))])),
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_TARGET\"value" & FORM_ACTION\"console" &
+	      XHTML_TEXT\(xhtml_table & XHTML_CLASS\"dbmenu"
+			  & XHTML_TEXT\
+			  [(xhtml_tr
+			    & XHTML_TEXT\(xhtml_td & XHTML_CLASS\"dbmenu"
+					  & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"]
+					  & XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"File "),
+							(xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+							 INPUT_SIZE\"40" & XHTML_NAME\"file"),
+							(xhtml_input & INPUT_TYPE\"hidden" &
+							 XHTML_NAME\"page" & INPUT_VALUE\"dbviewer:value"),
+							(xhtml_input & INPUT_TYPE\"submit" &
+							 XHTML_NAME\"load" & INPUT_VALUE\"Load"),
+							(xhtml_input & INPUT_TYPE\"reset" &
+							 INPUT_VALUE\"Clear")])),
+			   (xhtml_tr & XHTML_TEXT\
+			    [xhtml_td & XHTML_CLASS\"dbmenu"
+			     & XHTML_TEXT\$KeyChoice,
+			     xhtml_td & XHTML_CLASS\"dbmenu"
+			     & XHTML_TEXT\$ValueChoice])])),
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_TARGET\"value" & FORM_ACTION\"console" &
+	      XHTML_TEXT\(xhtml_table & XHTML_CLASS\"dbmenu"
+			  & XHTML_TEXT\
+			  [(xhtml_tr & XHTML_TEXT\
+			    (xhtml_td & XHTML_CLASS\"dbmenu"
+			     & XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Input "),
+					   (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+					    INPUT_SIZE\"40" & XHTML_NAME\"key"),
+					   (xhtml_input & INPUT_TYPE\"hidden" &
+					    XHTML_NAME\"page" & INPUT_VALUE\"dbviewer:value"),
+					   (xhtml_input & INPUT_TYPE\"submit" &
+					    XHTML_NAME\"find" & INPUT_VALUE\"Find"),
+					   (xhtml_input & INPUT_TYPE\"reset" &
+					    INPUT_VALUE\"Clear")])),
+			   xhtml_tr & XHTML_TEXT\
+			   (xhtml_td  & XHTML_CLASS\"dbmenu" & XHTML_TEXT\
+			    (xhtml_a & A_HREF\$LinkAllKeys & A_TARGET\"value"
+			     & XHTML_TEXT\"Show all keys"))])),
+	     $Menu],
+    key_choice($KeyChoice),
+    value_choice($ValueChoice),
+    $LinkAllKeys = "console?page=dbviewer:keysandvalue",
+    get_variable('*common_menu*', $Menu).
+
+getkey <- [pred].
+getkey($KeyStr, $Key) :-
+    (get_variable('*key_type*', key_inthash);
+     get_variable('*key_type*', key_integer)),
+    strtoint($KeyStr, $Key).
+getkey($KeyStr, $Key) :-
+    get_variable('*key_type*', key_float),
+    strtofloat($KeyStr, $Key).
+getkey($KeyStr, $KeyStr) :-
+    get_variable('*key_type*', key_string).
+getkey($KeyStr, $Key) :-
+    get_variable('*key_type*', key_type),
+    strtotype($KeyStr, $Key).
+getkey($KeyStr, $Key) :-
+    get_variable('*key_type*', key_fs),
+    concatenate_string($KeyStr, ".", $Prog),
+    eval($Prog, hd\$Key).
+
+open_db <- [pred].
+open_db($FileName, $Args, $ValueXML) :-
+    assoc("key_type", $Args, $KeyTypeStr),
+    assoc("value_type", $Args, $ValueTypeStr),
+    strtotype($KeyTypeStr, $KeyType),
+    strtotype($ValueTypeStr, $ValueType),
+    (db_close('*db*'(_,_)) ->
+     true;
+     % when '*db*' is already closed, flush error messages
+     add_error_message([], _),
+     true),
+    (db_open('*db*'($KeyType, $ValueType)),
+     db_load($FileName, '*db*'(_,_)) ->
+     db_findall('*db*'(_,_), $L),
+     length($L, $Length),
+     set_variable('*num_keys*', $Length),
+     result_yes($ValueXML);
+     % fail to open or load
+     add_error_message([], $ValueXML1),
+     ($ValueXML1=[] ->
+      concatenate_string("No such file exists: ", $FileName, $NoSuchFile),
+      $ValueXML = [xhtml_h4 & XHTML_TEXT\$NoSuchFile];
+      $ValueXML1 = $ValueXML)),
+    set_variable('*key_type*', $KeyType).
+
+page("dbviewer:value", $Args, "Value", $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"Value" & XHTML_CLASS\"title"|
+	     $ValueXML],
+    (assoc("module", $Args, $ModuleName) ->
+     change_module("lillib:cgiconsole"),
+     (ensure_loaded($ModuleName) ->
+      change_module("lillib:cgiconsole"),
+      result_yes($ValueXML);
+      change_module("lillib:cgiconsole"),
+      add_error_message([], $ValueXML));
+     (assoc("file", $Args, $FileName) ->
+      open_db($FileName, $Args, $ValueXML);
+      (assoc("key_index", $Args, $KeyIndexStr) ->
+       db_findall('*db*'(_,_), $L),
+       strtoint($KeyIndexStr, $KeyIndex),
+       nth($L, $KeyIndex, arg2\$Value),
+       $ValueXML = [xhtml_tfstoxml & XHTML_TEXT\$Value];
+       (assoc("key", $Args, $KeyStr) ->
+	(getkey($KeyStr, $Key) ->
+	 (db_find('*db*'($Key, $Value)) ->
+	  $ValueXML = [xhtml_tfstoxml & XHTML_TEXT\$Value];
+	  $ValueXML = [xhtml_h4 & XHTML_TEXT\"No such key in DB: ", XHTML_TEXT\$Key]);
+	 get_variable('*key_type*', $KeyType),
+	 typetostr($KeyType, $KeyTypeStr),
+	 concatenate_string(["Key type should be ", $KeyTypeStr, "."], $KeyTypeSpec),
+	 $ValueXML = [xhtml_h4 & XHTML_TEXT\"Wrong key type: ", 
+		      XHTML_TEXT\$KeyStr,
+		      xhtml_h4 & XHTML_TEXT\$KeyTypeSpec]);
+	$ValueXML = [])))).
+
+page("dbviewer:keysandvalue", _, "Keys and value", $Page) :-
+    $Page = (xhtml_frameset &
+	     FRAME_COLS\"25%, *" &
+	     XHTML_TEXT\[xhtml_frame & 
+			 FRAME_SRC\"console?page=dbviewer:keys" &
+			 XHTML_NAME\"keys",
+			 xhtml_frame &
+			 FRAME_SRC\"console?page=dbviewer:value" &
+			 XHTML_NAME\"small_value"]).
+
+key_to_str <- [pred].
+key_to_str($Key, $KeyStr) :-
+    (get_variable('*key_type*', key_integer);
+     get_variable('*key_type*', key_inthash)),
+    inttostr($Key, $KeyStr).
+key_to_str($Key, $KeyStr) :-
+    get_variable('*key_type*', key_float),
+    floattostr($Key, $KeyStr).
+key_to_str($Key, $Key) :-
+    get_variable('*key_type*', key_string).
+key_to_str($Key, $KeyStr) :-
+    get_variable('*key_type*', key_type),
+    typetostr($Key, $KeyStr).
+key_to_str($Key, $KeyStr) :-
+    get_variable('*key_type*', key_fs),
+    printtostr($Key, $KeyStr1),
+    regex_subst(" ", ["g"], "", $KeyStr1, $KeyStr2),
+    encode_xml_string($KeyStr2, $KeyStr).
+
+all_key_list <- [pred].
+all_key_list($KeyList) :-
+    db_findall('*db*'(_,_), $List),
+    get_variable('*key_index*', $Start),
+    get_variable('*key_list_length*', $Length),
+    $End is $Start + $Length,
+    make_num_list($Start, $End, $NList),
+    findall($Item,
+	    (member($N, $NList),
+	     nth($List, $N, arg1\$Key),
+	     inttostr($N, $NStr),
+	     key_to_str($Key, $KeyStr),
+	     concatenate_string("console?page=dbviewer:value&amp;key_index=",
+				$NStr, $Query),
+	     $Link = (xhtml_a & A_HREF\$Query & A_TARGET\"small_value"
+		      & XHTML_TEXT\$KeyStr),
+	     $Item = xhtml_li & XHTML_TEXT\$Link),
+	    $KeyList).
+
+page("dbviewer:keys", $Args, "Keys", $Page) :-
+    $Page = xhtml_ul & XHTML_TEXT\[$Title, $Prev, $Next,
+				   xhtml_ul & XHTML_TEXT\$KeyList],
+    $Title = xhtml_h3 & XHTML_TEXT\"Keys" & XHTML_CLASS\"title",
+    get_variable('*key_list_length*', $Length),
+    (assoc("direction", $Args, "next") ->
+     add_variable('*key_index*', $Length);
+     (assoc("direction", $Args, "prev") ->
+      $SubLength is -1 * $Length,
+      add_variable('*key_index*', $SubLength);
+      true)),
+    get_variable('*key_index*', $Index),
+    ($Index = 0 ->
+     $Prev = xhtml_h4 & XHTML_TEXT\"      ";
+     $Prev = (xhtml_a & XHTML_TEXT\"Prev 20" & A_TARGET\"keys"
+	      & A_HREF\"console?page=dbviewer:keys&amp;direction=prev")),
+    get_variable('*num_keys*', $NumKeys),
+    $NextIndex is $Index + $Length,
+    ($NextIndex > $NumKeys ->
+     $Next = xhtml_h4 & XHTML_TEXT\"      ";
+     $Next = (xhtml_a & XHTML_TEXT\"Next 20" & A_TARGET\"keys"
+	      & A_HREF\"console?page=dbviewer:keys&amp;direction=next")),
+    all_key_list($KeyList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Main routine
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+dispatch <- [pred].
+dispatch([], XHTML_TITLE\$Title & XHTML_BODY\$Body) :-
+    !,
+    toppage($Title, $Body).
+dispatch($Assoc, XHTML_TITLE\$Title & XHTML_BODY\$Body) :-
+    (assoc("page", $Assoc, $Name) ->
+     (page($Name, $Assoc, $Title, $Body) ->
+      true;
+      $Title = "Unknown page",
+      $Body = [xhtml_h1 & XHTML_TEXT\["Error"]])).
+
+cgi_lilfes("console", $QueryString, _, $Answer) :-
+    debug_message("console", "Moriv query: ~s\n", [$QueryString]),
+    initialize,
+    decode_query_string($QueryString, $Assoc),
+    dispatch($Assoc, $XHTML),
+    get_variable('*css*', $CSS),
+    $XHTML = XHTML_CSS\$CSS,
+    get_variable('*xsl*', $XSL),
+    $XHTML = XHTML_XSL\$XSL,
+    get_variable('*xhtml_version*', $XHTMLVersion),
+    $XHTML = XHTML_VERSION\$XHTMLVersion,
+    stringize_xhtml_cgi($XHTML, $Answer),
+    terminate,
+    debug_message("console", "Send:\n~s\n", [$Answer]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% External interface
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_main <- [pred].
+moriv_main :-
+    set_variable('*xhtml_fs_version*', "1.0"),
+    set_variable('*xhtml_version*', xhtml_1_1),
+    set_variable('*css*', ["/fs.css", "/lillib/cgiconsole.css"]),
+    set_variable('*xsl*', []),
+    http_server,
+    fail.
+moriv_main :-
+    true.
+
+moriv_console :-
+    moriv_main.
+
+moriv_console_debug :-
+    set_debug_mode("console"),
+    moriv_main.
+
+cgi_main <- [pred].
+cgi_main :-
+    set_variable('*xhtml_fs_version*', "2.0"),
+    set_variable('*xhtml_version*', xhtml_1_1),
+    set_variable('*css*', ["/fs.css", "/lillib/cgiconsole.css"]),
+    set_variable('*xsl*', ["/fs.xsl"]),
+    http_server,
+    fail.
+cgi_main :-
+    true.
+
+cgi_console :-
+    cgi_main.
+cgi_console_debug :-
+    set_debug_mode("console"),
+    cgi_main.
+
+%%%%%%%% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% db_loadに必要なモジュールを動的に読み込めるようにする。
+% 出力結果の履歴を残す。
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
