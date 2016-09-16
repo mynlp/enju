@@ -1,0 +1,22 @@
+%/**********************************************************************
+  * @module    = mayz:derivtypes
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: derivtypes.lil,v 1.3 2009-12-09 13:17:29 yusuke Exp $
+  * @version   = Time-stamp: <2009-12-09 18:01:13 yusuke>
+  * @desc      = Type hierarchy for derivation trees
+  **********************************************************************
+%*/
+
+:- module("mayz:derivtypes").
+
+:- module_interface.
+
+:- ensure_loaded("word").
+%:- ensure_loaded("lextemplate").
+
+derivation <- [bot] + [DERIV_SIGN\bot(5)].
+derivation_internal <- [derivation] + [DERIV_SCHEMA\bot(0), DERIV_DTRS\list(10)].
+%derivation_terminal <- [derivation] + [TERM_WORD\word(0), TERM_TEMPLATE\lex_template(1), LEXENTRY_SIGN\bot(10), LEXEME_SIGN\bot(11)].
+derivation_terminal <- [derivation] + [TERM_WORD\word(0), LEXICON_KEY\string(1), LEXTEMPLATE_NAME\string(2), LEXTEMPLATE_SIGN\bot(3), LEXEME_KEY\string(4), LEXEME_NAME\string(5), LEXEME_SIGN\(6)].
+

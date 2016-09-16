@@ -1,0 +1,651 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-modules.css">
+<title>便利な LiLFeS モジュール</title>
+</head>
+
+
+
+<body>
+<h1>便利な LiLFeS モジュール</h1>
+
+<a href="modules.html">English version</a>
+
+<p>
+既に説明したツールに加えて，文法開発を支援するための LiLFeS プログラム
+がいくつか提供されています．これらは，lilfes から読みこんだり(-l オプ
+ションで指定する)，パーザから読みこんだりすることにより，利用すること
+が出来ます．
+
+<ul>
+  <li>文法開発に使うモジュール
+  <ul>
+    <li><a href="#markhead">Head, argument, modifier のマークをつける</a>
+    <li><a href="#binarizer">構文木を２分木化する</a>
+    <li><a href="#treematch">構文木のパターンマッチを行う</a>
+  </ul>
+  <li>構文解析に使うモジュール
+  <ul>
+    <li><a href="#grammar">Lexicon, template を引く</a>
+    <li><a href="#tagger">外部タガーを使う</a>
+  </ul>
+  <li>文法開発や構文解析の様子を観察する
+  <ul>
+    <li><a href="#morivtrans">木構造変換，文法抽出の過程をブラウズする</a>
+    <li><a href="#morivparser">構文解析結果をブラウズする</a>
+    <li><a href="#morivchart">構文解析チャートをブラウズする</a>
+    <li><a href="#morivgrammar">語彙項目をブラウズする</a>
+    <li><a href="#coverage">文法のカバレッジを測る</a>
+    <li><a href="#evalparse">構文解析の精度を測る</a>
+  </ul>
+  <li>構文解析器をアプリケーションで使う
+  <ul>
+    <li><a href="#parseall">構文解析結果をデータベースに貯める</a>
+  </ul>
+</ul>
+
+<hr>
+
+<h2><a name="markhead">Head, argument, modifier のマークをつける</a></h2>
+
+<p>
+"mayz/markhead.lil" は，構文木の各ノードに head, argument, modifier の
+マークをつけるためのプログラムです．マークをつけるルールを指定するため
+のインタフェースを実装すると，構文木へ自動的にマークをつけてくれます．
+
+<p>
+head マークをつけるためのインタフェースは以下の3つです．最初の2つは 
+MOD 素性の値を，もう一つは SYM 素性の値を見て head を決めます．
+
+<table border=1>
+<tr><td colspan=2><tt>head_tag(+$Tag)</tt>
+<tr><td colspan=2>MOD 素性の中に $Tag があると，そのノードは head マー
+クにします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>nonhead_tag(+$Tag)</tt>
+<tr><td colspan=2>MOD 素性の中に $Tag があると，そのノードは head マー
+クにしません．modifier か argument かは別のルールで決められます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>head_table(+$Sym, +$Dir, +$SymList)</tt>
+<tr><td>$Sym<td>親のシンボル
+<tr><td>$Dir<td>head をサーチする方向("left" か "right")
+<tr><td>$SymList<td>head マークをつけるシンボルのリスト
+<tr><td colspan=2>親のシンボルが $Sym の時，子ノードを $Dir で指定され
+た方向に見ていって，$SymList の最初のシンボルがみつかればそれを head
+とします．みつからなかったら，$SymList の次のシンボルを探しにいきます．
+$SymList の要素がリストになっている時は，そのリストのどれかのシンボル
+がみつかればそれを head とします．
+</table>
+
+<p>
+以上のインタフェースで得られる情報を元に，構文木の各ノードに head マー
+クをつけます．
+
+<table border=1>
+<tr><td colspan=2><tt>mark_head(+$Tree)</tt>
+<tr><td>$Tree<td>構文木
+<tr><td colspan=2>$Tree の各ノードで，その娘の中の一つに，以下のアルゴ
+リズムで head マークをつけます．
+<ul>
+  <li>すでに head マークがついた娘がいれば終了．
+  <li>head_tag がついていれば head マークをつける．
+  <li>nonhead_tag がついていれば head マークをつけない．
+  <li>head_table を用いて head を決める．
+</ul>
+</table>
+
+<p>
+modifier, argument マークをつけるためのインタフェースは以下の通りです．
+このプログラムでは head マークはすでにつけられていると仮定します．最初
+の2つは MOD 素性の値を，残りは SYM 素性の値を見てマークを決めます．
+
+<table border=1>
+<tr><td colspan=2><tt>argument_tag(+$Tag)</tt>
+<tr><td colspan=2>MOD 素性の中に $Tag があると，そのノードは argument
+マークにします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>modifier_tag(+$Tag)</tt>
+<tr><td colspan=2>MOD 素性の中に $Tag があると，そのノードは modifier マー
+クにします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>head_argument_table(+$HeadSym, +$SymList)</tt>
+<tr><td>$HeadSym<td>主辞のシンボル(SYM 素性の値)
+<tr><td>$SymList<td>argument マークをつけるシンボルのリスト
+<tr><td colspan=2>主辞のシンボルが $HeadSym の時，$SymList の中のシン
+ボルをもつノードに argument マークをつけます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>親のシンボル
+<tr><td>$SymList<td>argument マークをつけるシンボルのリスト
+<tr><td colspan=2>親のシンボルが $Sym の時，$SymList の中のシン
+ボルをもつノードに argument マークをつけます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>left_argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>親のシンボル
+<tr><td>$SymList<td>argument マークをつけるシンボルのリスト
+<tr><td colspan=2>親のシンボルが $Sym の時，主辞の左側で，$SymList の
+中のシンボルをもつノードに argument マークをつけます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>right_argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>親のシンボル
+<tr><td>$SymList<td>argument マークをつけるシンボルのリスト
+<tr><td colspan=2>親のシンボルが $Sym の時，主辞の右側で，$SymList の
+中のシンボルをもつノードに argument マークをつけます．
+</table>
+
+<p>
+以上のインタフェースで与えられる情報を元に，構文木の(head マークがつい
+ていない)全てのノードに，modifier または argument のマークをつけます．
+
+<table border=1>
+<tr><td colspan=2><tt>mark_modifier(+$Tree)</tt>
+<tr><td>$Tree<td>構文木
+<tr><td colspan=2>$Tree の各ノードに，以下のアルゴリズムで，modifier
+または argument マークをつけます．
+<ul>
+  <li>argument_tag がついていれば argument マークをつける
+  <li>modifier_tag がついていれば，modifier マークをつける
+  <li>head_argument_table を使って argument マークをつける
+  <li>argument_table を使って argument マークをつける
+  <li>left_argument_table を使って argument マークをつける
+  <li>right_argument_table を使って argument マークをつける
+  <li>残ったノードに modifier マークをつける
+</ul>
+</table>
+
+<p>
+以上のプログラムは，既にマークがついているノードには何もしません．つま
+り，tree conversion プログラムによって，例外的な木には予めマークをつけ
+ておくことができます．また，以下のインタフェースを用いて，例外的な木に
+ユーザがマークをつけることもできます．このインタフェースは，木の各ノー
+ドにマークをつけるときに呼ばれます．
+
+<table border=1>
+<tr><td colspan=2><tt>mark_exceptional(+$Tree)</tt>
+<tr><td>$Tree<td>構文木(tree)
+<tr><td colspan=2>ユーザが $Tree にマークをつけます．
+</table>
+
+<hr>
+
+<h2><a name="binarizer">構文木を２分木化する</a></h2>
+
+<p>
+"mayz/binarizer.lil" は，head, modifier, argument マークがつけられた木
+を，head を中心にして二分木化します．
+
+<table border=1>
+<tr><td colspan=2><tt>tree_binarize(+$Tree, -$BinTree)</tt>
+<tr><td>$Tree<td>入力の木
+<tr><td>$BinTree<td>二分木化された木
+<tr><td colspan=2>$Tree を二分木化して $BinTree に返します．
+</table>
+
+<p>
+このプログラムは，head を中心にして，head の右側を下に，左側を上にして
+二分木化します．例外的に二分木化したい場合は，以下のインタフェースを使
+います．このインタフェースは，入力の木の各ノードに対して呼び出されます．
+
+<table border=1>
+<tr><td colspan=2><tt>binarizer_preprocess(+$Tree, -$BinTree)</tt>
+<tr><td>$Tree<td>入力の木
+<tr><td>$BinTree<td>二分木化された木
+</table>
+
+<hr>
+
+<h2><a name="treematch">構文木のパターンマッチを行う</a></h2>
+
+<p>
+"mayz/treematch.lil" は，構文木のパターンマッチを行うための述語を提供
+します．<a href="treetrans.ja.html">"treetrans"</a>で構文木の変換を行
+う際に便利です．構文木のパターンを利用したマッチングや置換を行うことが
+できます．
+
+<p>
+構文木のパターンは，構文木の素性構造表現 (tree 型)で表しますが，それに
+加えて，tree_any という型を使うことができます．tree_any は，０個以上の
+構文木にマッチします．たとえば，
+
+<blockquote>
+<pre>
+(tree &
+ TREE_NODE\SYM\"S" &
+ TREE_DTRS\[tree_any,
+            (tree & TREE_NODE\SYM\"VP"),
+            tree_any])
+</pre>
+</blockquote>
+
+というパターンは，"S" の娘のうち少なくとも一つが "VP" である木にマッチ
+します．"VP" の左右に０個以上の木があるときでもマッチします．tree_any
+にマッチした木のリストは，tree_any の ANY_TREES 素性に格納されます．
+
+<p>
+以下の述語で，構文木のパターンを指定したマッチングや置換を行うことがで
+きます．
+
+<table border=1>
+<tr><td colspan=2><tt>tree_match(+$Patten, +$Tree)</tt>
+<tr><td>$Pattern<td>構文木のパターン (tree または tree_any)
+<tr><td>$Tree<td>入力の構文木 (tree)
+<tr><td colspan=2>構文木のパターンと構文木がマッチすると，成功します．
+<tr><td colspan=2>
+<pre>
+> ?- tree_match((tree &
+                 TREE_NODE\SYM\"SBAR" &
+                 TREE_DTRS\[TREE_NODE\(SYM\"RB" & WORD\SURFACE\"rather"),
+                            TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+                            TREE_NODE\(SYM\"NP")]),
+                (tree &
+                 TREE_DTRS\[tree_any & ANY_TREES\[_|_],
+                            tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+                            tree & TREE_NODE\HEAD_MARK\argument])).
+yes
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_substitution(+$OutPattern, -$OutTree)</tt>
+<tr><td>$InPattern<td>構文木のパターン (tree または tree_any)
+<tr><td>$OutTree<td>出力 (tree)
+<tr><td colspan=2>構文木のパターン(tree_any 型を含む)を，通常の構文木
+    (tree_any 型を含まない)に変換します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_subst(+$InPattern, +$OutPattern, +$InTree, -$OutTree)</tt>
+<tr><td>$InPattern<td>入力構文木のパターン (tree または tree_any)
+<tr><td>$OutPattern<td>出力構文木のパターン (tree または tree_any)
+<tr><td>$InTree<td>入力の構文木 (tree)
+<tr><td>$OutTree<td>出力 (tree)
+<tr><td colspan=2>入力構文木をパターンとマッチさせ，マッチした場合は出
+    力パターンに変換し構文木を出力します．つまり，以下の操作を行います．
+<blockquote>
+<pre>
+tree_match($InPattern, $InTree),
+tree_substitution($OutPattern, $OutTree).
+</pre>
+</blockquote>
+  具体例は，<a href="treetrans.ja.html">treetrans</a>のマニュアルを参照して下さい．
+</table>
+
+<hr>
+
+<h2><a name="grammar">Lexicon, template を引く</a></h2>
+
+<p>
+"mayz/grammar.lil" は，lexicon, template をデータベースから引くための
+述語を提供します．以下の述語で，データベースを操作します．
+
+<table border=1>
+<tr><td colspan=2><tt>import_lexicon(+$LexiconFile, +$TemplateFile)</tt>
+<tr><td>$LexiconFile<td>lexicon データベースのファイル名(string)
+<tr><td>$TemplateFile<td>template データベースのファイル名(string)
+<tr><td colspan=2>lexicon, template のデータベースを読みこみます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_lexicon(+$Word, -$TempNameList)</tt>
+<tr><td>$Word<td>入力単語
+<tr><td>$TempNameList<td>テンプレート名のリスト(string の list)
+<tr><td colspan=2>lexicon データベースを引いて，$Word に割り当てるテン
+プレートのリストを返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_template(+$TempName, -$Sign)</tt>
+<tr><td>$TempName<td>テンプレート名(string)
+<tr><td>$Sign<td>テンプレートの素性構造
+<tr><td colspan=2>template データベースを引いて，$TempName の素性構造
+を返します．
+</table>
+
+<p>
+<tt>lookup_lexicon/2</tt>を使うには，以下のインタフェースを実装して，
+入力単語から lexicon データベースのキーを返して下さい．
+
+<table border=1>
+<tr><td colspan=2><tt>lexicon_lookup_key(+$Word, -$Key)</tt>
+<tr><td>$Word<td>入力単語
+<tr><td>$Key<td>lexicon データベースのキー
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>unknown_word_lookup_key(+$Word, -$Key)</tt>
+<tr><td>$Word<td>入力単語
+<tr><td>$Key<td>lexicon データベースの未知語−キー
+</table>
+
+<hr>
+
+<h2><a name="tagger">外部タガーを使う</a></h2>
+
+<p>
+"mayz/tagger.lil" は，外部タガーを使うためのインタフェースを提供します．
+まず，以下の述語でタガーの初期化/終了化をします．
+
+<table border=1>
+<tr><td colspan=2><tt>initialize_external_tagger(+$Name, +$Arguments)</tt>
+<tr><td>$Name<td>タガーのコマンド名(string)
+<tr><td>$Arguments<td>タガーのコマンド引数(string の list)
+<tr><td colspan=2>タガーを起動します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>terminate_external_tagger</tt>
+<tr><td colspan=2>タガーを終了します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>is_external_tagger_initialized</tt>
+<tr><td colspan=2>タガーが既に初期化されているときは成功します．
+</table>
+
+<p>
+タガーを初期化後，タガーを使う/使わないを以下のインタフェースで切り替
+えることができます．
+
+<table border=1>
+<tr><td colspan=2><tt>enable_external_tagger</tt>
+<tr><td colspan=2>タガーを有効化します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>disable_external_tagger</tt>
+<tr><td colspan=2>タガーを無効化します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>is_external_tagger_enabled</tt>
+<tr><td colspan=2>タガーが有効化されていれば成功します．
+</table>
+
+<p>
+以下の述語で，タガーに文字列を渡し，結果の文字列を返します．
+
+<table border=1>
+<tr><td colspan=2><tt>external_tagger(+$Input, -$Output)</tt>
+<tr><td>$Input<td>入力の文字列
+<tr><td>$Output<td>出力の文字列
+<tr><td colspan=2>タガーが有効であれば $Input をタガーの標準入力に渡し，
+標準出力に返ってきた文字列を $Output に返します．タガーが無効であれば
+$Input をそのまま $Output に返します．
+</table>
+
+<hr>
+
+<h2><a name="morivtrans">木構造変換，文法抽出の過程をブラウズする</a></h2>
+
+<p>
+"mayz/morivtrans.lil" は，木構造の変換(treetrans)や文法抽出
+(lexextract) の過程をグラフィカルに見るためのモジュールです．
+XHTML/XSLT をサポートしたブラウザ(FireFox など)や，<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>ブラウザを
+用いることで，木構造や素性構造をふくめて，文法抽出の過程をブラウズする
+ことができます．
+
+<p>
+このモジュールは，http サーバおよび cgi として動作します．まず，木構造
+変換，および文法抽出のモジュールといっしょに，mayz/morivtrans.lil を読
+みこみます．
+<pre>% lilfes -l 木構造変換モジュール -l 文法抽出モジュール -l mayz/morivtrans</pre>
+次に，cgi コマンドを起動します．
+<pre>&gt; ?- cgi.</pre>
+すると，http サーバが起動し，接続待ち状態になります．サーバを起動した
+ホストの 27109 ポートの /cgi-lilfes/moriv? に，ブラウザでアクセスしてく
+ださい．
+<pre>http://サーバを起動したホスト:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+一番上のフォームに Penn Treebank スタイルの構文木を入力して Input ボタ
+ンを押すと，左下にメニューが，右下に入力した構文木が表示されます．あと
+は，左下のメニューを使ってデータをブラウズしてください．
+
+<hr>
+
+<h2><a name="morivparser">構文解析結果をブラウズする</a></h2>
+
+<p>
+"mayz/morivparser.lil" は，MAYZ ツールキットで作成した文法および確率モ
+デルを使って構文解析を行い、その結果をグラフィカルに見るためのモジュー
+ルです．XHTML/XSLT をサポートしたブラウザ(FireFox など)や，<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>ブラウザを
+用いることで，構文解析結果の木構造や素性構造を見ることが出来ます．
+
+<p>
+このモジュールを利用するためには，構文木に使われるシンボルを得るために
+"display.lil" で定義されているインタフェースを実装する必要があります．
+
+<table border=1>
+<tr><td colspan=2><tt>sign_label(+$Sign, -$Symbol)</tt>
+<tr><td>$Sign<td>素性構造
+<tr><td>$Symbol<td>string
+<tr><td colspan=2>$Sign を表す文字列を返す．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>lexname_label(+$LexName, -$Symbol)</tt>
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/3 の第2引数で返したもの)
+<tr><td>$Symbol<td>string
+<tr><td colspan=2>LEX_NAME を表す文字列を返す．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_edge_label_unary(+$SchemaName, -$Label)</tt>
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Label<td>娘へのエッジにつける文字列
+<tr><td colspan=2>unary schema が適用されたノードから娘へのエッジに表
+示するラベルを返します．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_edge_label_binary(+$SchemaName,
+-$LeftLabel, -$RightLabel</tt>
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$LeftLabel<td>左の娘へのエッジにつける文字列
+<tr><td>$RightLabel<td>右の娘へのエッジにつける文字列
+<tr><td colspan=2>binary schema が適用されたノードから娘たちへのエッジ
+に表示するラベルを返します．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_label(+$SchemaName, -$Label</tt>
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Label<td>スキーマの名前を表す文字列
+<tr><td colspan=2>スキーマの名前を表す文字列を返します．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>lex_template_label(+$LexTemplate, -$Label</tt>
+<tr><td>$LexTemplate<td>テンプレートの名前(lex_template)
+<tr><td>$Label<td>テンプレートの名前を表す文字列
+<tr><td colspan=2>テンプレートの名前を表す文字列を返します．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>word_label(+$Word, -$Label)</tt>
+<tr><td>$Word<td>単語を表す素性構造(word)
+<tr><td>$Label<td>単語を表す文字列
+<tr><td colspan=2>単語を表す文字列を返します．
+</table>
+<table border=1>
+<tr><td colspan=2><tt>extent_label(+$Extent, -$Label)</tt>
+<tr><td>$Extent<td>extent を表す素性構造
+<tr><td>$Label<td>extent を表す文字列
+<tr><td colspan=2>extent (sentence_to_word_lattice/2 で返すリストの要
+素)を表す文字列を返します．
+</table>
+
+<p>
+このモジュールは，http サーバおよび cgi として動作します．パーザを起動
+するときに，mayz/morivparser.lil を読みこみ，cgi コマンドを起動しま
+す．たとえば，mayzup パーザを使うときは，以下のように起動します．
+<pre>% mayzup -l 文法モジュール -l mayz/movirparser -e cgi</pre>
+すると，http サーバが起動し，接続待ち状態になります．サーバを起動した
+ホストの 27109 ポートの /cgi-lilfes/moriv? に，ブラウザでアクセスしてく
+ださい．
+<pre>http://サーバを起動したホスト:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+サーバに接続後，一番上のフォームに文を入力して Input ボタンを押すと，
+左下に解析結果の概要とメニューが表示されます．あとは，メニューを使って
+構文木や素性構造を表示させてブラウズしてください．
+
+<hr>
+
+<h2><a name="morivchart">構文解析チャートをブラウズする</a></h2>
+
+<p>
+"mayz/morivchart.lil" は，構文解析のチャート(CKY表)を，XHTML/XSLT をサ
+ポートしたブラウザ(FireFox など)や，<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>でブラウズ
+するためのモジュールです．構文解析の途中で生成されたエッジを見ることが
+できます．
+
+<p>
+このモジュールを利用するためには，構文木に使われるシンボルを得るために
+"display.lil" で定義されているインタフェースを実装する必要があります．
+詳しくは，<a href="#morivparser">構文解析結果をブラウズする</a>を見て
+下さい．
+
+<p>
+パーザを起動する時に mayz/morivchart を読み込み，cgi コマンドで http 
+サーバを起動したら，ブラウザでサーバに接続して下さい．すると，一番上に
+文を入力するフォームが表示されるので，そこに文を入力します．すると，左
+下にチャートが表示されます．チャートのセルをクリックすると，右下にその
+チャート内のエッジの情報が表示されます．
+
+<hr>
+
+<h2><a name="morivgrammar">語彙項目をブラウズする</a></h2>
+
+<p>
+"mayz/morivgrammar.lil" は，構文解析で使われる辞書を，XHTML/XSLT をサ
+ポートしたブラウザ(FireFox など)や，<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>でブラウズ
+するためのモジュールです．各単語に割り当てられている語彙項目の一覧やそ
+の素性構造を見ることができます．
+
+<p>
+このモジュールを利用するためには，構文木に使われるシンボルを得るために
+"display.lil" で定義されているインタフェースを実装する必要があります．
+詳しくは，<a href="#morivparser">構文解析結果をブラウズする</a>を見て
+下さい．
+
+<p>
+パーザを起動する時に mayz/morivgrammar を読み込み，cgi コマンドでhttp 
+サーバを起動したら，ブラウザでサーバに接続して下さい．すると，一番上に
+単語を入力するフォームが表示されるので，そこに単語/品詞を入力してくだ
+さい．すると，左下に語彙項目の一覧が表示されます．語彙項目のリンクをク
+リックすると，右下にその素性構造が表示されます．
+
+<hr>
+
+<h2><a name="coverage">文法のカバレッジを測る</a></h2>
+
+<p>
+"mayz/coverage.lil" は，MAYZ で作成した文法のカバレッジを測定するため
+のモジュールです．文法モジュールといっしょに mayz/coverage.lil を読み
+こみ，以下の述語を実行してください．
+<table border=1>
+<tr><td colspan=2><tt>eval_coverage(+$Lexbank, +$Lexicon, +$Template, +$OutputFile)</tt>
+<tr><td>$Lexbank<td>評価の対象となるコーパスの Lexbank ファイルの名前
+<tr><td>$Lexicon<td>文法の lexicon ファイルの名前
+<tr><td>$Templates<td>文法の template ファイルの名前
+<tr><td>$OutputFile<td>測定結果を出力するファイルの名前
+</table>
+カバレッジ測定のために，未知のコーパスの lexbank を使います．したがっ
+て，未知のコーパスについても，treetrans, lexextract をあらかじめ適用し，
+lexbank を作っておく必要があります．
+
+<hr>
+
+<h2><a name="evalparse">構文解析の精度を測る</a></h2>
+
+<p>
+"mayz/evalparse.lil" は，MAYZ で作成した文法および確率モデルを使った構
+文解析の精度を測定するためのモジュールです．一文ごとの正解数を測定する
+述語を実装するだけで，テストコーパス全体での精度を測定することができま
+す．
+
+<p>
+まず，一文ごとの正解数を測定する以下のインタフェースを実装する必要があ
+ります．
+<table border=1>
+<tr><td colspan=2><tt>eval_parse(+$Best, +$Correct, +$TermList,
+-$NumAnswers, -$NumOutputs, -$NumCorrects, -$NumPartials, -$Errors)</tt>
+<tr><td>$Best<td>パーザが出力した parse_tree
+<tr><td>$Correct<td>正解の parse_tree
+<tr><td>$TermList<td>derivation の終端ノードのリスト (lexbank に相当)
+<tr><td>$NumAnswers<td>答の数 (recall の母数)
+<tr><td>$NumOutputs<td>出力の数 (precision の母数)
+<tr><td>$NumCorrects<td>完全正解の数
+<tr><td>$NumPartials<td>部分正解の数
+<tr><td>$Errors<td>error analysis の結果のリスト(出力ファイルに各要素
+が出力されます)
+</table>
+
+<p>
+パーザを起動するときに，mayz/evalparse.lil を読みこみ，以下の述語を実
+行して下さい．精度の測定結果，および各文で不正解だった部分がファイルに
+出力されます．
+<table border=1>
+<tr><td colspan=2><tt>eval_parse_file(+$Derivbank, +$OutputFile)</tt>
+<tr><td>$Derivbank<td>評価の対象となる derivbank の名前
+<tr><td>$OutputFile<td>評価結果を出力するファイルの名前
+<tr><td colspan=2>$Derivbank で構文解析の精度を測定し，結果を
+$OutputFile に出力します．
+</table>
+
+<hr>
+
+<h2><a name="parseall">構文解析結果をデータベースに貯める</a></h2>
+
+<p>
+"mayz/parseall.lil" は，構文解析結果をデータベース(lildb)に貯めるため
+の LiLFeS モジュールです．入力テキストの各行を構文解析し，解析木全体を
+データベースに格納します．データベースのキーは，文番号になります．構文
+解析が失敗した場合は，
+<tt>parse_error</tt>型とその subtype で，失敗した原因を格納します．
+
+<p>
+このモジュールでは，以下の述語を利用できます．
+
+<table border=1>
+<tr><td colspan=2>parse_all(+$Input, +$Output)
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td>$Output<td>出力データベースの名前
+<tr><td colspan=2>入力ファイルの各行を解析し，結果を出力データベースに
+格納します．
+</table>
+
+<table border=1>
+<tr><td colspan=2>parse_all(+$Output)
+<tr><td>$Output<td>出力データベースの名前
+<tr><td colspan=2>標準入力の各行を解析し，結果を出力データベースに格納
+します．
+</table>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

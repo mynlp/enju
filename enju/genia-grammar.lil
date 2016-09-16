@@ -1,0 +1,74 @@
+%/**********************************************************************
+  * @module    =  enju:genia-grammar
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @version   =  Time-stamp: <2010-08-06 11:56:13 yusuke>
+  * @desc      =  Implementation of grammar interface
+  **********************************************************************
+%*/
+
+:- module("enju:grammar").
+
+:- module_interface.
+
+:- ensure_loaded("types").
+% :- ensure_loaded("preproc").
+:- ensure_loaded("schema").
+:- ensure_loaded("reduction").
+:- ensure_loaded("display").
+:- ensure_loaded("tools").
+%:- ensure_loaded("word").
+%:- ensure_loaded("../mayz/grammar").
+:- ensure_loaded("../mayz/parser").
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/debug").
+:- set_debug_mode("enju_grammar").
+
+parser_init :-
+    set_grammar_name("Enju-GENIA"),
+    set_grammar_version("2.4.1"),
+    set_limit_sentence_length(100),
+    set_limit_edge_number(100000).
+
+parser_init :-
+    set_parser_mode("quick check path",
+		    [
+		     [SYNSEM\, NONLOCAL\, INHER\, SLASH\],
+		     [SYNSEM\, NONLOCAL\, INHER\, REL\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, CONJ\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, COMPS\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, SUBJ\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, SPR\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, SPEC\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, POSTHEAD\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, COMPS\, hd\, LOCAL\, CAT\, VAL\, SUBJ\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, COMPS\, hd\, LOCAL\, CAT\, VAL\, COMPS\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, HEAD\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, VAL\, CONJ\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, VAL\, COMPS\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, VAL\, SUBJ\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, VAL\, SPR\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, MOD\, hd\, CAT\, VAL\, SPEC\],
+		     
+		     [SYNSEM\, NONLOCAL\, INHER\, SLASH\, hd\, CAT\, HEAD\],
+		     [SYNSEM\, NONLOCAL\, INHER\, REL\, hd\, CAT\, HEAD\],
+		     [SYNSEM\, LOCAL\, CAT\, HEAD\, VFORM\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, SUBJ\, hd\, LOCAL\, CAT\, HEAD\],
+		     [SYNSEM\, LOCAL\, CAT\, VAL\, SPR\, hd\, LOCAL\, CAT\, HEAD\],
+		     [SYNSEM\, NONLOCAL\, INHER\, SLASH\, hd\, CAT\, VAL\, COMPS\],
+		     [SYNSEM\, NONLOCAL\, INHER\, REL\, hd\, CAT\, VAL\, COMPS\]
+		     ]).
+
+parser_init :-
+    (get_enju_file_path("DATA/Enju-GENIA.adapt-templates", $TempFile) ->
+     true ;
+     error_message("Cannot find template file: ""DATA/Enju-GENIA.adapt-templates""\n"),
+     fail),
+    debug_message("enju_grammar", "  Loading template database: ~s\n", [$TempFile]),
+    %import_lexicon($LexFile, $TempFile).
+	import_templates($TempFile).
+

@@ -1,0 +1,53 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-install.css">
+<title>Installation</title>
+</head>
+
+
+
+<body>
+<h1>Installation</h1>
+
+<a href="install.ja.html">Japanese version</a>
+
+<p>
+<em>The MAYZ Toolkit is provided as a part ot Enju.  Compiling
+MAYZ/Enju requires <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/">LiLFeS</a> to be
+already installed.  For compilation, it also requires g++ version 3.2
+or higher.</em>
+
+<ol>
+  <li>Download a source package "enju-X.Y.Z.tar.gz" (X.Y.Z is a
+    version number) and untar it.
+    <pre>% tar xvzf enju-X.Y.Z.tar.gz</pre>
+  <li>Run "configure" script.
+    <pre>% ./configure</pre>
+  <li>Make it.
+    <pre>% make</pre>
+  <li>MAYZ tools are created in "mayz-src/".
+</ol>
+
+<hr>
+
+<h3>For those who took the package from CVS</h3>
+At first, you must run the following commands to make "configure"
+script.
+<pre>% aclocal; autoheader; automake --add-missing --foreign; autoconf</pre>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

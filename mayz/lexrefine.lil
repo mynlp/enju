@@ -1,0 +1,41 @@
+%/**********************************************************************
+  * @module    = mayz:lexrefine
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: lexrefine.lil,v 1.2 2009-12-18 12:47:13 hkhana Exp $
+  * @version   = Time-stamp: <2005-06-21 19:37:29 yusuke>
+  * @desc      = Parameters for lexrefine
+  **********************************************************************
+%*/
+
+:- module("mayz:lexrefine").
+
+:- module_interface.
+
+:- ensure_loaded("init").
+:- ensure_loaded("lexentry").
+
+unknown_word_key <- [pred].
+
+%/**
+  * @interface = expand_lexical_template(+$OrigTempName, +$OrigTemplate, +$Freq, -$LexicalRules, -$NewTemplate)
+  * @param     = +$OrigTempName/string: name of the source template
+  * @param     = +$OrigTemplate/bot: feature structure of the source template
+  * @param     = +$Freq/integer: frequency of the template
+  * @param     = -$NewTempName/string: name of the expanded template
+  * @param     = -$NewTemplate/bot: feature structure of the expanded template
+  * @desc      = expand a lexeme template into inflected templates by applying lexical rules
+%*/
+expand_lexical_template <- [pred].
+
+%/**
+  * @interface = expand_lexicon(+$OrigKey, +$NewTempName, -$NewKey)
+  * @param     = +$OrigKey/bot: lexicon key of the source word
+  * @param     = +$NewTempName/lex_template: name of the expanded template
+  * @param     = -$NewKey: key of the expanded word
+  * @desc      = expand a lexicon key into the keys of inflected words
+%*/
+expand_lexicon <- [pred].
+
+:- module_implementation.
+

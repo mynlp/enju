@@ -1,0 +1,110 @@
+%/**********************************************************************
+  * @module    = mayz:lexicon
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @desc      = predicates for lexicon lookup
+  **********************************************************************
+%*/
+
+:- module("mayz:lexicon").
+
+:- module_interface.
+
+:- ensure_loaded("parser").
+
+%% load lexicon DB
+import_lexicon <- [pred].
+
+%% load template DB
+import_templates <- [pred].
+
+%% lexicon accessors
+lookup_lexicon <- [pred].
+lookup_template <- [pred].
+
+%% database
+'*lexicon*' <- [pred].
+'*template*' <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/debug").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% predicates for importing data
+
+import_lexicon_loop <- [pred].
+import_lexicon_loop($Stream) :-
+    eof_stream($Stream),
+    !.
+import_lexicon_loop($Stream) :-
+    readln_string($Stream, $Line),
+    split($Line, " ", [$Key | $TmplNames]),
+    db_insert('*lexicon*'($Key, $TmplNames)),
+    import_lexicon_loop($Stream).
+
+import_lexicon($LexFile) :-
+    db_open('*lexicon*'(key_string, array_value)),
+    (open_file_stream($LexFile, "r", $Stream) ->
+     true ;
+     error_message("Lexicon file not found: ~s\n", [$LexFile]),
+     fail),
+    import_lexicon_loop($Stream).
+
+import_templates($TempFile) :-
+    %db_open('*template*'(key_fs, array_value)),
+    db_open('*template*'(key_string, array_value)),
+    (db_load($TempFile, '*template*'(_, _)) ->
+     true ;
+     error_message("Template file not found: ~s\n", [$TempFile]),
+     fail).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% predicates to lookup database
+
+lookup_template($TempName, $Sign) :-
+    db_find('*template*'($TempName, $Sign)).
+
+lookup_lexicon($Word, $TempNames) :-
+    word_to_lookup_keys($Word, $Keys),
+    member($Key, $Keys),
+    db_find('*lexicon*'($Key, $TempNames)),
+    $TempNames = [_|_],  %% stops when some lexical entry is found
+    !.
+lookup_lexicon(_, []).
+
+%% lookup_lexicon_loop <- [pred].
+%% lookup_lexicon_loop([], []).
+%% lookup_lexicon_loop([$Key|$KeyList], $TempList) :-
+%%     (db_find('*lexicon*'($Key, $TempList1)) ->
+%%      append($TempList1, $NextTempList, $TempList) ;
+%%      $NextTempList = $TempList),
+%%     lookup_lexicon_loop($KeyList, $NextTempList).
+
+%% lookup_lexicon($Word, $TemplateList & [_|_]) :-
+%%     findall($Key,
+%% 	    lexicon_lookup_key($Word, $Key),
+%% 	    $KeyList),
+%%     lookup_lexicon_loop($KeyList, $TemplateList),
+%%     !.
+
+%% lookup_lexicon($Word, $TemplateList & [_|_]) :-
+%%     findall($Key,
+%% 	    unknown_word_lookup_key($Word, $Key),
+%% 	    $KeyList),
+%%     lookup_lexicon_loop($KeyList, $TemplateList),
+%%     !.
+
+%% lookup_lexicon($Word, $TemplateList & [_|_]) :-
+%%     findall($Key,
+%% 	    default_lexicon_lookup_key($Word, $Key),
+%% 	    $KeyList),
+%%     lookup_lexicon_loop($KeyList, $TemplateList),
+%%     !.
+
+%% lookup_lexicon(_, []).
+

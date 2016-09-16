@@ -1,0 +1,439 @@
+%/**********************************************************************
+  * @module    =  enju:types
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @version   =  Time-stamp: <2010-01-25 12:03:31 yusuke>
+  * @desc      =  Definition of HPSG type hierarchy
+  **********************************************************************
+%*/
+
+:- module("enju:types").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/word").
+:- ensure_loaded("../mayz/lexentry").
+
+:- module_extendable.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Syntactic features
+
+%% Binary feature
+hpsg_binary <- [bot].
+hpsg_plus <- [hpsg_binary].
+hpsg_minus <- [hpsg_binary].
+
+%% Base types for SIGN, SYNSEM, LOCAL, CAT
+hpsg_sign_base <- [bot].
+hpsg_synsem_base <- [bot].
+hpsg_local_base <- [bot].
+hpsg_cat_base <- [bot].
+
+%% List of "synsem_base"
+hpsg_synsem_list <- [list].
+hpsg_synsem_cons <- [cons, hpsg_synsem_list] + [hd\hpsg_synsem_base, tl\hpsg_synsem_list].
+hpsg_synsem_nil <- [nil, hpsg_synsem_list].
+
+% to denote "expressed"/"unexpressed" (used in noun-noun modification)
+hpsg_synsem_unexp <- [hpsg_synsem_list].
+hpsg_synsem_exp <- [hpsg_synsem_list].
+hpsg_synsem_unexp_nil <- [hpsg_synsem_unexp, hpsg_synsem_nil].
+hpsg_synsem_unexp_cons <- [hpsg_synsem_unexp, hpsg_synsem_cons] + [hd\hpsg_synsem_base, tl\hpsg_synsem_exp].
+hpsg_synsem_exp_nil <- [hpsg_synsem_exp, hpsg_synsem_nil].
+%%hpsg_synsem_exp_cons <- [hpsg_synsem_exp, hpsg_synsem_cons] + [hd\hpsg_synsem_base, tl\hpsg_synsem_exp].  %% unnecessary
+
+%% List of "local_base"
+hpsg_local_list <- [list].
+hpsg_local_cons <- [cons, hpsg_local_list] + [hd\hpsg_local_base, tl\hpsg_local_list].
+hpsg_local_nil <- [nil, hpsg_local_list].
+
+%% AGR -- agreement
+hpsg_agreement <- [bot].
+hpsg_3sg <- [hpsg_agreement].
+hpsg_no3sg <- [hpsg_agreement].
+
+%% VFORM -- verbal form
+hpsg_vform <- [bot].
+hpsg_fin <- [hpsg_vform].                      %% finite
+hpsg_fin_pres <- [hpsg_fin].                   %% finite, present
+hpsg_fin_past <- [hpsg_fin].                   %% finite, past
+hpsg_decl <- [hpsg_fin].                       %% declarative
+hpsg_imp <- [hpsg_fin].                        %% imperative
+hpsg_intr <- [hpsg_fin].                       %% interrogative
+hpsg_decl_pres <- [hpsg_decl, hpsg_fin_pres].  %% declarative, present
+hpsg_decl_past <- [hpsg_decl, hpsg_fin_past].  %% declarative, past
+hpsg_intr_pres <- [hpsg_intr, hpsg_fin_pres].  %% interrogative, present
+hpsg_intr_past <- [hpsg_intr, hpsg_fin_past].  %% interrogative, past
+hpsg_part <- [hpsg_vform].                     %% participle
+hpsg_pres_part <- [hpsg_part].                 %% present participle
+hpsg_past_part <- [hpsg_part].                 %% past participle
+hpsg_passive_part <- [hpsg_part].              %% passive
+hpsg_base <- [hpsg_vform].                     %% base (bare infinitive)
+hpsg_inf <- [hpsg_vform].                      %% infinitive
+
+%% AUX -- auxiliary type
+hpsg_aux <- [bot].
+hpsg_be <- [hpsg_aux].
+hpsg_aux_plus <- [hpsg_aux].
+hpsg_aux_modal <- [hpsg_aux_plus].
+hpsg_aux_have <- [hpsg_aux_plus].
+hpsg_aux_be <- [hpsg_aux_plus, hpsg_be].
+hpsg_aux_do <- [hpsg_aux_plus].
+%%hpsg_aux_to <- [hpsg_aux_plus].
+hpsg_aux_other <- [hpsg_aux_plus].
+hpsg_aux_minus <- [hpsg_aux].
+hpsg_aux_none <- [hpsg_aux_minus].
+hpsg_copular_be <- [hpsg_aux_minus, hpsg_be].
+
+%% CASE -- noun case
+hpsg_case <- [bot].
+hpsg_nom <- [hpsg_case].
+hpsg_acc <- [hpsg_case].
+
+%% NFORM -- noun form
+hpsg_nform <- [bot].
+hpsg_nform_expletive <- [hpsg_nform].
+hpsg_nform_it <- [hpsg_nform_expletive].
+hpsg_nform_there <- [hpsg_nform_expletive].
+hpsg_nform_other <- [hpsg_nform].
+
+%% PFORM -- preposition form
+hpsg_pform <- [bot].
+hpsg_passive_by <- [hpsg_pform].
+hpsg_dative <- [hpsg_pform].
+hpsg_pform_other <- [hpsg_pform].
+
+%% AFORM -- adjective form
+hpsg_aform <- [bot].
+hpsg_aform_base  <- [hpsg_aform].
+hpsg_comparative <- [hpsg_aform].
+hpsg_superative  <- [hpsg_aform].
+
+%% CFORM -- complementizer form
+hpsg_cform <- [bot].
+%%hpsg_cform_if <- [hpsg_cform].
+hpsg_cform_to <- [hpsg_cform].
+%%hpsg_cform_whether <- [hpsg_cform].
+hpsg_cform_that <- [hpsg_cform].
+hpsg_cform_for <- [hpsg_cform].
+
+%% TYPE
+hpsg_type <- [bot].
+hpsg_predicative <- [hpsg_type].
+hpsg_noun_modifier <- [hpsg_type].
+hpsg_verb_modifier <- [hpsg_type].
+hpsg_adj_modifier <- [hpsg_type].
+hpsg_prep_modifier <- [hpsg_type].
+hpsg_other_modifier <- [hpsg_type].
+hpsg_predicative_modifier <- [hpsg_type].
+hpsg_type_none <- [hpsg_type].
+
+%% HEAD
+hpsg_head <- [bot] + [AGR\hpsg_agreement(0), TYPE\hpsg_type(8), MOD\hpsg_local_list(10), POSTHEAD\hpsg_binary(11)].
+hpsg_subst <- [hpsg_head]. %% + [PRD\hpsg_binary(2)].  %% ADJ\hpsg_binary
+hpsg_verbal <- [hpsg_subst] + [VFORM\hpsg_vform(5), AUX\hpsg_aux(6), INV\hpsg_binary(7)].
+hpsg_verb_or_comp <- [hpsg_subst].
+hpsg_verb <- [hpsg_verbal, hpsg_verb_or_comp].
+hpsg_nominal_or_comp <- [hpsg_subst] + [CASE\hpsg_case(5), NFORM\hpsg_nform(6)].
+hpsg_comp <- [hpsg_nominal_or_comp, hpsg_verb_or_comp] + [CFORM\hpsg_cform(5)].
+hpsg_nominal <- [hpsg_nominal_or_comp].
+hpsg_noun <- [hpsg_nominal].
+hpsg_gerund <- [hpsg_verbal, hpsg_nominal].
+hpsg_prep <- [hpsg_subst] + [PFORM\hpsg_pform(5)].
+hpsg_adj_or_adv <- [hpsg_subst] + [AFORM\hpsg_aform(5)].
+hpsg_adj <- [hpsg_adj_or_adv].
+hpsg_adv <- [hpsg_adj_or_adv].
+hpsg_conj <- [hpsg_subst].
+hpsg_subc <- [hpsg_subst].
+hpsg_func <- [hpsg_head].
+hpsg_det <- [hpsg_func].
+hpsg_pl <- [hpsg_func].
+hpsg_comma <- [hpsg_func].
+hpsg_punct <- [hpsg_func].
+
+%% VAL -- valence feature
+hpsg_valence <- [bot] + [SUBJ\hpsg_synsem_list(1), COMPS\hpsg_synsem_list(2),
+			 SPR\hpsg_synsem_list(3), SPEC\hpsg_synsem_list(4),
+			 CONJ\hpsg_synsem_list(5)].
+
+%% CAT -- syntactic category
+hpsg_cat <- [hpsg_cat_base] + [HEAD\hpsg_head(0), VAL\hpsg_valence(1)].
+hpsg_nocat <- [hpsg_cat_base].
+
+%% CONT -- semantic content
+hpsg_relation <- [bot].
+hpsg_message <- [bot].
+hpsg_relation_list <- [list].
+hpsg_relation_cons <- [cons, hpsg_relation_list] + [hd\hpsg_relation, tl\hpsg_relation_list].
+hpsg_relation_nil <- [nil, hpsg_relation_list].
+hpsg_cont <- [bot] + [HOOK\hpsg_relation(0), XARG\hpsg_relation(1), RELS\hpsg_relation_list(2), MSG\hpsg_message(3)].
+
+%% LOCAL -- syntactically local constraints
+hpsg_local <- [hpsg_local_base] + [CAT\hpsg_cat(0), CONT\hpsg_cont(10), CONX\bot(100)].
+hpsg_nolocal <- [hpsg_local_base].
+
+%% NONLOCAL -- for long distance dependencies
+hpsg_nonlocal1 <- [bot] + [QUE\hpsg_relation_list(0), SLASH\hpsg_local_list(1), REL\hpsg_local_list(2), F_REL\hpsg_local_list(3)].
+hpsg_nonlocal <- [bot] + [INHER\hpsg_nonlocal1(0), TO_BIND\hpsg_nonlocal1(1)].
+
+%% SYNSEM -- syntax and semantics
+hpsg_synsem <- [hpsg_synsem_base] + [LOCAL\hpsg_local(0), NONLOCAL\hpsg_nonlocal(2)].
+hpsg_nosynsem <- [hpsg_synsem_base].
+
+%% Features for probabilistic models
+hpsg_adjac <- [bot] + [BOUND_COMMA\hpsg_binary(0), BOUND_POSITION\integer(1), BOUND_POS\string(2)].
+hpsg_prob_feature <- [bot] + [L_ADJAC\hpsg_adjac(0), R_ADJAC\hpsg_adjac(1), NUM_COMMA\hpsg_binary(2)].  %% , NUM_CLAUSE\integer(3)].
+
+%% DTRS -- base type for daughter structure
+hpsg_dtrs <- [bot].
+
+%% LXM_SPEC -- specification of lexeme -- OBSOLETE
+%%hpsg_lxm_spec <- [bot] + [DATIVE\hpsg_binary, INSERT\hpsg_binary, N_PASSIVE\integer, N_INV\integer, N_WH\integer].
+
+%% SIGN
+hpsg_sign <- [hpsg_sign_base] +
+[PHON\list(10),
+ SYNSEM\hpsg_synsem(0),
+ PROB_FEATURE\hpsg_prob_feature(3),
+ LEX_SPEC\lex_entry(20)].
+hpsg_word <- [hpsg_sign].
+%%hpsg_lxm <- [hpsg_word] + [LXM_SPEC\hpsg_lxm_spec].
+hpsg_phrase <- [hpsg_sign] + [DTRS\hpsg_dtrs(50)].
+hpsg_nosign <- [hpsg_sign_base].
+
+%% daughter structure
+hpsg_dtrs_headed <- [hpsg_dtrs] + [HEAD_DTR\hpsg_sign(0)].
+hpsg_dtrs_unary <- [hpsg_dtrs_headed].
+hpsg_dtrs_binary <- [hpsg_dtrs_headed] + [NONHEAD_DTR\hpsg_sign(1)].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Predicate-argument structure
+
+%% base types
+invalid_relation <- [hpsg_relation].
+unknown_relation <- [hpsg_relation].
+pred_relation <- [hpsg_relation] + [PRED\lex_entry(0)]. %% PRTS\list(1)].
+inactive_relation <- [pred_relation].
+
+%% introduction of argument features
+mod_intro <- [pred_relation] + [MODARG\hpsg_relation(3)].
+arg1_intro <- [pred_relation] + [ARG1\hpsg_relation(5)].
+arg2_intro <- [pred_relation] + [ARG2\hpsg_relation(6)].
+arg3_intro <- [pred_relation] + [ARG3\hpsg_relation(7)].
+arg4_intro <- [pred_relation] + [ARG4\hpsg_relation(8)].
+arg5_intro <- [pred_relation] + [ARG5\hpsg_relation(9)].
+arg12_intro <- [arg1_intro, arg2_intro].
+arg23_intro <- [arg2_intro, arg3_intro].
+arg123_intro <- [arg12_intro, arg3_intro, arg23_intro].
+arg1234_intro <- [arg123_intro, arg4_intro].
+arg12345_intro <- [arg1234_intro, arg5_intro].
+mod_arg1_intro <- [mod_intro, arg1_intro].
+mod_arg12_intro <- [mod_arg1_intro, arg12_intro].
+mod_arg123_intro <- [mod_arg12_intro, arg123_intro].
+mod_arg1234_intro <- [mod_arg123_intro, arg1234_intro].
+mod_arg12345_intro <- [mod_arg1234_intro, arg12345_intro].
+
+%% common types for predicate argument structures
+arg0_relation <- [pred_relation].
+mod_relation <- [mod_intro].
+arg1_relation <- [arg1_intro].
+arg2_relation <- [arg2_intro].
+arg12_relation <- [arg12_intro].
+arg23_relation <- [arg23_intro].
+arg123_relation <- [arg123_intro].
+arg1234_relation <- [arg1234_intro].
+arg12345_relation <- [arg12345_intro].
+mod_arg1_relation <- [mod_arg1_intro].
+mod_arg12_relation <- [mod_arg12_intro].
+mod_arg123_relation <- [mod_arg123_intro].
+mod_arg1234_relation <- [mod_arg1234_intro].
+mod_arg12345_relation <- [mod_arg12345_intro].
+
+%% %% TENSE -- verb tense
+%% hpsg_tense <- [bot].
+%% hpsg_pres <- [hpsg_tense].
+%% hpsg_past <- [hpsg_tense].
+
+%% %% ASPECT -- verb aspect
+%% hpsg_aspect <- [bot].
+%% hpsg_perf <- [hpsg_aspect].
+%% hpsg_prog <- [hpsg_aspect].
+%% hpsg_perf_prog <- [hpsg_perf, hpsg_prog].
+
+%% leaf types
+noun_arg0_relation <- [arg0_relation].                %% head nouns
+noun_arg1_relation <- [arg1_relation].                %% modifying nouns
+noun_arg2_relation <- [arg2_relation].                %% nouns with complements
+noun_arg12_relation <- [arg12_relation].              %% modifying nouns with complements
+
+it_arg1_relation <- [arg1_relation].                  %% expletive it
+there_arg0_relation <- [arg0_relation].               %% expletive there
+
+quote_arg2_relation <- [arg2_relation].               %% left quote
+quote_arg12_relation <- [arg12_relation].             %% left quote
+quote_arg23_relation <- [arg23_relation].             %% left quote
+quote_arg123_relation <- [arg123_relation].           %% left quote
+
+poss_arg2_relation <- [arg2_relation].                %% possessive (head noun)
+poss_arg12_relation <- [arg12_relation].              %% possessive
+
+aux_arg12_relation <- [arg12_relation].               %% aux verbs
+aux_mod_arg12_relation <- [mod_arg12_relation].       %% verb-modifying aux verbs
+
+%%verb_relation_base <- [pred_relation] + [TENSE\hpsg_tense(1), ASPECT\hpsg_aspect(2)].
+verb_relation_base <- [pred_relation].
+verb_arg1_relation_base <- [arg1_relation, verb_relation_base].
+verb_arg12_relation_base <- [arg12_relation, verb_arg1_relation_base].
+verb_arg123_relation_base <- [arg123_relation, verb_arg12_relation_base].
+verb_arg1234_relation_base <- [arg1234_relation, verb_arg123_relation_base].
+verb_mod_arg1_relation_base <- [mod_arg1_relation, verb_arg1_relation_base].
+verb_mod_arg12_relation_base <- [mod_arg12_relation, verb_arg12_relation_base, verb_mod_arg1_relation_base].
+verb_mod_arg123_relation_base <- [mod_arg123_relation, verb_arg123_relation_base, verb_mod_arg12_relation_base].
+verb_mod_arg1234_relation_base <- [mod_arg1234_relation, verb_arg1234_relation_base, verb_mod_arg123_relation_base].
+verb_arg1_relation <- [verb_arg1_relation_base].                %% intrans verbs
+verb_arg12_relation <- [verb_arg12_relation_base].              %% trans verbs
+verb_arg123_relation <- [verb_arg123_relation_base].            %% ditrans verbs
+verb_arg1234_relation <- [verb_arg1234_relation_base].          %% ditrans verbs with sentential complement
+verb_mod_arg1_relation <- [verb_mod_arg1_relation_base].        %% verb-modifying intrans verbs
+verb_mod_arg12_relation <- [verb_mod_arg12_relation_base].      %% verb-modifying trans verbs
+verb_mod_arg123_relation <- [verb_mod_arg123_relation_base].    %% verb-modifying ditrans verbs
+verb_mod_arg1234_relation <- [verb_mod_arg1234_relation_base].  %% verb-modifying trans verbs with sentential complement
+
+adj_arg1_relation <- [arg1_relation].                 %% adjectives/adverbs
+adj_arg12_relation <- [arg12_relation].               %% adjectives with complement
+%%adj_arg123_relation <- [arg123_relation].             %% adjectives with two complements
+adj_mod_arg1_relation <- [mod_arg1_relation].         %% verb-modifying predicative adjectives
+adj_mod_arg12_relation <- [mod_arg12_relation].       %% verb-modifying predicative adjectives with complement
+
+conj_arg1_relation <- [arg1_relation].                %% modifying conjunction
+conj_arg12_relation <- [arg12_relation].              %% subordinating conjunction
+conj_arg123_relation <- [arg123_relation].            %% subordinating conjunction with two complements
+coord_arg12_relation <- [arg12_relation].             %% coordination conjunction
+
+det_arg1_relation <- [arg1_relation].                 %% determiner
+
+prep_arg12_relation <- [arg12_relation].              %% preposition
+prep_arg123_relation <- [arg123_relation].            %% preposition with two complements
+prep_mod_arg12_relation <- [mod_arg12_relation].      %% verb-modifying predicative preposition
+prep_mod_arg123_relation <- [mod_arg123_relation].    %% verb-modifying predicative preposition with two complements
+
+lgs_arg2_relation <- [arg2_relation].                 %% "by" to mark logical subject
+dtv_arg2_relation <- [arg2_relation].                 %% "to" to mark dative object
+
+punct_arg1_relation <- [arg1_relation].               %% punctuation
+app_arg12_relation <- [arg12_relation].               %% apposition
+lparen_arg123_relation <- [arg123_relation].          %% left parenthesis
+rparen_arg0_relation <- [arg0_relation].              %% right parenthesis
+
+comp_arg1_relation <- [arg1_relation].                %% complementizer "that"
+comp_arg12_relation <- [arg12_relation].              %% complementizer "for"
+comp_mod_arg1_relation <- [mod_arg1_relation].        %% complementizer "to"
+relative_arg1_relation <- [arg1_relation].            %% relativizer
+relative_arg12_relation <- [arg12_relation].          %% relativizer "whose"
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% schema names
+
+hpsg_schema <- [bot].
+hpsg_schema_unary <- [hpsg_schema].
+hpsg_schema_binary <- [hpsg_schema].
+hpsg_schema_left_head <- [hpsg_schema_binary].
+hpsg_schema_right_head <- [hpsg_schema_binary].
+
+subj_head_schema <- [hpsg_schema_right_head].
+head_comp_schema <- [hpsg_schema_left_head].
+spec_head_schema <- [hpsg_schema_right_head].
+head_mod_schema <- [hpsg_schema_left_head].
+mod_head_schema <- [hpsg_schema_right_head].
+filler_head_schema <- [hpsg_schema_right_head].
+head_relative_schema <- [hpsg_schema_left_head].
+coord_left_schema <- [hpsg_schema_left_head].
+coord_right_schema <- [hpsg_schema_left_head].
+%%filler_insertion_schema <- [hpsg_schema_unary].
+empty_filler_head_schema <- [hpsg_schema_unary].
+empty_spec_head_schema <- [hpsg_schema_unary].
+free_relative_schema <- [hpsg_schema_unary].
+
+%% for grammar acquisition
+redundant_unary <- [hpsg_schema_unary].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% For grammar acquisition
+
+hpsg_annotation <- [bot] + [TRACE_SPEC\list(1), SLASH_SPEC\list(2), IS_COOD\hpsg_binary(4), IS_APP\hpsg_binary(5), IS_AUX\hpsg_binary(6)].
+
+%% for the acquisition of semantics
+
+%% hpsg_arg_type <- [bot].
+%% hpsg_arg_type_subj <- [hpsg_arg_type].
+%% hpsg_arg_type_lgs <- [hpsg_arg_type].
+%% hpsg_arg_type_dtv <- [hpsg_arg_type].
+%% hpsg_arg_type_other <- [hpsg_arg_type].
+%% hpsg_contarg <- [bot] + [ARG_TYPE\hpsg_arg_type(0), ARG_POSITION\integer(1), ARG_ID\list(5), ARG_COIND\list(6)].
+%% hpsg_cont_with_argpos <- [hpsg_cont] + [CONTARG\hpsg_contarg(100)].
+
+%% hpsg_contarg_spec <- [bot] + [CONTARG_LIST\list(0), NODE_CONTARG\list(1)].
+%% hpsg_sign_with_contspec <- [hpsg_sign] + [CONTARG_SPEC\hpsg_contarg_spec(101)].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% For lexical rules
+
+hpsg_lexical_rule <- [bot].
+
+bottom_rule <- [hpsg_lexical_rule].
+singular3rd_verb_rule <- [hpsg_lexical_rule].
+no_singular3rd_verb_rule <- [hpsg_lexical_rule].
+past_verb_rule <- [hpsg_lexical_rule].
+prp_verb_rule <- [hpsg_lexical_rule].
+passive_verb_rule <- [hpsg_lexical_rule].
+drop_by_rule <- [hpsg_lexical_rule].
+perfect_verb_rule <- [hpsg_lexical_rule].
+drop_comp_rule <- [hpsg_lexical_rule].
+movement_rule <- [hpsg_lexical_rule].
+sentence_movement_rule <- [hpsg_lexical_rule].
+rel_clause_rule <- [hpsg_lexical_rule].  %% obsolete
+%%attendant_prp_rule <- [hpsg_lexical_rule].
+%%clause_subject_rule <- [hpsg_lexical_rule].
+pc_prp_r_sbj_rule <- [hpsg_lexical_rule].
+pc_prp_r_rule <- [hpsg_lexical_rule].
+pc_prp_l_sbj_rule <- [hpsg_lexical_rule].
+pc_prp_l_rule <- [hpsg_lexical_rule].
+pc_passive_r_sbj_rule <- [hpsg_lexical_rule].
+pc_passive_r_rule <- [hpsg_lexical_rule].
+pc_passive_l_sbj_rule <- [hpsg_lexical_rule].
+pc_passive_l_rule <- [hpsg_lexical_rule].
+prp_r_adjunct_rule <- [hpsg_lexical_rule].
+prp_l_adjunct_rule <- [hpsg_lexical_rule].
+passive_l_adjunct_rule <- [hpsg_lexical_rule].
+passive_r_adjunct_rule <- [hpsg_lexical_rule].
+imperative_rule <- [hpsg_lexical_rule].
+yn_question_rule <- [hpsg_lexical_rule].
+gerund_rule <- [hpsg_lexical_rule].
+%%modal_rule <- [hpsg_lexical_rule].
+dative_shift_rule <- [hpsg_lexical_rule].
+inversion_rule <- [hpsg_lexical_rule].
+insertion_l_rule <- [hpsg_lexical_rule].
+insertion_r_rule <- [hpsg_lexical_rule].
+%%empty_insertion_rule <- [hpsg_lexical_rule].
+%%particle_move_rule <- [hpsg_lexical_rule].
+subject_extraction_rule <- [hpsg_lexical_rule].
+extraposition_sbj_rule <- [hpsg_lexical_rule].
+extraposition_obj_rule <- [hpsg_lexical_rule].
+
+plural_noun_rule <- [hpsg_lexical_rule].
+noun_adjective_rule <- [hpsg_lexical_rule].
+
+content_extraction_rule <- [hpsg_lexical_rule].
+
+adj_comparative_rule <- [hpsg_lexical_rule].
+adj_superative_rule <- [hpsg_lexical_rule].
+
+adv_comparative_rule <- [hpsg_lexical_rule].
+adv_superative_rule <- [hpsg_lexical_rule].
+

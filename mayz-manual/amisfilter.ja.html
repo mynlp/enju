@@ -1,0 +1,97 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>amisfilter: amis 形式データファイル生成ツール</title>
+</head>
+
+
+
+<body>
+<h1>amisfilter: amis 形式データファイル生成ツール</h1>
+
+<a href="amisfilter.html">English version</a>
+
+<p>
+イベントファイルから amis 形式のデータファイルを作るツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>amisfilter モデル名 マスクモジュール ueventファイル
+カウントファイル モデルファイル イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>マスクモジュール<td>unfiltered event にかけるマスクが実装され
+ている lilfes module
+<tr><td>ueventファイル<td>入力の unfiltered event ファイル (テキストま
+たは gz/bz 圧縮形式)
+<tr><td>カウントファイル<td>feature の頻度を出力するファイル (テキスト
+形式)
+<tr><td>モデルファイル<td>モデルファイル (AmisModel 形式)
+<tr><td>イベントファイル<td>イベントファイル (AmisEvent 形式)
+<tr><td colspan=2>オプション
+<tr><td>-t 閾値<td>素性の頻度の閾値 (デフォルト: 1)
+<tr><td>-e 閾値<td>出力するイベントの数の上限値
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+unimaker や forestmaker で作られる unfiltered event ファイルから，amis
+形式のデータファイルを生成します．
+
+<p>
+unimaker や forestmaker は，以下のような // で区切られた unfiltered
+event を出力します．最後のフィールドはカテゴリ名です．
+
+<blockquote>
+<pre>
+in//IN//vp[PPnp]//uni
+</pre>
+</blockquote>
+
+<p>
+この文字列の各フィールドに対し，1 か 0 のマスクをかけ，0 のフィールド
+は _ で置き換えた文字列が，ME モデルの素性として使われます．例えば，上
+の文字列に (0, 1, 1) というマスクをかけると，以下のような素性が得られ
+ます．
+
+<blockquote>
+<pre>
+_//IN//vp[PPnp]//uni
+</pre>
+</blockquote>
+
+<p>
+マスクは，amismodel.lil で定義された feature_mask/3 で記述します．マス
+クは 1 か 0 のリストで，unfiltered event のフィールド数と同じ長さでな
+ければなりません．
+
+<table border=1>
+<tr><td colspan=2><tt>feature_mask(+$ModelName, -$Category,
+-$Mask)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$Mask<td>マスクを表す0/1リスト
+<tr><td colspan=2>確率イベントにかけるマスクを指定します．
+</table>
+
+<p>
+amisfilter は，まずマスクを使って feature を生成します．次に，feature
+が observed event に現れる回数(empirical frequency)を数え，カウントファ
+イルに出力します．そして，feature の出現回数が閾値以上のものを採用し，
+amis 形式のモデルおよびイベントファイルを生成します．
+
+<hr>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

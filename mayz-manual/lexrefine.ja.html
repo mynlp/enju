@@ -1,0 +1,122 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lexrefine: 文法精製ツール</title>
+</head>
+
+
+
+<body>
+<h1>lexrefine: 文法精製ツール</h1>
+
+<a href="lexrefine.html">English version</a>
+
+<p>
+lexicon の thresholding や lexical rule による expansion を行なうツー
+ルです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexrefine [オプション] ルールモジュール 元lexicon 元template 新lexicon 新template
+<tr><td>ルールモジュール<td>lexical rule が定義されたモジュール
+<tr><td>元lexicon<td>入力の lexicon
+<tr><td>元template<td>入力の template database
+<tr><td>新lexicon<td>精製された lexicon
+<tr><td>新template<td>精製された template
+<tr><td colspan=2>オプション
+<tr><td>-wf 閾値<td>単語頻度の閾値 (デフォルト: 1)
+<tr><td>-tf 閾値<td>テンプレート頻度の閾値 (デフォルト: 0)
+<tr><td>-uwf 閾値<td>未知語とみなす単語の閾値 (デフォルト: 1)
+<tr><td>-utf 閾値<td>未知語のテンプレートとして採用する閾値 (デフォルト: 0)
+<tr><td>-v<td>デバッグ用メッセージを表示する
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示する
+<tr><td>-vvv<td>デバッグ用メッセージをたくさんたくさん表示する
+</table>
+
+<p>
+<tt>lexrefine</tt>は，以下の作業をします．
+<ul>
+  <li>閾値以下の頻度のテンプレートを削除する．
+  <li>残ったテンプレートに lexical rule を適用し，inflected word で使
+  われるテンプレートを作る．
+  <li>閾値以下の頻度の単語を未知語とみなし，未知語の辞書項目を作る．
+  <li>閾値以下の頻度の単語を削除する．
+  <li>Inflected word の辞書項目を作る．
+</ul>
+
+<p>
+まず，閾値(-tf の値)以下の頻度のテンプレートを削除します．
+
+<p>
+さらに，残ったテンプレートに lexical rule を適用し，inflected word の
+エントリを offline で作ることもできます．既存のテンプレートに lexical
+rule を適用するには，"mayz/lexrefine.lil" で定義されている以下のインタ
+フェースを実装して下さい．
+<table border=1>
+<tr><td colspan=2><tt>expand_lexical_template(+$InTemplateName,
++$InTemplate, +$Freq, -$LexRules, -$NewTemplate)</tt>
+<tr><td>$InTemplateName<td>入力テンプレートの名前
+<tr><td>$InTemplate<td>入力のテンプレート
+<tr><td>$Freq<td>テンプレートの観測回数
+<tr><td>$LexRules<td>適用された lexical rule のリスト
+<tr><td>$NewTemplate<td>新しいテンプレート
+<tr><td colspan=2>lexeme のテンプレートに lexical rule を適用し，新し
+いテンプレートを生成します．
+</table>
+新しいテンプレートは，入力テンプレートの lexeme 名と lexical rule のリ
+ストの組み合わせをキーとして，テンプレートのデータベースに登録されます．
+新しく作られたテンプレートの出現回数は，それを作る元となったテンプレー
+トの出現回数と同じに扱われます．
+
+<p>
+ここで新たに作ったテンプレートを lexicon で使うためには，以下のインタ
+フェースを実装します．
+<table border=1>
+<tr><td colspan=2><tt>expand_lexicon(+$InKey, +$TemplateName, -$NewKey)</tt>
+<tr><td>$InKey<td>入力単語のキー
+<tr><td>$TemplateName<td>テンプレートの名前 (lex_template 型)
+<tr><td>$NewKey<td>新しいキー
+<tr><td colspan=2>$InKey の辞書項目から expand したテンプレート
+$TemplateName を登録すべきキー $NewKey を返します．例えば，他動詞原形
+のテンプレートから受身形のテンプレートを作った場合，原形の love のエン
+トリに他動詞原形が登録されている時，過去分詞形の loved のエントリに受
+身形のテンプレートを登録します．
+</table>
+
+<p>
+次に，lexicon の各エントリについて，その単語(正確には，
+reduce_lexical_template/5 の第3引数で与えられるキー)の頻度が閾値(-wf 
+の値) 以下の場合はそのエントリを削除します．それ以外の単語のエントリは
+辞書に残されますが，削除されたテンプレートは自動的に辞書から取り除かれ
+ます．
+
+<p>
+また，頻度が -uwf の値以下の単語は，未知語とみなされ，その単語に割り当
+てられているテンプレートは未知語のエントリに追加されます．未知語のエン
+トリのキーは，"mayz/lexrefine.lil" で定義されている 
+<tt>unknown_word_key/2</tt>で指定します．
+<table border=1>
+<tr><td colspan=2><tt>unknown_word_key(+$InKey, -$OutKey)</tt>
+<tr><td>$InKey<td>入力単語のキー
+<tr><td>$OutKey<td>未知語のキー
+<tr><td colspan=2>未知語のエントリのためのキーを作ります．
+</table>
+たとえば，$InKey の POS 素性の値だけを未知語のキーとして返せば，品詞だ
+けを見て未知語のエントリを引くことになります．未知語に割り当てるテンプ
+レートの出現頻度の閾値は，別に指定することができます(-utf オプション)．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

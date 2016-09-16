@@ -1,0 +1,180 @@
+%/**********************************************************************
+  * @module    = mayz:moriv
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: moriv.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   = Time-stamp: <2006-12-01 23:10:15 yusuke>
+  * @desc      = General interface for MoriV
+  **********************************************************************
+%*/
+
+:- module("mayz:moriv").
+
+:- module_interface.
+
+:- ensure_loaded("lillib/http_server").
+:- ensure_loaded("lillib/xml").
+:- ensure_loaded("lillib/cgi").
+:- ensure_loaded("lillib/dattypes").
+
+moriv <- [pred].
+moriv_debug <- [pred].
+
+cgi <- [pred].
+'cgi/0' <- ['pred/0', cgi].
+'cgi/1' <- ['pred/1', 'cgi/0'].
+cgi_debug <- [pred].
+'cgi_debug/0' <- ['pred/0', cgi_debug].
+'cgi_debug/1' <- ['pred/1', 'cgi_debug/0'].
+
+%% interface
+moriv_page <- [pred].
+'*moriv_toppage_name*' <- [variable].
+'*moriv_common_menu*' <- [variable].
+'*moriv_content_type*' <- [variable].
+'*moriv_css*' <- [variable].
+'*moriv_xsl*' <- [variable].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+
+:-
+    define_string_variable('*moriv_toppage_name*'),
+    set_variable('*moriv_toppage_name*', "parser"),
+    define_variable('*moriv_common_menu*'),
+    set_variable('*moriv_common_menu*',
+		 (xhtml_div & XHTML_CLASS\"menu" &
+		  XHTML_TEXT\[(xhtml_a &
+			       A_TARGET\"_top" & A_HREF\"moriv?" & XHTML_TEXT\"Reset"),
+			      (xhtml_a &
+			       A_TARGET\"_top" & A_HREF\"/DISCONNECT" & XHTML_TEXT\"Exit")])),
+    define_string_variable('*moriv_content_type*'),
+    set_variable('*moriv_content_type*', ""),
+    define_variable('*moriv_css*'),
+    set_variable('*moriv_css*', ["/fs.css", "/mayz/moriv.css"]),
+    define_variable('*moriv_xsl*'),
+    set_variable('*moriv_xsl*', "/fs.xsl"),
+    set_variable('*default_http_port*', 27109).
+
+%% for backward compatibility
+'*moriv_xhtml_version*' <- [variable].
+:-
+    define_variable('*moriv_xhtml_version*'),
+    set_variable('*moriv_xhtml_version*', html_4_01_frameset).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Top page
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_toppage <- [pred].
+moriv_toppage($Title, $Toppage) :-
+    get_variable('*moriv_toppage_name*', $Name),
+    moriv_page($Name, [], $Title, $Toppage).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Main routine
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parser_moriv_dispatch <- [pred].
+parser_moriv_dispatch([], XHTML_TITLE\$Title & XHTML_BODY\$Body) :-
+    !,
+    moriv_toppage($Title, $Body).
+parser_moriv_dispatch($Args & cons, XHTML_TITLE\$Title & XHTML_BODY\$Body) :-
+    assoc("page", $Args, $PageName),
+    !,
+    debug_message("moriv", "Show page: ~s\n", [$PageName]),
+    (moriv_page($PageName, $Args, $Title, $Body) ->
+     true
+     ;
+     $Title = "Unknown page",
+     $Body = [xhtml_h1 & XHTML_TEXT\["Moriv error"],
+	      xhtml_h3 & XHTML_TEXT\["Unknown page: ", $PageName],
+	      xhtml_a & A_TARGET\"_top" & A_HREF\"moriv?" &
+	      XHTML_TEXT\"Reset"]).
+parser_moriv_dispatch(_, XHTML_TITLE\$Title & XHTML_BODY\$Body) :-
+    moriv_toppage($Title, $Body).
+
+cgi_lilfes("moriv", $QueryString, _, $Answer) :-
+    debug_message("moriv", "Moriv query: ~s\n", [$QueryString]),
+    decode_query_string($QueryString, $Assoc),
+    parser_moriv_dispatch($Assoc, $XHTML),
+    get_variable('*moriv_content_type*', $ContentType),
+    ($ContentType = "" ->
+     true ;
+     $XHTML = XHTML_CONTENT_TYPE\$ContentType),
+    get_variable('*moriv_css*', $CSS),
+    ($CSS = "" ->
+     true ;
+     $XHTML = XHTML_CSS\$CSS),
+    get_variable('*moriv_xsl*', $XSL),
+    ($XSL = "" ->
+     true ;
+     $XHTML = XHTML_XSL\$XSL),
+    get_variable('*moriv_xhtml_version*', $XHTMLVersion),
+    $XHTML = XHTML_VERSION\$XHTMLVersion,
+    stringize_xhtml_cgi($XHTML, $Answer),
+    debug_message("moriv", "Send:\n~s\n", [$Answer]).
+
+%% cgi_lilfes("moriv.css", _, _, $Response) :-
+%%     $Header = "Content-Type: text/css",
+%%     parser_moriv_css($CSS),
+%%     stringize_xml_document([$Header, ""|$CSS], $Response).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% External interface
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_main <- [pred].
+moriv_main :-
+    %initialize_parser,
+    error_message("'moriv' is obsolete.  Use 'cgi' instead.\n"),
+    set_variable('*xhtml_fs_version*', "1.0"),
+    set_variable('*moriv_xhtml_version*', xhtml_1_1),
+    set_variable('*moriv_xsl*', ""),
+    http_server,
+    fail.
+moriv_main :-
+    %terminate_parser.
+    true.
+
+moriv :-
+    moriv_main.
+
+moriv_debug :-
+    set_debug_mode("moriv"),
+    moriv_main.
+
+cgi_main <- [pred].
+cgi_main :-
+    set_variable('*xhtml_fs_version*', "2.0"),
+    set_variable('*moriv_xhtml_version*', xhtml_1_1),
+    set_variable('*moriv_xsl*', "/fs.xsl"),
+    http_server,
+    fail.
+cgi_main :-
+    true.
+
+cgi :-
+    cgi_main.
+cgi($Port) :-
+    set_variable('*default_http_port*', $Port),
+    cgi_main.
+
+cgi_debug :-
+    set_debug_mode("moriv"),
+    cgi_main.
+cgi_debug($Port) :-
+    set_debug_mode("moriv"),
+    set_variable('*default_http_port*', $Port),
+    cgi_main.
+

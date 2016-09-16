@@ -1,0 +1,160 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-types.css">
+<title>ツールキットで使われるデータ構造</title>
+</head>
+
+
+
+<body>
+<h1>ツールキットで使われるデータ構造</h1>
+
+<a href="types.html">English version</a>
+
+<p>
+MAYZ ツールキットでは，構文木や derivation を素性構造で表します．ここ
+では，その素性構造の定義について説明します．
+
+<ul>
+  <li><a href="#word">単語を表す素性構造</a>
+  <li><a href="#treetypes">Penn Treebank 形式の句構造(構文木)を表す素性構造</a>
+  <li><a href="#derivtypes">ターゲットの文法理論における句構造(derivation)を表す素性構造</a>
+</ul>
+
+<hr>
+
+<h2><a name="word">単語を表す素性構造</a></h2>
+
+<p>
+MAYZ における「単語」は，構文木の終端ノードに対応します．単語の情報は，
+以下のように定義されています．
+<pre>
+word <- [bot] +
+  [INPUT\string(0),        %% 入力単語そのまま
+   SURFACE\string(1),      %% 入力単語を前処理したもの
+   BASE\string(2),         %% 入力単語の原形
+   INPUT_POS\string(5),    %% 入力品詞そのまま
+   POS\string(6),          %% 入力品詞を前処理したもの
+   BASE_POS\string(7),     %% 入力単語の原形の品詞
+   POSITION\integer(10)    %% 入力単語の位置
+  ].
+</pre>
+
+<hr>
+
+<h2><a name="treetypes">Penn Treebank 形式の句構造(構文木)を表す素性構造</a></h2>
+
+<p>
+入力の treebank における句構造(<a href="terms.ja.html#parse_tree">構文
+木</a>)は，以下の素性構造で表します．
+
+<pre>
+%% head/argument/modifier を表すマーク
+head_mark <- [bot].
+non_head <- [head_mark].   %% head 以外
+argument <- [non_head].    %% argument を表す
+modifier <- [non_head].    %% modifier を表す
+empty <- [head_mark].      %% 空の木を表す
+non_empty <- [head_mark].  %% 空でない木を表す
+head <- [head_mark, non_empty].    %% head を表す
+non_head_empty <- [non_head, empty].    %% 空の non-head を表す
+non_head_non_empty <- [non_head, non_empty].  %% 空でない non-head を表す
+argument_empty <- [argument, non_head_empty]. %% 空の argument を表す
+argument_non_empty <- [argument, non_head_non_empty].  %% 空でない argument を表す
+modifier_empty <- [modifier, non_head_empty]. %% 空の modifier を表す
+modifier_non_empty <- [modifier, non_head_non_empty].  %% 空でない modifier を表す
+
+%% PropBank 形式の注釈を表す
+propbank_label <- [bot] +
+  [PROP_ID\integer(0)].    %% 文内で一意につけられる ID 番号
+propbank_arg <- [propbank_label] +  %% argument につけられる注釈
+  [ARG_POS\string(1)].     %% argument label ("ARG1", ...)
+propbank_rel <- [propbank_label] +  %% predicate につけられる注釈
+  [PRED_NAME\string(1),    %% predicate の名前
+   PRED_SEM_ID\string(2)]. %% predicate の意味 ID
+
+%% propbank_label のリスト
+prop_list <- [list].
+prop_cons <- [prop_list, cons] + [hd\propbank_label, tl\prop_list].
+prop_nil <- [prop_list, nil].
+
+%% 構文木のノードを表す
+tree_node <- [bot] +
+  [SYM\string(0),          %% ノードのシンボル
+   FUNC\list(1),           %% 機能ラベル(SBJ, TPC など)
+   HEAD_MARK\head_mark(2), %% head/argument/modifier を表す
+   PROP_LIST\prop_list(5), %% PropBank の注釈を表す
+   NODE_SIGN\bot(10),      %% ノードに対応する sign
+   ANNOT\bot(11)           %% その他の注釈
+  ].
+tree_node_nts <- [tree_node] +  %% 非終端ノード
+  [ID\list(3),             %% ノードにつけられる coindex ID
+   SCHEMA_NAME\bot(4)      %% スキーマの名前
+  ].
+tree_node_term <- [tree_node] +  %% 終端ノード
+  [WORD\word(3)].          %% 終端ノードに対応する単語
+tree_node_empty <- [tree_node] +  %% 空の終端ノード
+  [COIND\list(3),          %% coindex ID
+   EMPTY_WORD\string(4),   %% 空単語を表す文字列
+   COIND_NODE\list(5)      %% coindex しているノード
+  ].
+
+%% 構文木を表す
+tree_base <- [bot] +
+  [TREE_NODE\tree_node(0)].  %% 構文木のノード
+tree <- [tree_base].       %% 終端／非終端の構文木を表す
+tree_nts <- [tree] +       %% 非終端の構文木
+  [TREE_NODE\tree_node_nts,
+   TREE_DTRS\list(20)].    %% 娘たち
+tree_term <- [tree] +      %% 終端の構文木
+  [TREE_NODE\tree_node_term].
+tree_empty <- [tree] +     %% 空の終端の構文木
+  [TREE_NODE\tree_node_empty].
+
+%% 構文木のパターンマッチングに使われる
+tree_any <- [tree_base] +
+  [ANY_TREES\list(10)].    %% マッチした木のリスト
+</pre>
+
+<p>
+'tree_any' については，「<a href="modules.ja.html#treematch">構文木の
+パターンマッチを行う</a>」を参照して下さい．
+
+<hr>
+
+<h2><a name="derivtypes">ターゲットの文法理論における句構造(derivation)を表す素性構造</a></h2>
+
+<p>
+ターゲットの文法理論における句構造(<a
+href="terms.ja.html#derivation">derivation</a>)は，以下の素性構造で表
+されます．
+
+<pre>
+derivation <- [bot] +                  %% derivation のノードを表す
+  [DERIV_SIGN\bot(5)].                 %% ノードに対応する sign
+derivation_internal <- [derivation] +  %% derivation の中間ノード
+  [DERIV_SCHEMA\bot(0),                %% 適用されたスキーマの名前
+   DERIV_DTRS\list(10)].               %% 娘たち
+derivation_terminal <- [derivation] +  %% derivation の終端ノード
+  [TERM_WORD\word(0),                  %% ノードに対応する単語
+   TERM_TEMPLATE\lex_template(1),      %% 単語に割り当てられる語彙項目テンプレートの名前
+   LEXENTRY_SIGN\bot(10),              %% 語彙項目の sign
+   LEXEME_SIGN\bot(11)                 %% lexeme の sign
+  ].
+</pre>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

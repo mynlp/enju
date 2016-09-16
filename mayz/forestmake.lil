@@ -1,0 +1,224 @@
+%/**********************************************************************
+  * @module    = mayz:forestmake
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: forestmake.lil,v 1.6 2010-06-11 08:48:03 matuzaki Exp $
+  * @version   = Time-stamp: <2009-12-11 16:30:10 yusuke>
+  * @desc      = Interface and parameters for forestmake
+  **********************************************************************
+%*/
+
+:- module("mayz:forestmake").
+
+:- module_interface.
+
+:- ensure_loaded("amismodel").
+:- ensure_loaded("derivtypes").
+%:- ensure_loaded("grammar").
+:- ensure_loaded("init").
+:- ensure_loaded("parser").
+
+%% interface for forestmaker
+%/**
+  * @interface = fm_derivation_to_word_lattice(+$Derivation, -$WordLattice)
+  * @param     = +$Derivation/derivation : derivation tree
+  * @param     = -$WordLattice/list of extent : word lattice
+  * @desc      = convert derivation into word lattice
+  * This interface is used to convert a derivation from a derivbank into 
+  * a word lattice.  "forestmaker" substitute this predicate for 
+  * 'sentence_to_word_lattice/2', and a word lattice will be passed to
+  * 'parse_word_lattice/1.'
+%*/
+fm_derivation_to_word_lattice <- [pred].
+'fm_derivation_to_word_lattice/2' <- [fm_derivation_to_word_lattice, 'pred/2'].
+
+%% interface for forestmaker
+%/**
+  * @interface = fm_derivation_to_deriv_word_lattice(+$Derivation, -$WordLattice)
+  * @param     = +$Derivation/derivation : derivation tree
+  * @param     = -$DerivWordLattice/list of extent : derivation word lattice
+  * @desc      = convert derivation into word lattice
+%*/
+fm_derivation_to_deriv_word_lattice <- [pred].
+'fm_derivation_to_deriv_word_lattice/2' <- [fm_derivation_to_deriv_word_lattice, 'pred/2'].
+
+fm_derivation_to_leaves <- [pred].
+'fm_derivation_to_leaves/4' <- [fm_derivation_to_leaves, 'pred/4'].
+%/**
+  * @interface = fm_lexical_entry(+$Lex, -$LexName)
+  * @param     = +$Lex/bot : element of word lattice (second argument of fm_derivation_to_word_lattice/2)
+  * @param     = -$LexName/bot : name of a lexical entry
+  * @desc      = assign lexical entries to a word
+  * This interface is used to assign lexical entries to a word.
+  * "forestmaker" substitute this predicate for 'lexical_entry/2'.
+%*/
+fm_lexical_entry <- [pred].
+'fm_lexical_entry/2' <- [fm_lexical_entry, 'pred/2'].
+
+%/**
+  * @interface = fm_correct_lexical_entry(+$Term, -$LexName)
+  * @param     = +$Term/derivation_terminal : terminal of a derivation
+  * @param     = -$LexName/bot : name of a correct lexical entry
+  * @desc      = assign a correct lexical entry to a word
+  * This interface is used to assign a correct lexical entries to a word.
+%*/
+fm_correct_lexical_entry <- [pred].
+'fm_correct_lexical_entry/2' <- [fm_correct_lexical_entry, 'pred/2'].
+
+fm_complement_lexical_entry <- [pred].
+'fm_complement_lexical_entry/2' <- [fm_complement_lexical_entry, 'pred/2'].
+
+%% optional interface for reference probability
+%/**
+  * @interface = reference_prob_terminal(+$ModelName, +$LexName, +$Sign, +$SignPlus, -$Prob)
+  * @param     = +$ModelName/string : name of the feature forest model
+  * @param     = +$LexName/bot : name of a lexical entry (2nd argument of fm_lexical_entry/2)
+  * @param     = +$Sign/bot : lexical entry
+  * @param     = +$SignPlus/bot : 3rd argument of reduce_sign/3
+  * @param     = -$Prob/float : reference probability
+  * @desc      = reference probability assigned to a terminal node
+  * This interface should provide a reference probability assigned to 
+  * a terminal node.
+%*/
+reference_prob_terminal <- [pred].
+'reference_prob_terminal/5' <- [reference_prob_terminal, 'pred/5'].
+
+%/**
+  * @interface = reference_prob_unary(+$ModelName, +$SchemaName, +$Dtr, +$Mother, +$SignPlus, -$Prob)
+  * @param     = +$ModelName/string : name of the feature forest model
+  * @param     = +$SchemaName/bot : name of the applied schema
+  * @param     = +$Dtr/bot : sign of the daughter
+  * @param     = +$Mother/bot : sign of the mother
+  * @param     = +$SignPlus/bot : 3rd argument of reduce_sign/3
+  * @param     = -$Prob/float : reference probability
+  * @desc      = reference probability assigned to a unary rule application
+  * This interface should provide a reference probability assigned to 
+  * a unary rule application.
+%*/
+reference_prob_unary <- [pred].
+'reference_prob_unary/6' <- [reference_prob_unary, 'pred/6'].
+
+%/**
+  * @interface = reference_prob_binary(+$ModelName, +$SchemaName, +$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Prob)
+  * @param     = +$ModelName/string : name of the feature forest model
+  * @param     = +$SchemaName/bot : name of the applied schema
+  * @param     = +$LeftDtr/bot : sign of the left daughter
+  * @param     = +$RightDtr/bot : sign of the right daughter
+  * @param     = +$Mother/bot : sign of the mother
+  * @param     = +$SignPlus/bot : 3rd argument of reduce_sign/3
+  * @param     = -$Prob/float : reference probability
+  * @desc      = reference probability assigned to a binary rule application
+  * This interface should provide a reference probability assigned to 
+  * a binary rule application.
+%*/
+reference_prob_binary <- [pred].
+'reference_prob_binary/7' <- [reference_prob_binary, 'pred/7'].
+
+%/**
+  * @interface = reference_prob_root(+$ModelName, +$Sign, -$Prob)
+  * @param     = +$ModelName/string : name of the feature forest model
+  * @param     = +$Sign/bot : sign of the root node
+  * @param     = -$Prob/float : reference probability
+  * @desc      = reference probability assigned to a root node
+  * This interface should provide a reference probability assigned to 
+  * a root node.
+%*/
+reference_prob_root <- [pred].
+'reference_prob_root/3' <- [reference_prob_root, 'pred/3'].
+
+%% predicate
+%%fm_lookup_lexical_entry <- [pred].
+
+%% used by ForestMaker (different from "mayz:grammar:derivation_to_parse_tree/2")
+convert_derivation <- [pred].
+derivation_to_lexical_entry_list <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+
+%% restriction_list <- [pred].
+%% restriction_list([], _, _).
+%% restriction_list([$Path|$Paths], $Sign, $SignPlus) :-
+%%     (follow_if_exists($Sign, $Path, $Value) ->
+%%      restriction($Sign, $Path),
+%%      follow($SignPlus, $Path, $Value) ;
+%%      true),
+%%     restriction_list($Paths, $Sign, $SignPlus).
+
+%% restriction_ignored_paths <- [pred].
+%% restriction_ignored_paths($LexEntry, $SignPlus) :-
+%%     get_variable('*ignored_paths*', $Paths),
+%%     restriction_list($Paths, $LexEntry, $SignPlus).
+
+%% fm_lookup_lexical_entry($Word, $LexName, $LexEntry, $SignPlus) :-
+%%     fm_lexical_entry($Word, $LexName, $LexEntry),
+%%     restriction_ignored_paths($LexEntry, $SignPlus).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% used in forestmaker
+
+convert_derivation_sub <- [pred].
+
+convert_derivation_sub(derivation_terminal & $Term,
+		       parse_tree_terminal & EDGE_LINK\$EdgeLink & EDGE_SIGN\$Sign) :-
+    fm_correct_lexical_entry($Term, $LexName),
+    lexical_entry_sign($LexName, $Sign1),
+    reduce_sign($Sign1, $Sign, $SignPlus),
+    $EdgeLink = SIGN_PLUS\$SignPlus & LEX_NAME\$LexName,
+    !.
+
+convert_derivation_sub(DERIV_SCHEMA\$SchemaName & DERIV_DTRS\[$UDtrDeriv],
+		       parse_tree_nonterminal_unary & EDGE_LINK\$EdgeLink & EDGE_SIGN\$Sign & U_TREE\$UDtrParseTree) :-
+    %printAVM(["unary", $SchemaName]),
+    convert_derivation_sub($UDtrDeriv, $UDtrParseTree & EDGE_SIGN\$UDtr),
+    copy($UDtr, $UDtrSign),
+    id_schema_unary($SchemaName, $UDtrSign, $Mother, $DCP),
+    call($DCP),
+    reduce_sign($Mother, $Sign, $SignPlus),
+    $EdgeLink = SIGN_PLUS\$SignPlus & APPLIED_SCHEMA\$SchemaName,
+    !.
+
+convert_derivation_sub(DERIV_SCHEMA\$SchemaName & DERIV_DTRS\[$LDtrDeriv, $RDtrDeriv],
+		       parse_tree_nonterminal_binary & EDGE_LINK\$EdgeLink & EDGE_SIGN\$Sign & L_TREE\$LDtrParseTree & R_TREE\$RDtrParseTree) :-
+    %printAVM(["binary", $SchemaName]),
+    convert_derivation_sub($LDtrDeriv, $LDtrParseTree & EDGE_SIGN\$LDtr),
+    convert_derivation_sub($RDtrDeriv, $RDtrParseTree & EDGE_SIGN\$RDtr),
+    copy($LDtr, $LDtrSign),
+    copy($RDtr, $RDtrSign),
+    id_schema_binary($SchemaName, $LDtrSign, $RDtrSign, $Mother, $DCP),
+    call($DCP),
+    reduce_sign($Mother, $Sign, $SignPlus),
+    $EdgeLink = SIGN_PLUS\$SignPlus & APPLIED_SCHEMA\$SchemaName,
+    !.
+
+%convert_derivation_sub(derivation_terminal, _) :-
+%    printAVM("convert_derivation: failure in a leaf node"), !, fail.
+%convert_derivation_sub(derivation_internal & DERIV_SCHEMA\$Schema & DERIV_DTRS\$Dtrs, _) :-
+%    printAVM("convert_derivation: failure in an internal node"),
+%    printAVM(["schema: ", $Schema]),
+%    !, fail.%findall(_, (member($D, $Dtrs), printAVM($D)), _), !, fail.
+
+convert_derivation($Derivation, $ParseTree & EDGE_SIGN\$Sign) :-
+    convert_derivation_sub($Derivation, $ParseTree),
+    root_sign($Sign),
+%%    semantic_principle_root($Sign),
+    !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+derivation_to_lexical_entry_list_dtrs <- [pred].
+derivation_to_lexical_entry_list_dtrs([], []).
+derivation_to_lexical_entry_list_dtrs([$Deriv|$Derivs], $LexEnts) :-
+    derivation_to_lexical_entry_list($Deriv, $LexEnts1),
+    append($LexEnts1, $LexEnts2, $LexEnts),
+    derivation_to_lexical_entry_list_dtrs($Derivs, $LexEnts2).
+derivation_to_lexical_entry_list(derivation_internal & DERIV_DTRS\$Dtrs, $LexEnts) :-
+    derivation_to_lexical_entry_list_dtrs($Dtrs, $LexEnts).
+derivation_to_lexical_entry_list(derivation_terminal & $Term, [$LexEntry]) :-
+    fm_correct_lexical_entry($Term, $LexEntry).
+%derivation_to_lexical_entry_list($D, _) :- printAVM("d2lel failed"), fail. %% printAVM($D), fail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

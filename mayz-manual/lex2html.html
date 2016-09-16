@@ -1,0 +1,83 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lex2html: Tool for browing lexicon</title>
+</head>
+
+
+
+<body>
+<h1>lex2html: Tool for browing lexicon</h1>
+
+<a href="lex2html.ja.html">Japanese version</a>
+
+<p>
+This tool makes HTML documents for browsing a lexicon and a derivbank.
+
+<p>
+<table border=1>
+<tr><td colspan=2>lex2html [options] grammar_module lexicon template lexbank prefix
+<tr><td>grammar_module<td>lilfes program in which a grammar is implemented
+<tr><td>lexicon<td>lexicon to be documented
+<tr><td>template<td>template to be documented
+<tr><td>lexbank<td>lexbank to be documented
+<tr><td>prefix<td>prefixed to be added to each output file
+<tr><td colspan=2>Options
+<tr><td>-c style_file<td>style sheet
+<tr><td>-d directory<td>output directory (default: .)
+<tr><td>-lexsize int<td>limit number of entries that are put in a
+    lexicon document (default: 1000)
+<tr><td>-tmpsize int<td>limit number of entries that are put in a
+    template document (default: 100)
+<tr><td>-lxmsize int<td>limit number of entries that are put in a
+    lexeme document (default: 100)
+<tr><td>-sntsize int<td>limit number of sentences that are put in a
+    sentence files (default: 1000)
+<tr><td>-charset string<td>additionally outputs "charset=string" in
+    the header of html files
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+</table>
+
+<p>
+This tool makes HTML documents for supporting browsing a lexicon and
+a derivbank developed by the MAYZ toolkit.  The following files are
+output in the output directory.  "$(prefix)$" is the one specified in
+the command-line argument, and "??" is the ID number of output files
+(assigned from 0).
+
+<ul>
+  <li>$(prefix)-index.html: contents of all the files
+  <li>$(prefix)-lex-??.html: information of a lexicon (keys,
+  occurrenct counts, assigned templates, etc.)
+  <li>$(prefix)-template-??.html: information of a template database
+  (occurrenct count, the sentence of the first occurrence, feature
+  structure, etc.)
+  <li>$(prefix)-lexeme-??.html: information of lexemes
+  <li>$(prefix)-sentence-??.html: sentences used for lexicion extraction
+</ul>
+
+<p>
+Template files include feature structures that are represented with
+feature structure extensions (&lt;fs&gt; etc.), which may not be
+viewed with Internet Explorer. Please use Firefox.
+
+<p>
+When the rendering by a web browser is too slow, you can improve it
+by specifying small values to options such as "-lexsize".
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

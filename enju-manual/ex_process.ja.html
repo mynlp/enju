@@ -1,0 +1,432 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>構文解析の例</title>
+</head>
+
+
+
+<body>
+<h1>構文解析の例</h1>
+
+<a href="ex_process.html">English version</a>
+
+<p>
+この節では "I saw a girl with a telescope." という文を例にして，
+Enju で構文解析がどのように行われているかを見ていきます．
+
+<ul>
+  <li><a href="#preprocess">前処理</a>
+  <li><a href="#lexicon">語彙項目の作成</a>
+  <li><a href="#parsing">チャートによる構文解析</a>
+  <ul>
+    <li><a href="#edge">エッジ</a>
+    <li><a href="#chart">チャート</a>
+    <li><a href="#link">リンク</a>
+  </ul>
+  <li><a href="#output">出力</a>
+</ul>
+
+<h2><a name="preprocess">前処理</a></h2>
+
+<p>
+<a href="preprocess.ja.html">前処理の節</a>で示したように，
+前処理は<tt>sentence_to_word_lattice/2</tt>で行われます．
+
+<p>
+入力文はまず<tt>external_tagger/2</tt>により品詞タガーにかけられます．
+
+<pre>
+"I/PRP saw/VBD a/DT girl/NN with/IN a/DT telescope/NN ./."
+</pre>
+
+この出力に，単語と品詞の切り出しや stemming 等の処理を行います．
+次に<tt>token_to_word_lattice/2</tt>により
+各単語に対して 'extent_word' 型の素性構造を作ります．
+次の素性構造は，"saw" に対応する 'extent_word' 型です．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4" />
+    <td><span class="type">extent_word</span></td>
+    <td />
+    <td />
+    <td />
+    <td class="rprn" rowspan="4" />
+</tr>
+<tr><td>left_pos</td><td>1</td></tr>
+<tr><td>right_pos</td><td>2</td></tr>
+<tr><td>word</td>
+    <td>&lt</td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"see"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBD"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">1</span></td>
+    </tr>
+    </table>
+    </td><td>&gt</td>
+</tr>
+</table>
+
+このような素性構造を要素とするリストが<tt>sentence_to_word_lattice/2</tt>の
+返り値となります．
+
+<h2><a name="lexicon">語彙項目の作成</a></h2>
+
+<p>
+up に語彙項目の sign を渡すには，<tt>lexical_entry/2</tt>と
+<tt>lexical_entry_sign/2</tt>が使われます．
+
+<p>
+<tt>lexical_entry/2</tt>は，
+前処理の結果得られた 'extent_word' 型の word 素性の値に対して呼び出されます．
+その値は 'word' 型のリストになっているので、その各要素に対して
+<tt>lookup_lexicon/2</tt>により対応するテンプレートのリストを得ます．
+<tt>lookup_lexicon/2</tt>では，<tt>lexicon_lookup_key</tt>や
+<tt>unknown_word_lookup_key/2</tt>で得られるキーによって，
+辞書のデータベースを引きます．
+上の "saw" に対応する 'extent_word' 型の場合，
+word 素性は要素一つのリストです．その要素に対して
+<tt>lexicon_lookup_key/2</tt>が対応させるキーは，
+単語の base form と 品詞を取り出したもので，次のようになります．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">word</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">BASE</span></td>
+    <td><span class="doublequoted">"see"</span></td>
+</tr>
+<tr><td><span class="edge_fs">POS</span></td>
+    <td><span class="doublequoted">"VBD"</span></td>
+</tr>
+</table>
+
+このキーで辞書を引くと，'lex_template' 型のリストが返されます．
+上のキーの場合，リストには次のような要素も含まれています．
+
+    <table class="fs">
+    <tr><td class="lprn" rowspan="3"/>
+        <td colspan="2"><span class="type">lex_template</span></td>
+        <td class="rprn" rowspan="3"/>
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="doublequoted">"[npVPnp]xm_10"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">past_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+
+上の 'lex_template' 型を使って，<tt>lexical_entry/2</tt>は
+次のような素性構造を返します．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">lex_entry</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">LEX_WORD</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"see"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBD"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">1</span></td>
+    </tr>
+    </table>
+    </td>
+</tr>
+<tr><td><span class="edge_fs">LEX_TEMPLATE</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="3"/>
+        <td colspan="2"><span class="type">lex_template</span></td>
+        <td class="rprn" rowspan="3"/>
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="doublequoted">"[npVPnp]xm_10"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">past_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+    </td>
+</tr>
+</table>
+
+前処理で得られた全ての 'extent_word' 型に対して<tt>lexical_entry/2</tt>が
+呼ばれたあと，返ってきた 'lex_entry' 型について <tt>fom_lexical_entry/3</tt>
+によって FOM が計算されます．<tt>fom_lexical_entry/3</tt>では，
+'word' 型と 'lex_entry' 型を渡すと，対応する語彙項目の FOM が返されます．
+低い FOM が返された語彙項目はこの時点で足切りされます．
+
+<p>
+次に，残った 'lex_entry' 型に対して<tt>lexical_entry_sign/2</tt>が
+呼ばれます．<tt>lexical_entry_sign/2</tt>ではまず，
+<tt>lookup_template/2</tt>により 'lex_entry' 型の LEX_TEMPLATE 素性の
+値をキーにして，テンプレートデータベースを引きます．
+上の 'lex_entry' 型の場合，
+<a href="saw_lextemp.html">このようなテンプレート</a>が得られます．
+そのテンプレートに単語依存情報を付加します．
+具体的には，引数で渡された 'lex_entry' 型の LEX_WORD\INPUT 素性と，
+PHON 素性の値を単一化するなどの処理を行います．
+<a href="saw_lexent.html">その結果のsign</a>が，
+<tt>lexical_entry_sign/2</tt>の返り値となります．
+
+<p>
+得られた sign は  <tt>reduce_sign/3</tt> によって
+factoring という処理をされます．
+factoring では，sign のなかの一部の情報を切り捨てることで，
+複数の等価な sign がひとつの sign に縮退され，
+後の構文解析では縮退した sign が使われます．
+<tt>reduce_sign/3</tt>では，sign を与えると
+縮退した sign と切捨てられた情報を返すようにすることで，
+factoring 処理を指定します．
+(詳しくは<a href="#link">リンクの節</a>を参照して下さい)
+その後<tt>fom_terminal/4</tt>に，'lex_entry' 型，対応する縮退した sign，
+縮退した時に切り捨てられた情報をわたすと，FOM が計算されます．
+ここでも FOM が低かった sign は足切りされます．
+
+<h2><a name="parsing">チャートによる構文解析</a></h2>
+
+<p>
+UPではエッジ，チャート，リンクと呼ばれるデータ構造を使って構文解析を行います．
+
+<h3><a name="edge">エッジ</a></h3>
+
+<p>
+エッジは，概念的には&lt;左ポジション，右ポジション，sign，リンクのリスト，FOM&gt;
+の5つの組で表現されます．ポジ
+ションは単語の境界位置をあらわします．つまり，エッジは
+文中のある位置からある位置までに対応する sign をあらわしている，という
+ことになります．また，パーズツリーを構文解析後に復元するための情報がリ
+ンクリストに入っており，曖昧性解消のためのスコアがFOMにはいって
+います．
+
+<h3><a name="chart">チャート</a></h3>
+
+<p>
+パーザには，チャートと呼ばれる構文解析状態を保存するデータがあります．
+チャートは，二次元テーブルになっていて，各要素をCKYセルと呼びます．
+文 "I saw a girl with a telescope" 
+が入力されたとき，チャートは次のようになります．
+
+<center>
+<img src="up_chart.png" alt="チャート">
+</center>
+
+各CKYセルをS[i][j]とあらわしたとき，i,jは文中の位置，すなわちポジショ
+ンをあらわします．S[0][1]には"I"に対応するエッジのIDが格納され，
+S[1][2]には，"saw"に対応するエッジのIDが格納され，S[6][7]には
+"telescope"に対応するエッジのIDが格納されます．単語に対応するCKYセルに
+は以上のようにエッジのIDが格納されます．
+句に対応するCKYセルにも構文解
+析が行われることによってエッジのIDが格納されていきます．例えば，
+S[0][2]は"I saw" に，S[1][3]は"saw a"に対応し，さらに大きな句である
+S[0][3]は"I saw a"に対応します．つまり，文の長さをnとしたとき，文全体
+に対応するエッジのIDはS[0][n] に格納されます．上記の例だとS[0][7]に文
+全体に対応するエッジのIDが格納されます．
+
+<h3><a name="link">リンク</a></h3>
+<p>
+構文解析の際には子のエッジに<tt>id_schema_unary/4</tt>と
+<tt>id_schema_binary/5</tt>によって定義された文法規則を適用して，
+新たに親ができます．
+例えば，S[1][2]に格納されたエッジと
+S[2][4]に格納されたエッジに文法適用した
+結果はS[1][4]に格納されます．この際に，同じCKYセル中の複数の等価な sign は，
+<tt>reduce_sign/3</tt>で指定された方法でfactoring と呼ばれる処理をされ，
+ひとつの sign に縮退されます．
+factoring の処理においては，構文解析後に復元できる情報は切り捨てられるの
+で，構文解析後に復元できるようリンクと呼ばれるデータ構造にそれらの情報
+を格納しています．例えば，子供のサインは切り捨てられる代表的な情報です．
+他にも意味構造なども切り捨てて，全てリンクに格納します．
+縮退されると複数のエッジが一つのエッジになるため，
+一つのエッジに複数のリンクが対応します．
+構文解析後，エッジとリンクを相互にたどることによって
+全パーズツリーを参照することができます．
+
+<p>
+文"I saw a girl with a telescope."の場合，
+S[1][2]に格納されたエッジには<a href="s12sign.html">このような sign</a>を
+持つものがあります．またS[2][4]に格納されたエッジには
+<a href="s24sign.html">このような sign</a>を持つものがあります．
+これらの sign には，<tt>id_schema_binary/5</tt>で定められた
+'head_comp_schema' が適用できます．
+<tt>id_schema_binary/5</tt>では，スキーマの名前，
+左右の娘の素性構造，親の素性構造，スキーマ適用後に実行する lilfes プログラムが
+指定されています(<tt>id_schema_unary/4</tt>では娘の素性構造がひとつになります)．
+'head_comp_schema' の場合，左右の娘の素性構造は大体次のように指定されています．
+
+<table class="fs">
+<tr><td><span class="shared_id">F</span>
+    <td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: &lt <span class="shared_id">B</span> | <span class="shared_id">C</span> &gt
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>    
+    <td class="rprn" rowspan="1">
+    <td>,
+    <td><span class="shared_id">G</span>
+    <td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td>SYNSEM: <span class="shared_id">B</span>
+    </table>
+    <td class="rprn" rowspan="1">    
+</table>
+
+上の sign に娘のエッジの sign を単一化します．
+親の sign は次のように指定されているので，それと親のエッジの sign を
+単一化します(Valence Principle もハードコードされています)．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: <span class="shared_id">C</span>
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>
+    <td class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">DTR
+        <td>
+	<table class="fs">
+	<tr><td class="lprn" rowspan="2">
+	    <td>HEAD_DTR: <span class="shared_id">F</span>
+	    <td class="rprn" rowspan="2">
+	<tr><td>NONHEAD_DTR: <span class="shared_id">G</span>
+	</table>
+    </table>
+</table>
+
+その後，スキーマ適用後に実行する lilfes プログラムによって，
+親子エッジの sign を他のプリンシプルを満たすための素性構造と単一化するなどします．
+得られた<a href="mothersign.html">親の sign</a> は
+<tt>reduce_sign/3</tt>によって factoring されます．
+<tt>reduce_sign/3</tt>では，スキーマ適用直後の親の sign を与えると
+縮退した sign とリンクに格納する素性構造を返すようにすることで，
+factoring 処理を指定します．リンクに格納する素性構造と
+エッジの sign を単一化することで，元の sign が復元されます．
+facotring によって，先ほどの親の sign から
+<a href="s14sign.html">縮退したsign</a> が得られます．
+その後<tt>fom_binary/6</tt>に，スキーマの名前
+(この場合，'head_comp_schema')，左右の娘のsign，
+factoring 後の親の sign，factoring時にリンクに格納された素性構造が
+わたされ，スキーマ適用の FOM が計算されます．
+(<tt>id_schema_unary/4</tt>で定義されたスキーマが適用された場合は，
+<tt>fom_unary/5</tt>が使われます．)
+このようにして親のエッジが計算され，チャートのS[1][4]に格納されます．
+
+<p>
+構文解析が文全体に対応する CKY セル (この例の場合 S[0][7]) まで終わると，
+そのセル内の全てのエッジについて，<tt>fom_root/2</tt>によって それらのFOM が
+計算されます．<tt>fom_root/2</tt>では，文の root node の sign が渡されると
+その sign に対する FOM が返されるようになっています．
+これら文の root node のエッジが， parse tree の root としての条件を
+満たしているかどうかは，
+<tt>root_sign/1</tt> によって最後にチェックされます．
+文 "I saw a girl with a telescope." の場合， セル S[0][7] の中の
+エッジのうち，<tt>root_sign/1</tt>を満たしかつ最も FOM が高いものは，
+<a href="best_edge_sign.html">このような sign</a>を持っています．
+この sign は, ふたつ sign が縮退してひとつになったものです．
+それぞれ "with a telescope" が動詞句にかかる場合と名詞句にかかる場合に
+対応しています．
+エッジとリンクを相互にたどり FOM の高いほうを選ぶことによって，
+<a href="best_fom_sign.html">最も FOM の高い sign</a>を復元することができます．
+
+<h2><a name="output">出力</a></h2>
+
+<p>
+上記の構文解析によって得られた最も FOM の高い sign をもとにして
+出力が行われています．
+上の例の場合，"enju/outputdeps.lil" による出力は次のようになります．
+<pre>
+ROOT  ROOT  ROOT  ROOT  -1  ROOT  saw       see       VBD  VB   1
+saw   see   VBD   VB     1  ARG1  I         i         PRP  PRP  0
+saw   see   VBD   VB     1  ARG2  girl      girl      NN   NN   3
+a     a     DT    DT     2  ARG1  girl      girl      NN   NN   3
+a     a     DT    DT     5  ARG1  telescope telescope NN   NN   6
+with  with  IN    IN     4  ARG1  saw       see       VBD  VB   1
+with  with  IN    IN     4  ARG2  telescope telescope NN   NN   6
+
+</pre>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

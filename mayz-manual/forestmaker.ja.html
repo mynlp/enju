@@ -1,0 +1,256 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>forestmaker: feature forest モデル作成ツール</title>
+</head>
+
+
+
+<body>
+<h1>forestmaker: feature forest モデル作成ツール</h1>
+
+<a href="forestmaker.html">English version</a>
+
+<p>
+feature forest model のイベントファイルを作るツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>forestmaker モデル名 文法モジュール derivbank イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>文法モジュール<td>文法およびイベント抽出 predicate が実装されている lilfes module
+<tr><td>derivbank<td>文法獲得で得た derivbank (lildb 形式)
+<tr><td>イベントファイル<td>unfiltered event を出力するファイル 
+(テキスト形式または gz/bz による圧縮形式)
+<tr><td colspan=2>オプション
+<tr><td>-r ファイル名<td>reference distribution を出力するファイル名
+<tr><td>-n 閾値<td>イベントを抽出する文の数
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+確率モデルの名前は，一つのイベントファイルに対して一つ割り当てます．違
+う名前を割り当てれば，複数のイベントファイルを同時に用いることができま
+す．例えば，feature forest model の reference distribution として
+unigram model を使うときは，それぞれのモデルに対して別のモデル名を割り
+当てます．
+
+<p>
+文法および derivbank を入力として，derivation の確率の最大エントロピー
+モデルを作成するためのツールです．このツールでは，確率モデルの学習に必
+要な unfiltered event を作成します．
+
+<p>
+unfiltered event とは，以下のように // で区切られたフィールドを持つ文
+字列です．
+
+<blockquote>
+<pre>
+SUBJ//plays//VBZ//[npVPnp]//haag//NNP//[NP]_2//binary
+</pre>
+</blockquote>
+
+<p>
+最後のフィールド(binary)はこのイベントの<em>カテゴリ</em>を表していま
+す．カテゴリは，後のステップでこのイベント形式にマスクをかける時などに
+利用します．カテゴリが同じイベントに対しては同じマスクをかけるので，
+フィールドの数が同じである必要があります．つまり，フィールドの数が違う
+イベントを使いたい時は，カテゴリ名を分けて下さい．例えば，binary ルー
+ルと unary ルールではフィールドの数が異なるので，別々のカテゴリ名を使
+います．
+
+<p>
+各 unfiltered event は，一文の derivation forest を，feature forest 形
+式で表したものです．トレーニングデータ(derivbank)の各文に対して
+derivation forest を作る必要があるため，全ての文を構文解析し，結果の
+derivation forest の各ノードに対して確率イベントを取りだしてファイルに
+出力します．従って，構文解析を行なうためのインタフェースと，確率イベン
+トを取りだすためのインタフェースを実装する必要があります．
+
+<p>
+まず，構文解析を行なうためには，UP で定義されているインタフェース
+(id_schema_binary など)を実装します．詳しくは<a
+href="usegrammar.ja.html">文法の使い方</a>や<a href="up.ja.html">UPの
+マニュアル</a>を参照してください．
+
+<p>
+それに加えて，<tt>sentence_to_word_lattice/2</tt>と
+<tt>lexical_entry/2</tt>の代わりに，"mayz/forestmake.lil" で定義されて
+いる以下のインタフェースを実装してください．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fm_derivation_to_word_lattice(+$Derivation, -$WordLattice)</tt>
+<tr><td>$Derivation<td>derivation
+<tr><td>$WordLattice<td>word lattice (extent のリスト)
+<tr><td colspan=2>derivation から word lattice を作ります．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fm_lexical_entry(+$Lex, -$LexName)</tt>
+<tr><td>$Lex<td>入力単語とそれに割り当てられるテンプレートの名前(lex_entry)
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/2 の第２引数)
+<tr><td colspan=2>単語に割り当てる語彙項目を返します．
+</table>
+
+<p>
+これらの述語は，<tt>sentence_to_word_lattice/2</tt>や
+<tt>lexical_entry/2</tt>と全く同じものを返してもよいですが，正解の構造
+が与えられるので，それを利用することもできます．例えば，
+<tt>fm_lexical_entry/2</tt>では正解の語彙項目テンプレートの名前が入力
+として与えられるので，正解の語彙項目と，確率値の高い語彙項目のみを返す
+(つまり確率値の低い語彙項目は足切りする)ようにすれば，構文解析コストが
+減るので，イベントファイルを作る時間が節約できます．derivation forest 
+は正解の木を含んでいる必要があるので正解の語彙項目を必ず返さなければな
+らないことに注意してください．
+
+<p>
+また，正解の構文木を作るために，以下のインタフェースを実装してください．
+正解の構文木を作るには derivbank の各 derivation が使われますが，終端ノー
+ドに対応する語彙項目を以下のインタフェースで与える必要があります．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fm_correct_lexical_entry(+$Term, -$LexName)</tt>
+<tr><td>$Term<td>derivation の終端ノード(derivation_terminal)
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/2 の第２引数)
+<tr><td colspan=2>derivation の終端ノードに対応する語彙項目を返します．
+</table>
+
+<p>
+次に，確率イベントを取りだすインタフェース("mayz/amismodel.lil" で定義
+されている)を実装します．以下のインタフェースでは，derivation forest 
+の各ノードから確率イベントを文字列リストの形で取りだします．
+<tt>forestmaker</tt>は，derivation forest のそれぞれのノードについてこ
+れらの述語を呼び出し，結果を feature forest 形式でイベントファイルに出
+力します．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>extract_terminal_event(+$ModelName, -$Category,
++$LexName, +$Sign, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/2 の第２引数)
+<tr><td>$Sign<td>語彙項目
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td colspan=2>終端ノードのイベントを取りだします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_unary_event(+$ModelName, -$Category,
++$SchemaName, +$Dtr, +$Mother, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Dtr<td>娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td colspan=2>Unary ルールのイベントを取りだします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_binary_event(+$ModelName, -$Category,
++$SchemaName, +$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$LeftDtr<td>左の娘の素性構造
+<tr><td>$RightDtr<td>右の娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td colspan=2>Binary ルールのイベントを取りだします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_root_event(+$ModelName, -$Category, +$Sign, -$Event)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$Sign<td>ルートノードの素性構造
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td colspan=2>ルートノードのイベントを取りだします．
+</table>
+
+<p>
+確率モデルの名前は，<tt>forestmaker</tt>の第一引数で与えたものと同じも
+のを指定してください．
+
+<p>
+それぞれのインタフェースには，素性関数の値(integer または float)を指定
+できる形式もあります．最後の引数に素性関数の値を指定して下さい．
+<ul>
+  <li><tt>extract_terminal_event_feature_value/7</tt>
+  <li><tt>extract_unary_event_feature_value/8</tt>
+  <li><tt>extract_binary_event_feature_value/9</tt>
+  <li><tt>extract_root_event_feature_value/5</tt>
+</ul>
+
+<p>
+<tt>forestmaker</tt>は，reference distribution を使ったイベントファイ
+ルを作ることもできます．reference distribution を出力するファイルの名
+前を -r オプションで指定し，以下のインタフェースを実装してください．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_terminal(+$ModelName, +$LexName,
++$Sign, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/3 の第２引数)
+<tr><td>$Sign<td>語彙項目の素性構造
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Prob<td>終端ノードの reference probability
+<tr><td colspan=2>終端ノードの reference probability を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_unary(+$ModelName, +$SchemaName,
++$Dtr, +$Mother, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Dtr<td>娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>Unary ルールの reference probability を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_binary(+$ModelName, +$SchemaName,
++$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$LeftDtr<td>左の娘の素性構造
+<tr><td>$RightDtr<td>右の娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$SignPlus<td>SIGN_PLUS (reduce_sign/3 の第３引数)
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>Binary ルールの reference probability を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_root(+$ModelName, +$Sign, -$Prob)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Sign<td>ルートノードの素性構造
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>ルートノードの reference probability を返します．
+</table>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

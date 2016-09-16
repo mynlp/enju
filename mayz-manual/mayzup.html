@@ -1,0 +1,108 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>mayzup: A parser for grammars developed with MAYZ</title>
+</head>
+
+
+
+<body>
+<h1>mayzup: A parser for grammars developed with MAYZ</h1>
+
+<a href="mayzup.ja.html">Japanese version</a>
+
+<p>
+This is a parser for specialized a grammar and a probabilistic model
+that are developed using the MAYZ toolkit.
+
+<table border=1>
+<tr><td colspan=2>mayzup [options] [-a arguments]
+<tr><td colspan=2>Arguments following "-a" are passed to LiLFeS
+programs as command-line arguments
+<tr><td colspan=2>Options
+<tr><td>-L directory<td>Directory of LiLFeS modules
+<tr><td>-W number<td>Limit number of words
+<tr><td>-E number<td>Limit number of edges
+<tr><td>-l module<td>Load LiLFeS program
+<tr><td>-e command<td>Execute LiLFeS command
+<tr><td>-i<td>Interactive mode (show LiLFeS prompt)
+<tr><td>-n<td>Non-interactive mode (default)
+<tr><td>-iter<td>With iterative beam thresholding (default)
+<tr><td>-fom<td>With disambiguation
+<tr><td>-nofom<td>Without disambiguation
+</table>
+
+<p>
+This tool loads LiLFeS modules specified with "-l" and executes a
+parser.  If a lilfes command is specified, it is executed.  If
+interactive mode is specified, it prints a command prompt of LiLFeS
+after executing the lilfes command.
+
+<p>
+This tool supports only loading of modules and <a
+href="up.html">up</a> interfaces.  It does nothing about loading of a
+lexicon and initialization of FOM models.  For these, utilize the
+interfaces of "up" such as "<tt>parser_init</tt>".
+
+<p>
+In addition to the function of "up", "<tt>mayzup</tt>" provides the
+following predicates.  The following predicates assist the usage of
+probabilistic models in parsing.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>init_amis_model(+$ModelName, +$ModelFile)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$ModelFile<td>parameter file
+<tr><td colspan=2>Makes a new amis model, loads paramters from
+    $ModelFile, and initialize feature masks.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>delete_amis_model(+$ModelName)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td colspan=2>Delete a model created by "init_amis_model/2"
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_event_weight(+$ModelName, +$Category,
++$Event, -$FOM)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$Event<td>event (a list of strings)
+<tr><td>$FOM<td>FOM of the event (log probability)
+<tr><td colspan=2>Computes the FOM of the event $Event by summing up
+    weights of features that are obtained by applying features masks
+    to the event.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_log_probability(+$ModelName, +$Category,
++$EventList, -$FOMList)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$EventList<td>list of events (a list of lists of strings)
+<tr><td>$FOMList<td>list of FOM (log probability) of the events
+<tr><td colspan=2>Computes FOM of each events by
+    "amis_event_weight/4", and returns a list of FOMs by normalizing them.
+</table>
+
+<p>
+The other functions are the same as "up".  For details, see <a
+href="up.html">the manual of UP</a>.
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

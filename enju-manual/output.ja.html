@@ -1,0 +1,83 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>出力</title>
+</head>
+
+
+
+<body>
+<h1>出力</h1>
+
+<a href="output.html">English version</a>
+
+<p>
+Enju は汎用パーザ up を使っているため，up が提供するインタフェースを使って構文解析結果を利用することができます．
+しかしインタフェースは LiLFeS の述語なので，構文解析結果を利用するためには LiLFeS プログラムを書く必要があります．
+これはエンドユーザには荷が重いので，Enju では解析結果を加工して利用しやすい形にして出力しています．
+</p>
+
+<p>
+具体的には，単語の間の述語項関係や，それに句構造の情報を付加した XML 形式で出力することができます．
+これらの形式への加工はそれぞれ，"enju/outputdep.lil", "enju/outputxml.lil" で行っています．
+以下では，これらの出力の計算手続きについて簡単に説明します．
+</p>
+
+<h2><a name="dependency">述語項関係を出力する</a></h2>
+
+<p>
+"enju/outputdep.lil" は，２単語間の述語項関係を出力するプログラムです．
+<a href="pas.ja.html">述語項構造の節</a>で説明したように，Enju の文法は述語項構造を計算することができます．
+"enju/outputdep.lil" では，これを２単語間の関係の集合として出力します．
+</p>
+
+<p>
+基本的には，Enju で計算された述語項構造を，MODARG, ARG1, ..., ARG5 で表されているそれぞれの関係の集合に変換し，それらを標準出力に出力するだけです．
+出力形式の詳細については，Enju ユーザマニュアルの<a href="parser.ja.html">構文解析器の使い方</a>を参照して下さい．
+</p>
+
+<h2><a name="xml">XML 形式で出力する</a></h2>
+
+<p>
+"enju/outputxml.lil" は，述語項関係と句構造を XML 形式で出力するプログラムです．
+入力文に対して XML で注釈を付加する形で述語項関係と句構造を表します．
+出力形式の詳細については，Enju ユーザマニュアルの<a href="parser.ja.html">構文解析器の使い方</a>を参照して下さい．
+</p>
+
+<p>
+句構造は木構造で表すことができるので，そのまま XML で表現します．
+XML の各タグが句を表し，属性で句のシンボルなどを表現します．
+述語項関係は必ずしも木構造にならないので，句構造の各ノードに ID を割り当て，その ID の間の関係として記述します．
+</p>
+
+<p>
+まず構文解析結果から，句構造と述語がどの句を項としてとっているかの情報を計算します．
+これは "enju/outputxml.lil" の <tt>parse_tree_to_xml/2</tt>　という述語が行っています．
+</p>
+
+<p>
+まず，ルートから構文木を深さ優先でたどっていきます．
+そして，各ノードの述語項構造(sign の CONT 素性)を監視し，項の値が具体化された時のノードを保存しておきます．
+最後に各単語について，項の値が具体化されたノードがわかっているので，それを使って項の ID を書き込みます．
+</p>
+
+<p>
+<tt>parse_tree_to_xml/2</tt>で計算する構造は素性構造で表されていますが，これを実際に XML として出力するプログラムは C++ で実装されています．
+入力文と <tt>parse_tree_to_xml/2</tt> の出力を渡すと，出力の末端ノードの単語と入力文中の単語とのアラインメントをとり，適切な位置にタグを挿入します．
+このプログラムは，"enju-src/outputxml.cc" で実装されています．
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

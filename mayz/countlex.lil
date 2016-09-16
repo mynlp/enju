@@ -1,0 +1,132 @@
+%/**
+  * @module    = mayz:countlex
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @desc      = Count words/lexical entries in a grammar
+%*/
+
+:- module("mayz:countlex").
+
+:- module_interface.
+
+:- ensure_loaded("mayz/display").
+:- ensure_loaded("mayz/grammar").
+
+count_template <- [pred].
+count_lexeme <- [pred].
+count_lexicon <- [pred].
+accumulate_template <- [pred].
+count_template_per_word <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/io").
+
+'*count_template*' <- [pred].
+
+inc_count_template <- [pred].
+inc_count_template($Sign) :-
+    sign_label($Sign, $HeadName),
+    (db_find('*count_template*'($HeadName, $OldCount)) ->
+     $NewCount is $OldCount + 1 ;
+     $NewCount is 1),
+    db_insert('*count_template*'($HeadName, $NewCount)).
+count_template_main <- [pred].
+count_template_main :-
+    db_findall('*template*'(_, _), $Templates),
+    member('*template*'(_, $Template), $Templates),
+    inc_count_template($Template),
+    fail.
+count_template_main.
+count_template :-
+    db_open('*count_template*'(key_string, array_value_integer)),
+    count_template_main,
+    format(0, "Count of lexical templates\n"),
+    db_findall('*count_template*'(_, _), $CountList),
+    member('*count_template*'($Head, $Count), $CountList),
+    printAVM([$Head, $Count]),
+    fail.
+count_template :-
+    db_close('*count_template*'(_, _)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+'*count_lexicon*' <- [pred].
+
+inc_count_lexicon <- [pred].
+inc_count_lexicon($HeadList) :-
+    member($Head, $HeadList),
+    (db_find('*count_lexicon*'($Head, $OldCount)) ->
+     $NewCount is $OldCount + 1 ;
+     $NewCount is 1),
+    db_insert('*count_lexicon*'($Head, $NewCount)),
+    fail.
+inc_count_lexicon(_).
+
+count_lexical_entry <- [pred].
+count_lexical_entry($TempList) :-
+    findall($HeadSym,
+	    (member($TempName, $TempList),
+	     lookup_template($TempName, $Sign),
+	     sign_label($Sign, $HeadSym)),
+	    $HeadList1),
+    remove_duplicates($HeadList1, $HeadList),
+    inc_count_lexicon($HeadList).
+
+count_lexicon_main <- [pred].
+count_lexicon_main :-
+    db_findall('*lexicon*'(_, _), $Lexicon),
+    member('*lexicon*'(_, $TempList), $Lexicon),
+    count_lexical_entry($TempList),
+    fail.
+count_lexicon_main.
+count_lexicon :-
+    db_open('*count_lexicon*'(key_string, array_value_integer)),
+    count_lexicon_main,
+    format(0, "Count of lexical entries\n"),
+    db_findall('*count_lexicon*'(_, _), $CountList),
+    member('*count_lexicon*'($Head, $Count), $CountList),
+    printAVM([$Head, $Count]),
+    fail.
+count_lexicon :-
+    db_close('*count_lexicon*'(_, _)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+accumulate_template_main <- [pred].
+accumulate_template_main :-
+    db_findall('*lexicon*'(_, _), $Lexicon),
+    member('*lexicon*'(_, $TempList), $Lexicon),
+    member($TempName, $TempList),
+    lookup_template($TempName, $Template),
+    inc_count_template($Template),
+    fail.
+accumulate_template_main.
+accumulate_template :-
+    db_open('*count_template*'(key_string, array_value_integer)),
+    accumulate_template_main,
+    format(0, "Accumulation of templates\n"),
+    db_findall('*count_template*'(_, _), $CountList),
+    member('*count_template*'($Head, $Count), $CountList),
+    printAVM([$Head, $Count]),
+    fail.
+accumulate_template :-
+    db_close('*count_template*'(_, _)).
+
+count_template_per_word :-
+    db_open('*count_lexicon*'(key_string, array_value_integer)),
+    db_open('*count_template*'(key_string, array_value_integer)),
+    count_lexicon_main,
+    accumulate_template_main,
+    format(0, "Count of templates per word\n"),
+    db_findall('*count_lexicon*'(_, _), $CountList),
+    member('*count_lexicon*'($Head, $WordCount), $CountList),
+    db_find('*count_template*'($Head, $TempCount)),
+    $Ratio is $TempCount / $WordCount,
+    printAVM([$Head, $Ratio]),
+    fail.
+count_template_per_word :-
+    db_close('*count_template*'(_, _)),
+    db_close('*count_lexicon*'(_, _)).
+

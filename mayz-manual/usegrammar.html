@@ -1,0 +1,348 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-usegrammar.css">
+<title>How to use a grammar</title>
+</head>
+
+
+
+<body>
+<h1>How to use a grammar</h1>
+
+<a href="usegrammar.ja.html">Japanese version</a>
+
+<p>
+<em>This chapter explains the method of parsing with a grammar
+developed with the MAYZ toolkit.</em>
+
+<ul>
+  <li><a href="#up">How to use "UP"</a>
+  <li><a href="#lexicon">How to use a lexicon and templates</a>
+  <li><a href="#probmodel">How to use probabilistic models</a>
+</ul>
+
+<hr>
+
+
+<h2><a name="up">How to use "UP"</a></h2>
+
+<p>
+While the MAYZ toolkit supports the development of a lexicon and
+templates, we need a parser for the parsing of sentences with a
+grammar developed by MAYZ.  The package of MAYZ includes "UP", an
+efficient general-purpose parser for unification-based grammars.  With
+implements several interfaces required by UP, you can parse sentences
+with the developed grammar.
+
+<p>
+To use UP, interfaces for accessing a grammar and probabilistic models
+must be implemented.  The interfaces are defined in "mayz/parser.lil".
+
+<p>
+The interfaces of UP at least required for parsing are as follows.
+Grammar writers need to implement all of them.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>sentence_to_word_lattice(+$Input, -$WordLattice)</tt>
+<tr><td>$Input<td>input sentence
+<tr><td>$WordLattice<td>list of extent
+<tr><td colspan=2>Splits an input sentence $Input into words, and
+returns a word lattice $WordLattice.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lexical_entry(+$Word, -$LexName)</tt>
+<tr><td>$Word<td>input word
+<tr><td>$LexName<td>name of a lexical entry
+<tr><td colspan=2>Returns the name of a lexical entry assigned to
+$Word.  A word can have multiple $LexName.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lexical_entry_sign(+$LexName, -$Sign)</tt>
+<tr><td>$LexName<td>name of a lexical entry
+<tr><td>$Sign<td>sign of a lexical entry
+<tr><td colspan=2>Returns the sign of a lexical entry.  A unique sign
+must be assigned to $LexName.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>id_schema_unary(+$SchemaName, +$Dtr, -$Mother,
+-$DCP)</tt>
+<tr><td>$SchemaName<td>schema name
+<tr><td>$Dtr<td>sign of the daughter
+<tr><td>$Mother<td>sign of the mother
+<tr><td>$DCP<td>LiLFeS program executed after schema application
+<tr><td colspan=2>Applies a unary schema.  If your grammar does not
+require unary rules, this need not be implemented.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>id_schema_binary(+$SchemaName, +$Left, +$Right,
+-$Mother, -$DCP)</tt>
+<tr><td>$SchemaName<td>schema name
+<tr><td>$Left<td>sign of the left daughter
+<tr><td>$Right<td>sign of the right daughter
+<tr><td>$Mother<td>sign of the mother
+<tr><td>$DCP<td>LiLFeS program executed after schema application
+<tr><td colspan=2>Applies a binary schema.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>root_sign($Sign)</tt>
+<tr><td>$Sign<td>sign of the root node
+<tr><td colspan=2>Condition of a root node.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reduce_sign(+$InSign, -$OutSign, -$SignPlus)</tt>
+<tr><td>$InSign<td>the sign of the mother of schema application
+<tr><td>$OutSign<td>a reduced sign
+<tr><td>$SignPlus<td>information removed from $OutSign
+<tr><td colspan=2>This predicate is applied to the mother sign after
+the success of schema application.  In a following process of parsing,
+$OutSign is used instead of $InSign.  By removing unnecessary
+information from $InSign (e.g. daughter structures), equivalent
+$OutSigns are factored and regarded as a unique sign in the following
+process.  $SignPlus can have the information removed from the sign,
+and it is stored in SIGN_PLUS of 'edge_link'.
+</table>
+
+<p>
+"mayz/sample_hpsg.lil" is an example grammar of HPSG and includes a
+sample implementation of the above interfaces.
+
+<p>
+Since the above interfaces do not have access to probabilistic models,
+a parser cannot invoke disambiguation.  If you use UP with the grammar
+with the above interfaces only, run UP with the option "-nofom".  For
+example, when you use "mayz/sample_hpsg.lil", run the following
+command.
+
+<pre>
+% up -i -nofom -l mayz/sample_hpsg
+</pre>
+
+<p>
+When you need disambiguation, the following interfaces must be
+implemented.  With implementing the followings, UP computes
+figures-of-merit (FOM) during parsing, and we can obtain the best
+analysis using 'best_fom_sign/2' etc.  Since FOMs are summed up,
+log-probabilities should be used when you apply probabilistic models.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fom_root(+$Sign, -$FOM)</tt>
+<tr><td>$Sign<td>sign of the root node
+<tr><td>$FOM<td>FOM of the root node
+<tr><td colspan=2>Returns FOM of the root node.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_binary(+$RuleName, +$LeftDtr, +$RightDtr,
++$MotherSign, +$SignPlus, -$FOM)</tt>
+<tr><td>$RuleName<td>schema name
+<tr><td>$LeftDtr<td>sign of the left daughter
+<tr><td>$RightDtr<td>sign of the right daughter
+<tr><td>$MotherSign<td>sign of the mother
+<tr><td>$SignPlus<td>3rd argument of 'reduce_sign/3'
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>Returns FOM of binary schema application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_unary(+$RuleName, +$Dtr, +$MotherSign,
++$SignPlus, -$FOM)</tt>
+<tr><td>$RuleName<td>schema name
+<tr><td>$Dtr<td>sign of the daughter
+<tr><td>$MotherSign<td>sign of the mother
+<tr><td>$SignPlus<td>3rd argument of 'reduce_sign/3'
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>Returns FOM of unary schema application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_terminal(+$LexName, +$Sign, +$SignPlus, -$FOM)</tt>
+<tr><td>$LexName<td>LEX_NAME (the second argument of 'lexical_entry/3')
+<tr><td>$Sign<td>sign of a lexical entry
+<tr><td>$SignPlus<td>3rd argument of 'reduce_sign/3'
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>Returns FOM of a terminal sign.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_lexical entry(+$Word, +$LexName, -$FOM)</tt>
+<tr><td>$Word<td>word
+<tr><td>$LexName<td>LEX_NAME (the second argument of 'lexical_entry/3')
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>Returns FOM of a lexical entry
+</table>
+
+<p>
+When you use UP with the grammar with the above interfaces, run UP
+with the option "-fom" or "-iter".  For example, when the grammar file
+is "mygrammar.lil", execute the following command.
+
+<pre>
+% up -i -iter -l mygrammar
+</pre>
+
+<p>
+See <a href="up.html">the manual of UP</a> for other functions of UP.
+
+<hr>
+
+
+<h2><a name="lexicon">How to use a lexicon and templates</a></h2>
+
+<p>
+MAYZ provides functions only for getting a lexicon and templates from
+a database.  Grammar developers are supposed to implement the
+interfaces of UP.  For details, see <a href="#up">"How to use UP"</a>.
+
+<p>
+MAYZ provides the following tools for accessing the databases of a
+lexicon and templates.  They are implemented in "mayz/grammar.lil".
+MAYZ also provides <a href="modules.html#tagger">a tool for employing
+an external tagger</a>.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>import_lexicon($LexFile, $TemplateFile)</tt>
+<tr><td>$LexFile<td>file name of a lexicon
+<tr><td>$TemplateFile<td>file name of a template database
+<tr><td colspan=2>Imports a lexicon and a template database.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_lexicon(+$Word, -$TempNameList)</tt>
+<tr><td>$Word<td>a feature structure representing a "word"
+<tr><td>$TempNameList<td>a list of <tt>lex_template</tt>
+<tr><td colspan=2>Returns a list of template names assigned to a word
+by looking up a lexicon.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_template(+$TempName, -$Template)</tt>
+<tr><td>$TempName<td>lex_template
+<tr><td>$Template<td>a feature structure
+<tr><td colspan=2>Returns a feature structure of a lexical entry
+template by looking up a template database.
+</table>
+
+<p>
+To use the above tools, you need to implement the following interfaces.
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexicon_lookup_key(+$Word, -$Key)
+<tr><td>$Word<td>a feature structure representing a "word"
+<tr><td>$Key<td>a key for looking up a lexicon
+<tr><td colspan=2>Given a feature structure representing a "word" (an
+element of the list returned by 'sentence_to_word_lattice/2'), this
+interface returns a key for looking up a lexicon (corresponding to the
+third argument of 'inverse_lexical_rule/5' and the fourth argument of 
+'lexical_rule/5').
+</table>
+
+<table border=1>
+<tr><td colspan=2>unknown_word_lookup_key(+$Word, -$Key)
+<tr><td>$Word<td>A feature structure representing a "word"
+<tr><td>$Key<td>a key for looking up a lexicon
+<tr><td colspan=2>Given a feature structure representing a "word",
+this interface returns a key for looking up a lexicon for an unknown
+word.
+</table>
+
+<p>
+When making a lexical entry in 'lexical_entry/2' and
+'lexical_entry_sign/2', the tools "lookup_lexicon/2" and
+"lookup_template/2" will be used.
+
+
+<h2><a name="probmodel">How to use a probabilistic model</a></h2>
+
+<p>
+Probabilistic models developed using <a
+href="unimaker.html">unimaker</a>, or <a
+href="forestmaker.html">forestmaker</a> can be used as a
+figure-of-merit (FOM) model in UP.  MAYZ provides a parser, <a
+href="mayzup.html">mayzup</a>, specialized for the probabilistic
+models developed with MAYZ.  This parser provides builtin-predicates
+for computing FOM (log probability) using interfaces used in the
+development of probabilistic models, i.e., <tt>extract_XXX_event</tt>
+and <tt>feature_mask/3</tt>.
+
+<p>
+The following predicates are provided only in <a
+href="mayzup.html">mayzup</a>.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>init_amis_model(+$ModelName, +$ModelFile)</tt>
+<tr><td>$ModelName<td>model name
+<tr><td>$ModelFile<td>name of the parameter file
+<tr><td colspan=2>Initializes a model with reading parameters from
+$ModelFile, and also incorporates corresponding feature_masks.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>delete_amis_model(+$ModelName)</tt>
+<tr><td>$ModelName<td>model name
+<tr><td colspan=2>delete a model created by 'init_amis_model/2'.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_event_weight(+$ModelName, +$Category,
++$Event, -$FOM)</tt>
+<tr><td>$ModelName<td>model name
+<tr><td>$Category<td>category name
+<tr><td>$Event<td>event (list of strings)
+<tr><td>$FOM<td>FOM of the event (log probability)
+<tr><td colspan=2>Returns FOM (log probability) of the event
+represented as a list of strings.  'feature_mask/3' of the category
+$Category is used.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_log_probability(+$ModelName, +$Category,
++$EventList, -$FOM)</tt>
+<tr><td>$ModelName<td>model name
+<tr><td>$Category<td>category name
+<tr><td>$EventList<td>list of events (list of lists of events)
+<tr><td>$FOM<td>list of FOMs
+<tr><td colspan=2>Computes a weight of each event in $EventList, and
+computes its probability by normalizing weights.
+</table>
+
+<p>
+FOM of an event can be computed using the above built-in predicates.
+Computed FOMs are passed to a parser using the interfaces introduced
+in <a href="#up">"How to use UP"</a>.
+
+<p>
+The usage of <a href="mayzup.html">mayzup</a> is almost the same as
+<a href="up.html">up</a>.  For example, when you use "mygrammar.lil",
+run the following command.
+
+<pre>
+% mayzup -i -iter -l mygrammar
+</pre>
+
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

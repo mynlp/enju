@@ -1,0 +1,122 @@
+%/**********************************************************************
+  * @module    = mayz:parseall
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: parseall.lil,v 1.2 2009-12-03 23:33:26 matuzaki Exp $
+  * @version   = Time-stamp: <2005-07-08 14:44:07 yusuke>
+  * @desc      = Parse sentences and store the results in a database
+  **********************************************************************
+%*/
+
+:- module("mayz:parseall").
+
+:- module_interface.
+
+:- ensure_loaded("parser").
+
+%/**
+  * @interface = ignore_sentence(+$Sentence)
+  * @param     = +$Sentence/string : input sentence
+  * @desc      = whether a sentence should be ignored or not
+  * This interface is used to judge whether an input sentence should be ignored or not.
+  * If this predicate succeeds, the sentence is ignored and not parsed.
+  * You do not need to implement this predicate if you parse all sentences.
+%*/
+ignore_sentence <- [pred].
+
+%/**
+  * @predicate = parse_all(+$Input, +$Output)
+  * @param     = $Input/string : input file name
+  * @param     = $Output/string : output file name
+  * @desc      = parse sentences and store the results in a database
+  * This predicate reads each line in the file $Input, parses it, and
+  * stores the parse result in a database $Output.
+%*/
+%/**
+  * @predicate = parse_all(+$Output)
+  * @param     = $Output/string : output file name
+  * @desc      = parse sentences and store the results in a database
+  * This predicate reads each line from stdin, parses it, and
+  * stores the parse result in a database $Output.
+%*/
+parse_all <- [pred].
+'parse_all/1' <- [parse_all, 'pred/1'].
+'parse_all/2' <- ['parse_all/1', 'pred/2'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+
+'*parse_output*' <- [pred].
+'*sentence_id*' <- [variable].
+:-
+    init_integer_variable('*sentence_id*'),
+    set_debug_mode("parse_all").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parse_failure_reason <- [pred].
+parse_failure_reason(parse_success, "no root edge") :- !.
+parse_failure_reason(preprocess_error, "preprocess error") :- !.
+parse_failure_reason(parse_error_too_long, "too long sentence") :- !.
+parse_failure_reason(parse_error_edge_limit, "edge limit exceeded") :- !.
+parse_failure_reason(parse_error_time_limit, "time limit exceeded") :- !.
+parse_failure_reason(parse_error_search_limit, "limit of search width exceeded") :- !.
+parse_failure_reason(_, "unknown reason").
+
+parse_all_main <- [pred].
+parse_all_main($Input) :-
+    eof_stream($Input),
+    !.
+parse_all_main($Input) :-
+    readln_string($Input, $Sentence),
+    inc_variable('*sentence_id*'),
+    get_variable('*sentence_id*', $ID),
+    ($Sentence = "" ->
+     db_insert('*parse_output*'($ID, $Sentence)),
+     fail
+     ;
+     true),
+    (ignore_sentence($Sentence) ->
+     %% meta data
+     db_insert('*parse_output*'($ID, $Sentence)),
+     fail
+     ;
+     true),
+    (parse($Sentence),
+     best_fom_parse_tree($ParseTree, _) ->
+     debug_message("parse_all", "~d: success\n", [$ID]),
+     db_insert('*parse_output*'($ID, $ParseTree))
+     ;
+     get_parse_status($Status),
+     parse_failure_reason($Status, $Reason),
+     debug_message("parse_all", "~d: failure (~s)\n", [$ID, $Reason]),
+     db_insert('*parse_output*'($ID, $Status))),
+    fail.
+parse_all_main($Input) :-
+    parse_all_main($Input).
+
+parse_all($Input, $Output) :-
+    set_variable('*sentence_id*', 0),
+    db_open('*parse_output*'(key_inthash, array_value)),
+    open_file_stream($Input, "r", $InputFile),
+    %initialize_parser,
+    parse_all_main($InputFile),
+    %terminate_parser,
+    close($InputFile),
+    db_save($Output, '*parse_output*'(_, _)),
+    db_close('*parse_output*'(_, _)).
+
+parse_all($Output) :-
+    set_variable('*sentence_id*', 0),
+    db_open('*parse_output*'(key_inthash, array_value)),
+    stdin_stream($Input),
+    %initialize_parser,
+    parse_all_main($Input),
+    %terminate_parser,
+    db_save($Output, '*parse_output*'(_, _)),
+    db_close('*parse_output*'(_, _)).
+

@@ -1,0 +1,181 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Lexical rules</title>
+</head>
+
+
+
+<body>
+<h1>Lexical rules</h1>
+
+<a href="lexrules.ja.html">Japanese version</a>
+
+<p>
+Lexical rules are rules for generating lexical entries from base forms of words (lexemes). Examples are rules for generating the past tense form from the uninflected form of a verb and rules for generating the plural form of a noun from the singular form of a noun. The types of lexical rules are defined in the file "enju/types.lil". Instances of lexical rule types are defined in "enju-devel/invlexrule.lil", "enju-devel/lexrule.lil"and "enju-devel/lexcommon.lil". The lexical rule typse found in "enju/types.lil" and their instances found in  "enju-devel/invlexrule.lil", "enju-devel/lexrule.lil" and "enju-devel/lexcommon.lil" are all unique to ENJU. 
+
+<h2>Characteristics of Lexical Rules of ENJU</h2>
+<p>
+There are two types of lexical rules in ENJU, one for converting lexemes to lexical entries, the other for converting lexical entries to lexems. This is for convering the weak point of corpus-oriented grammar development by increasing the number of lexical entries. 
+
+Most lexical entries acquired from corpora are the results of some kind of syntactic transformation. In order to extract grammar rules from a corpus, the first thing we have to do is to apply lexical rules in the reverse direction such that lexemes can be acquired from corpora. Then we apply lexical rules in the normal direction to expand the dictionary. Following this approach, we can acquire more lexemes, which further increase the number of lexical entries that can be acquired. 
+
+<h2>The Content of the Source File</h2>
+<table class="menu">
+<tr><td class="menu">enju/types.lil</td>
+    <td class="menu">List up the types of lexical rules. All lexical rules are subtypes of the 'hpsg_lexical_rule' type.</td></tr>
+<tr><td class="menu">enju-devel/invlexrule.lil</td>
+    <td class="menu">The interace to mayz: reduce_lexical_template/5 is found in this file. The predicate is used for acquiring lexemes.</td></tr>
+<tr><td class="menu">enju-devel/lexrule.lil</td>
+    <td class="menu">The interfaces to mayz: expand_lexical_template/5 and expand_lexicon/3 for applying lexical rules in the normal direction for acquiring lexical entries from lexemes.</td></tr>
+<tr><td class="menu">enju-devel/lexcommon.lil</td>
+    <td class="menu">Instances of the interfaces for invlexrule, lexrule are found in this file. To be more precise, you can find the order of rule applications, rewriting rules of predicate argument structures and conditions to be satisfied by various types of lexemes in these files</td></tr>
+</table>
+
+<h2>Types of Lexical Rules</h2>
+<table class="menu">
+<tr><th class="menu" align="center">Name</th><th class="menu" align="center">Action</th><th class="menu" align="cenber">Example</th></tr>
+<tr><th class="menu" colspan="3" align="center">Lexical Rules for Verbs</th></tr>
+<tr><td class="menu">singular3rd_verb_rule</td>
+    <td class="menu">Generating the present tense form of a verb to be used with a 3rd person singular noun from the base form of the same verb</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">no_singular3rd_verb_rule</td>
+    <td class="menu">Generating the present tense form of a verb to be used with a non-3rd person singular noun from the base form of the same verb</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">past_verb_rule</td>
+    <td class="menu">Generating the past tense form of a verb</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">prp_verb_rule</td>
+    <td class="menu">Generating the present participle form of a verb from the base from of the same verb</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">passive_verb_rule</td>
+    <td class="menu">Generating the past participle (passive form) of a verb from the base form of the same verb. The generated lexical entry would take the by phrase formed by the semantic subject and by as a complement.</td>
+    <td class="menu">John must <b>love</b> Mary. -> Mary must be <b>loved</b> by John.</td></tr>
+<tr><td class="menu">drop_by_rule</td>
+    <td class="menu">Remove the by phrase formed by the semantic subject and by from the subcategorization frame of a passive verb</td>
+    <td class="menu">Mary is <b>loved</b> by John. -> Mary is <b>loved</b>.</td></tr>
+<tr><td class="menu">perfect_verb_rule</td>
+    <td class="menu">Generating the past participle (present progressive form) of a verb from the base form of the same verb.</td></tr>
+<tr><td class="menu">movement_rule</td>
+    <td class="menu">Generating the lexical entry of a transitive verb whose object is moved</td>
+    <td class="menu">I <b>like</b> apples. -> Apples I <b>like</b>.</td></tr>
+<tr><td class="menu">sentence_movement_rule</td>
+    <td class="menu">Generating the lexical entry of a complement-taking verb whose complement is moved.</td>
+    <td class="menu">John <b>said</b> "Hello." -> "Hello" John <b>said</b>.</td></tr>
+<!-- <tr><td class="menu">rel_clause_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">attendant_prp_rule</td>
+    <td class="menu">従属節の動詞が主節の動詞句にかかり、なおかつ主語を共有している場合の語彙項目を生成します。後にでてくるpc_prp_l_ruleとの違いは、係り先が主節全体か動詞句かという点です。</td>
+    <td class="menu">I failed the exam though <b>trying</b> hard.</td></tr>
+<tr><td class="menu">clause_subject_rule</td>
+    <td class="menu">従属節の動詞が主節の動詞句にかかり、主語を共有していない場合の語彙項目を生成します。実は主節全体が主語になっていますが、文法の制約上記述できないためunknownとなります。</td>
+    <td class="menu">If you buy something just because it is cheap, it is of poor quality and will break straight away, <b>meaning</b> that you have wasted your money.</td></tr>
+%% obsolete -->
+<tr><td class="menu">pc_prp_r_sbj_rule</td>
+    <td class="menu" rowspan="8">pc_*_rules are lexical rules for handling participle constructions and generating lexical entries used in subordinate clauses. There are eight pc_*_rules, which differ in the following attributes. 
+    <ul>
+    <li>Types of Participles:   The pc_prp_* rule is for handling present participle. THe pc_passive_rule is for handling past particples. 
+    <li>Position of the Subject: The pc_*_r rule is for handling constituents headed by the right daughter. The pc_*_l_rule is for handling constituents headed by the left daughter. 
+    
+    <ul></td>
+    <td class="menu">The weather <b>getting</b> worse, the picnic was cancelled.</td></tr>
+<tr><td class="menu">pc_prp_r_rule</td>
+    <td class="menu"><b>Walking</b> in the park, I run into Hank.</td></tr>
+<tr><td class="menu">pc_prp_l_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_prp_l_rule</td>
+    <td class="menu">I went through my pocket <b>looking</b> for the key.</td></tr>
+<tr><td class="menu">pc_passive_r_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_passive_r_rule</td>
+    <td class="menu"><b>Written</b> in plain English, the book is easy to read.</td></tr>
+<tr><td class="menu">pc_passive_l_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_passive_l_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">prp_r_adjunct_rule</td>
+    <td class="menu">Generating a present participle that premodifies a noun phrase. The modified noun phrase becomes the semantic subject of the present participle.</td>
+    <td class="menu">A man <b>runs</b>. -> a <b>running</b> man</td></tr>
+<tr><td class="menu">prp_l_adjunct_rule</td>
+    <td class="menu">Generating a present participle that postmodifies a noun phrase.The modified noun phrase becomes the semantic subject of the present participle.</td>
+    <td class="menu">A man <b>runs</b> in the park. -> a man <b>running</b> in the park</td></td></tr>
+<tr><td class="menu">passive_l_adjunct_rule</td>
+    <td class="menu">Generating a past participle that postmodifies a noun phrase.The modified noun phrase becomes the semantic object of the past participle.</td>
+    <td class="menu">He <b>broke</b> the window. -> the window <b>broken</b> by him</td></tr>
+<tr><td class="menu">passive_r_adjunct_rule</td>
+    <td class="menu">Generating a past participle that premodifies a noun phrase.The modified noun phrase becomes the semantic object of the past participle.</td>
+    <td class="menu">He <b>broke</b> the window. -> the <b>broken</b> window</td></tr>
+<tr><td class="menu">imperative_rule</td>
+    <td class="menu">Generating the imperative form of a verb.</td></tr>
+<tr><td class="menu">yn_question_rule</td>
+    <td class="menu">Generating the auxiliary verbs used in yes-no questions.</td>
+    <td class="menu">I <b>can</b> swim. -> <b>Can</b> you swim?</td></tr>
+<tr><td class="menu">gerund_rule</td>
+    <td class="menu">Generating gerunds.</td>
+    <td class="menu"></td></tr>
+<!--- <tr><td class="menu">modal_rule</td>
+    <td class="menu">助動詞の過去形を生成します。</td>
+    <td class="menu"></td></tr> --->
+<tr><td class="menu">dative_shift_rule(*)</td>
+    <td class="menu">the dative-marked argument of a verb is shifted.</td>
+    <td class="menu">He <b>gave</b> her the book. -> He <b>gave</b> the book to her.</td></tr>
+<tr><td class="menu">inversion_rule</td>
+    <td class="menu">(sentence_movement がかかった状態などから)Inverting the position of a verb and its argument.</td>
+    <td class="menu">"Hello", John <b>said</b>. -> "Hello", <b>said</b> John.</td></tr>
+<tr><td class="menu">insertion_l_rule</td>
+    <td class="menu">Inserting a complement-taking verb and its subject between the fragments of the complement. The complement of the left is the head.</td>
+    <td class="menu">He <b>said</b>, "The president resigned because of the problem". -> "The president resigned" he <b>said</b>, "because of the problem."</td></tr>
+<tr><td class="menu">insertion_r_rule</td>
+    <td class="menu">Inserting a complement-taking verb and its subject between the fragments of the complement. The complement of the right is the head.</td>
+    <td class="menu">He <b>said</b> "The president resigned". -> "The president" he <b>said,</b> "resigned."</td></tr>
+<!--- <tr><td class="menu">empty_insertion_rule(*)</td>
+    <td class="menu">上と似た現象で、補文がまるごと主語と動詞の前に来ている場合の語彙項目を生成します。</td>
+    <td class="menu">John <b>said</b>, "Hello." -> "Hello", John <b>said</b>.</tr> --->
+<!--- <tr><td class="menu">particle_move_rule</td>
+    <td class="menu">動詞の目的語と不変化詞(particle)の順序を入れ替えます。</td>
+    <td class="menu">He gave up the game. -> He gave it up.</td></tr> --->
+<tr><td class="menu">subject_extraction_rule</td>
+    <td class="menu">Generating the lexical entry of an embedded verb whose subject is questioned.</td>
+    <td class="menu">I <b>think</b> John loves Mary. -> Who do you <b>think</b> loves Mary?</td></tr>
+<tr><td class="menu">extraposition_sbj_rule</td>
+    <td class="menu">Generating the lexical entry of a verb that allows extraposition of the subject.</td>
+    <td class="menu">That dogs bark <b>annoys</b> people. -> It <b>annoys</b> people that dogs bark.</td></tr>
+<tr><td class="menu">extraposition_obj_rule</td>
+    <td class="menu">Generating the lexical entry of a verb that allows extraposition of the object.</td>
+    <td class="menu">I <b>believe</b> the problem to be obvious. -> I <b>believe</b> it to be obvious that the problem is not easy.</td></tr>
+<tr><th class="menu" colspan="3" align="center">Lexical Ruels for Dealing with Nouns</th></tr>
+<tr><td class="menu">plural_noun_rule</td>
+    <td class="menu">Generating the plural form of a noun from its singular form.</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">noun_adjective_rule</td>
+    <td class="menu">Generating the modifying noun of a noun-noun compound.</td>
+    <td class="menu"><b>automobile</b> factory</td></tr>
+<tr><th class="menu" colspan="3" align="center">Lexical rules for handling prespositions</th></tr>
+<tr><td class="menu">content_extraction_rule</td>
+    <td class="menu">Generating the lexical entry of a preposition whose objectis moved.</td>
+    <td class="menu">I <b>stayed</b> at the hotel. -> which hotel did you <b>stay at</b>?</td></tr> 
+<tr><th class="menu" colspan="3" align="center">Lexical rules for handling adverbs and adjectives</th></tr>
+<tr><td class="menu">comparative_rule</td>
+    <td class="menu">Generating lexical entries of comparatives.</td></tr> 
+<tr><td class="menu">superative_rule</td>
+    <td class="menu">Generating lexical entries of superlatives.</td></tr> 
+</table>
+
+<p>
+Lexical rules can be applied to all words. rules marked by (*) are special rules that can only be applied to some verbs considered to be appropriate in the training corpus.
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

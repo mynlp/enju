@@ -1,0 +1,378 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Advanced usage</title>
+</head>
+
+
+
+<body>
+<h1>Advanced usage</h1>
+
+<a href="advanced.ja.html">Japanese version</a>
+
+<p>
+This section introduces the advanced usage of Enju.
+
+<ul>
+  <li><a href="#pos_tagger">Use your own POS tagger</a>
+  <li><a href="#parse_result">Access to parse results</a>
+  <li><a href="#make_grammar">Making grammar from scratch</a>
+  <li><a href="#modules">LiLFeS modules</a>
+</ul>
+
+<hr>
+
+<h2><a name="pos_tagger">Use your own POS tagger</a></h2>
+
+<p>
+Enju uses "stepp tagger" bundled in the package by default.  When you want to use a tagger you developed, specify the option "-t" when invoking enju.
+
+<pre>
+% enju -t your_own_tagger
+</pre>
+
+<p>
+"your_own_tagger" has to be executable (the path must be specified appropriately).  The input to the POS tagger is in the same format as Enju (one sentence per line).  The output must be in the following format.
+
+<pre>
+John/NNP walked/VBD slowly/RB ./.
+</pre>
+
+<p>
+A word and its POS are connected by "/", and tokens are delimited by a single space.  Enju will not work when more than one spaces appear.
+
+<p>
+Or, run your tagger in advance to tag your text, and input the tagged text to enju.  In this case, specify the "-nt" option.
+
+<pre>
+% your_own_tagger < RAW_TEXT > TAGGED_TEXT
+% enju -nt < TAGGED_TEXT
+</pre>
+
+<p>
+The format of TAGGED_TEXT is the same as above.
+
+<hr>
+
+<h2><a name="parse_result">Access to parse results</a></h2>
+
+<p>
+Enju uses <a href="../mayz-manual/up.html">UP</a>, which is an
+efficient parser for unification-based grammars.  UP is included in <a
+href="../mayz-manual/index.html">the MAYZ toolkit</a>.  Several
+interface in UP allows for getting the access to various information
+on parse results.  For example, you can obtain HPSG signs, time
+required for parsing, and the number of edges.  By writing LiLFeS
+programs by yourself, you can get your own output of parsing.
+
+<p>
+In fact, the default output formats of Enju (predicate-argument
+relations and XML outputs) are computed by LiLFeS programs.  The
+source programs are provided in the package
+(<tt>"enju/grammar/{outputdep.lil,outputxml.lil}"</tt>).  See these
+files for details.  The HTTP/CGI server for parsing is also written in
+LiLFeS (see <tt>"enju/grammar/cgi.lil"</tt>).
+
+<p>
+For details of UP, see <a href="../mayz-manual/up.html">the manual
+of UP</a>.
+
+<hr>
+
+<h2><a name="make_grammar">Making grammar from scratch</a></h2>
+
+<p>
+The source package of Enju includes programs for making a grammar and
+probabilistic models from the Penn Treebank.  By modifying the
+programs, users can improve or extend the grammar.  The rebuilt of the
+grammar and probabilistic models require a certain machine power and
+time (around one day with 2.2 GHz Xeon, 10 GByte memory).
+
+<p>
+The programs for grammar making exploit the MAYZ toolkit.  See <a
+href="../mayz-manual/index.html">the manual of the toolkit</a> for
+details.  Amis 4.0 or above is also required to be installed.
+
+<p>
+As input resources, you require ".mrg" files of Penn Treebank II (POS
+and tree structures are combined) and WordNet data files (index.*,
+*.exc) for stemming.  Put these files in "Corpus/".  By default,
+Makefile supposes "Corpus/02-21.trees" as an input of grammar
+construction.  When you want to use another input file, rewrite the
+variable "TARGET_SECTION" defined in the beginning of "Makefile.am".
+
+<p>
+To re-build the Enju grammar, specify <tt>--with-enju-grmmar</tt> when
+you "configure" Enju.
+
+<pre>
+./configure --with-enju-grammar
+</pre>
+
+<p>
+With this option, Makefile includes targets to make a grammar.  Run
+make, and the grammar and probabilistic models will be rebuilt.
+
+<p>
+Additionally, add <tt>--with-genia-model</tt> when you want to retrain
+the parser with the GENIA treebank.
+
+<pre>
+./configure --with-enju-grammar --with-genia-model
+</pre>
+
+<p>
+It is assumed that the GENIA treebank is put as
+"Corpus/0001-1600-trainingAll".  If you want to use another file, rewrite
+the variable "GENIA_TARGET_SECTION" in Makefile.am.
+
+<hr>
+
+<h2><a name="modules">LiLFeS modules</a></h2>
+
+<p>
+The Enju package includes some useful LiLFeS modules.  Specify the
+name of a module with the option "-l" of the "enju" command (see <a
+href="parser.html">How to use Enju</a>).
+
+<ul>
+  <li><a href="#outputdep">Output dependencies of words</a>
+  <li><a href="#outputxml">Output parse results in XML</a>
+  <li><a href="#moriv">Browsing parse results with GUI</a>
+</ul>
+
+<hr>
+
+<h3><a name="outputdep">Output predicate-argument relations of words</a></h3>
+
+<p>
+"enju/outputdep.lil" is a LiLFeS module to output predicate-argument
+relations of words in a text format.  When you run <tt>enju</tt>
+without arguments, this module will be loaded and the predicate
+<tt>output_dependency_file</tt> will automatically be executed.
+
+<p>
+In this module, the following predicates are available.  See <a
+href="parser.html">How to use Enju</a> for the details of the output
+format.
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency(+$Sentence, +$Stream)</tt>
+<tr><td>$Sentence<td>Input sentence (string)
+<tr><td>$Stream<td>Output stream (lilfes_stream)
+<tr><td colspan=2>Parse input sentence $Sentence, and output
+predicate-argument relations into output stream $Stream.  If parsing
+fails, the string "Parsing failure" is output.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency(+$Sentence)</tt>
+<tr><td>$Sentence<td>Input sentence (string)
+<tr><td colspan=2>Parse input sentence $Sentence, and output
+predicate-argument relations into the standard output.  If parsing
+fails, the string "Parsing failure" is output.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td>$Output<td>Name of output file
+<tr><td colspan=2>Parse each line of the input file, and output the
+results in the output file.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file(+$Input)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td colspan=2>Parse each line of the input file, and output the
+results in the standard output.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file</tt>
+<tr><td colspan=2>Parse each line of the standard input, and output
+the results in the standard output.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_summary_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td>$Output<td>Name of output file
+<tr><td colspan=2>Parse each line of the input file, and output the
+results in the output file in a simple format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_summary_file(+$Input)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td colspan=2>Parse each line of the input file, and output the
+results in the standard output in a simple format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_summary_file</tt>
+<tr><td colspan=2>Parse each line of the standard input, and output
+the results in the standard output in a simple format.
+</table>
+
+<hr>
+
+<h3><a name="outputxml">Output parse results in XML</a></h3>
+
+<p>
+"enju/outputxml.lil" is a LiLFeS module to output parse results in the
+XML format.  When you run <tt>enju</tt> with "-xml" option
+<tt>output_xml_file</tt> will be executed, wile
+<tt>output_so_file</tt> is executed with "-so" option.
+
+<p>
+In this module, the following predicates are available.  See <a
+href="parser.html">How to use Enju</a> for the details of the output
+format.
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td>$Output<td>Name of output file
+<tr><td colspan=2>Parse each line of the input file $Input, and output
+the results in the output file $Output in the XML format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file(+$Input)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td colspan=2>Parse each line of the input file $Input, and output
+the results in the standard output in the XML format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file</tt>
+<tr><td colspan=2>Parse each line of the standard input, and output
+the results in the standard output in the XML format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td>$Output<td>Name of output file
+<tr><td colspan=2>Parse each line of the input file $Input, and output
+the parse results into the output file $Output in the stand-off format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file(+$Input)</tt>
+<tr><td>$Input<td>Name of input file
+<tr><td colspan=2>Parse each line of the input file $Input, and output
+the parse results into the standard output in the stand-off format.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file</tt>
+<tr><td colspan=2>Parse each line of the standard input, and output
+the parse results into the standard output in the stand-off format.
+</table>
+
+<hr>
+
+<h3><a name="moriv">Browsing parse results with GUI</a></h3>
+
+<p>
+"enju/moriv.lil" is a LiLFeS module to browse parse results with a web
+browser supporting XHTML and XSLT (e.g. FireFox) or <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv">MoriV</a>.  You can
+browse parse trees and feature structures graphically.
+
+<p>
+When running Enju, specify the "-moriv" option to run the CGI server.
+
+<pre>
+% enju -moriv port_number
+</pre>
+
+<p>
+Next, access to "/cgi-lilfes/moriv?" at the port number you specified
+in the command line.  For example, when you run Enju on "localhost",
+access to the following URL (assuming the port number is 27109).
+
+<pre>http://localhost:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+Your browser shows a start page for browsing parse results.  Enter a
+sentence in the form in the top of the page and press the "Parse"
+button, and you will get the overview (sentence length, the number of
+edges, parsing time, etc.) of the parse results and the menu in the
+lower left side.  By clicking links in the menu, you can browse parse
+results in various formats.
+
+<p>
+"Sign/Tree/Tree (with prob.)" shows the sign of the root node, the
+parse tree, and the parse tree with figure-of-merit (FOM).  "Word
+lattice" shows the list of input words.  "Node list" shows nodes in
+the parse tree, and you can see a sign of each node.  "Semantics"
+shows predicate-argument dependencies of words.  It is represented
+with Prolog-like term representation, and also with highlighting
+argument phrases by pointing a predicate word by a mouse cursor.
+
+<p>
+You can browse other data of a parser and a grammar by clicking
+links in the top of the page.
+
+<dl>
+  <dt>Parser
+  <dd>As described above, a page for browsing parser outputs is shown.
+  <dt>Chart
+  <dd>A chart for parsing is shown.  You can browse edges stored in
+  each cell in the chart.  By entering a sentence, a chart is shown
+  in the lower left side in the page.  Each cell shows the number of
+  edges in the cell.  By clicking the number, a list of edges in the
+  cell is shown in the right of the page.  The list shows symbols of
+  edges signs (VP, NP, etc.), FOMs, the ID numbers of the daughters,
+  etc.  By clicking links, you can see the sign of an edge.
+  <dt>Grammar
+  <dd>A page for browsing lexical signs assigned to words is shown.
+  By inputting a word and a POS tied with a slash (e.g. "likes/VBZ")
+  in the first
+  form, a list of lexical entries are shown in the lower left side in
+  the page.  The numbers show the FOM of the lexical entry.  By
+  clicking a link, the right frame shows a sign of the lexical
+  entry.  By inputting the name of a lexeme in the second form, the
+  sign of the lexeme is shown in the right frame.  "List of all
+  templates" shows a list of all lexical entry templates.  If the
+  number of templates is large, it might take a while.
+  <dt>Console
+  <dd>Show a LiLFeS console in a new page.
+  <dt>Reset
+  <dd>Return to the top page.
+  <dt>Manual
+  <dd>Show the manual of Enju in a new page.
+  <dt>Enju Home Page
+  <dd>Show Enju Home Page in a new page.
+  <dt>Exit
+  <dd>Quit browsing.
+</dl>
+
+<p>
+You can browse the following examples with web browsers such as
+Firefox and MoriV.
+<ul>
+  <li><a href="browsetree.xhtml">Example of a parse tree</a>
+  <li><a href="browsefs.xhtml">Example of a sign</a>
+  <li><a href="browsepas.xhtml">Example of a predicate argument structure</a>
+</ul>
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,17 @@
+%/**********************************************************************
+  * @module    = mayz:lexentry
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: lexentry.lil,v 1.4 2009-12-03 23:33:25 matuzaki Exp $
+  * @version   = Time-stamp: <2005-06-21 19:37:34 yusuke>
+  * @desc      = Type definition of lex_entry
+  **********************************************************************
+%*/
+
+:- module("mayz:lexentry").
+
+:- module_interface.
+
+lex_entry_base  <- [bot] + [LEX_WORD\bot(0)].
+lex_entry_undef <- [lex_entry_base].
+lex_entry       <- [lex_entry_base] + [LEX_TEMPLATE\string(1)].

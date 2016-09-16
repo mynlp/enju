@@ -1,0 +1,617 @@
+%/**********************************************************************
+  * @module    = mayz:morivtrans
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: morivtrans.lil,v 1.3 2009-12-09 13:17:29 yusuke Exp $
+  * @version   = Time-stamp: <2009-12-04 15:03:15 yusuke>
+  * @desc      = Interface for browsing treetrans with MoriV
+  **********************************************************************
+%*/
+
+:- module("mayz:morivtrans").
+
+:- module_interface.
+
+:- ensure_loaded("moriv").
+:- ensure_loaded("treetypes").
+:- ensure_loaded("derivtypes").
+
+'*moriv_trans_title*' <- [variable].
+'*moriv_trans_heading*' <- [variable].
+
+:- module_implementation.
+
+:- ensure_loaded("treetrans").
+:- ensure_loaded("derivmake").
+:- ensure_loaded("lexextract").
+:- ensure_loaded("markhead").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/debug").
+
+input_new_tree <- [pred].
+input_new_tree_corpus <- [pred].
+
+:-
+    define_string_variable('*moriv_trans_title*'),
+    set_variable('*moriv_trans_title*', "MAYZ GUI - Grammar Acquisition"),
+    define_variable('*moriv_trans_heading*'),
+    set_variable('*moriv_trans_heading*', "MAYZ GUI - Grammar Acquisition"),
+    set_variable('*moriv_toppage_name*', "mayz:trans"),
+    set_variable('*moriv_common_menu*',
+		 (xhtml_div & XHTML_CLASS\"menu" &
+		  XHTML_TEXT\[(xhtml_a &
+			       A_HREF\"moriv?page=mayz:trans" & XHTML_TEXT\"Top"),
+			      (xhtml_a &
+			       A_HREF\"moriv?" & XHTML_TEXT\"Reset"),
+			      (xhtml_a &
+			       A_HREF\"/DISCONNECT" & XHTML_TEXT\"Exit")])).
+
+'*cgi_arguments*' <- [pred].
+'*internal_data*' <- [pred].
+'*rule_application*' <- [pred].
+:-
+    declare_array('*cgi_arguments*'(key_string, array_value_string)),
+    declare_array('*internal_data*'(key_string, array_value)),
+    declare_array('*rule_application*'(key_string, array_value_string)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Utility predicates
+%%
+
+initialize <- [pred].
+initialize :-
+    initialize_mayz,
+    set_debug_mode("mayz:derivmake"),
+    set_debug_mode("mayz:lexextract").
+
+operation_list <- [pred].
+operation_list($OpList) :-
+    findall(($Class, $Order, $IsStrict),
+	    tree_transform_class($Class, $Order, $IsStrict),
+	    $OpList).
+
+set_cgi_arguments <- [pred].
+set_cgi_arguments($Args) :-
+    member(($Key, $Value), $Args),
+    set_array('*cgi_arguments*'($Key, $Value)),
+    fail.
+set_cgi_arguments(_).
+
+get_cgi_argument <- [pred].
+get_cgi_argument($Key, $Value) :-
+    get_array('*cgi_arguments*'($Key, $Value)),
+    !.
+get_cgi_argument(_, "").
+
+get_cgi_argument_encoded <- [pred].
+get_cgi_argument_encoded($Key, $Value) :-
+    get_cgi_argument($Key, $Value1),
+    encode_xml_string($Value1, $Value).
+
+clear_internal_data <- [pred].
+clear_internal_data :-
+    clear_array('*internal_data*'(_, _)),
+    clear_array('*rule_application*'(_, _)).
+
+set_input_tree <- [pred].
+set_input_tree($Data) :-
+    set_array('*internal_data*'("__input", $Data)).
+get_input_tree <- [pred].
+get_input_tree($Data) :-
+    get_array('*internal_data*'("__input", $Data)).
+
+set_transformed_tree <- [pred].
+set_transformed_tree($Class, $Data) :-
+    strcat("__tree:", $Class, $Key),
+    set_array('*internal_data*'($Key, $Data)).
+get_transformed_tree <- [pred].
+get_transformed_tree($Class, $Data) :-
+    strcat("__tree:", $Class, $Key),
+    get_array('*internal_data*'($Key, $Data)).
+
+set_derivation <- [pred].
+set_derivation($Deriv) :-
+    set_array('*internal_data*'("__derivation", $Deriv)).
+get_derivation <- [pred].
+get_derivation($Deriv) :-
+    get_array('*internal_data*'("__derivation", $Deriv)).
+
+set_lexical_entries <- [pred].
+set_lexical_entries($LexList) :-
+    set_array('*internal_data*'("__lexical_entries", $LexList)).
+get_lexical_entries <- [pred].
+get_lexical_entries($LexList) :-
+    get_array('*internal_data*'("__lexical_entries", $LexList)).
+
+set_node_fs <- [pred].
+set_node_fs($ID, $FS) :-
+    inttostr($ID, $IDStr),
+    strcat("__node:", $IDStr, $Key),
+    set_array('*internal_data*'($Key, $FS)).
+get_node_fs <- [pred].
+get_node_fs($ID, $FS) :-
+    inttostr($ID, $IDStr),
+    strcat("__node:", $IDStr, $Key),
+    get_array('*internal_data*'($Key, $FS)).
+
+set_tree_inputting <- [pred].
+set_tree_inputting($IsApplied) :-
+    set_array('*rule_application*'("__input", $IsApplied)).
+get_tree_inputting <- [pred].
+get_tree_inputting($IsApplied) :-
+    get_array('*rule_application*'("__input", $IsApplied)).
+
+set_rule_application <- [pred].
+set_rule_application($Class, $IsApplied) :-
+    strcat("__tree:", $Class, $Key),
+    set_array('*rule_application*'($Key, $IsApplied)).
+get_rule_application <- [pred].
+get_rule_application($Class, $IsApplied) :-
+    strcat("__tree:", $Class, $Key),
+    get_array('*rule_application*'($Key, $IsApplied)).
+
+set_derivation_making <- [pred].
+set_derivation_making($IsApplied) :-
+    set_array('*rule_application*'("__derivation", $IsApplied)).
+get_derivation_making <- [pred].
+get_derivation_making($IsApplied) :-
+    get_array('*rule_application*'("__derivation", $IsApplied)).
+
+set_lexicon_extraction <- [pred].
+set_lexicon_extraction($IsApplied) :-
+    set_array('*rule_application*'("__lexical_entries", $IsApplied)).
+get_lexicon_extraction <- [pred].
+get_lexicon_extraction($IsApplied) :-
+    get_array('*rule_application*'("__lexical_entries", $IsApplied)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Form to input tree
+%%
+
+input_tree_page <- [pred].
+input_tree_page($Page) :-
+    get_variable('*moriv_trans_heading*', $Heading),
+    get_cgi_argument_encoded("tree", $Tree),
+    get_cgi_argument_encoded("filename", $CorpusFile),
+    get_cgi_argument_encoded("line", $Line),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Heading & XHTML_CLASS\"title",
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_ACTION\"moriv" & XHTML_ATTRIBUTES\[XML_ATTR\"onreset" & XML_ATTR_VAL\"this.tree.value=''; return false;"] &
+	      XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Input tree: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+			   INPUT_SIZE\"70" & XHTML_NAME\"tree" & INPUT_VALUE\$Tree),
+			  (xhtml_input & INPUT_TYPE\"hidden" &
+			   XHTML_NAME\"page" & INPUT_VALUE\"mayz:trans"),
+			  (xhtml_input & INPUT_TYPE\"submit" &
+			   XHTML_NAME\"input" & INPUT_VALUE\"Input"),
+			  (xhtml_input & INPUT_TYPE\"reset" &
+			   XHTML_NAME\"reset" & INPUT_VALUE\"Clear")]),
+	     (xhtml_form & FORM_METHOD\"GET" & 
+	      FORM_ACTION\"moriv" &
+	      XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Corpus file: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+			   INPUT_SIZE\"10" & XHTML_NAME\"filename" & INPUT_VALUE\$CorpusFile),
+			  (xhtml_span & XHTML_TEXT\"  line No: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+			   INPUT_SIZE\"5" & XHTML_NAME\"line" & INPUT_VALUE\$Line),
+			  (xhtml_input & INPUT_TYPE\"hidden" &
+			   XHTML_NAME\"page" & INPUT_VALUE\"mayz:trans"),
+			  (xhtml_input & INPUT_TYPE\"submit" &
+			   XHTML_NAME\"read" & INPUT_VALUE\"Read")]),
+	     $Menu],
+    get_variable('*moriv_common_menu*', $Menu).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Operation list
+%%
+
+operation_list_xhtml <- [pred].
+operation_list_xhtml([], []).
+operation_list_xhtml([($Name, _, _)|$OperationList],
+		    [$HTML|$Page]) :-
+    concatenate_string(["moriv?page=mayz:trans&format=tree&operation=", $Name], $href1),
+    concatenate_string(["moriv?page=mayz:trans&format=fstree&operation=", $Name], $href_fstree1),
+    concatenate_string(["moriv?page=mayz:trans&format=fs&operation=", $Name], $href_full1),
+    encode_query_string($href1, $href),
+    encode_query_string($href_fstree1, $href_fstree),
+    encode_query_string($href_full1, $href_full),
+    (get_rule_application($Name, $IsApplied) ->
+     true ;
+     $IsApplied = ""),
+    $HTML = (xhtml_li &
+	     XHTML_CLASS\$IsApplied &
+	     XHTML_TEXT\[xhtml_a &
+			 A_HREF\$href & XHTML_TEXT\$Name,
+			 xhtml_a &
+			 A_HREF\$href_fstree & XHTML_TEXT\"(fstree)",
+			 xhtml_a &
+			 A_HREF\$href_full & XHTML_TEXT\"(fs)"]),
+    operation_list_xhtml($OperationList, $Page).
+
+operation_page <- [pred].
+operation_page($Page) :-
+    operation_list($OperationList),
+    operation_list_xhtml($OperationList, $OpPage),
+    (get_tree_inputting($InputTreeFailed) -> true ; $InputTreeFailed = ""),
+    (get_derivation_making($DerivationFailed) -> true ; $DerivationFailed = ""),
+    (get_lexicon_extraction($LexicalEntryFailed) -> true ; $LexicalEntryFailed = ""),
+    $Page = [(xhtml_ol & XHTML_TEXT\[xhtml_li & XHTML_CLASS\$InputTreeFailed &
+				     XHTML_TEXT\[xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;operation=__input" &
+						 XHTML_TEXT\"Input tree",
+						 xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;format=fstree&amp;operation=__input" &
+						 XHTML_TEXT\"(fstree)",
+						 xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;format=fs&amp;operation=__input" &
+						 XHTML_TEXT\"(fs)"],
+				     xhtml_li & XHTML_CLASS\$DerivationFailed &
+				     XHTML_TEXT\[xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;format=tree&amp;operation=__derivation" &
+						 XHTML_TEXT\"Derivation",
+						 xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;format=fs&amp;operation=__derivation" &
+						 XHTML_TEXT\"(fs)"],
+				     xhtml_li & XHTML_CLASS\$LexicalEntryFailed &
+				     XHTML_TEXT\[xhtml_a &
+						 A_HREF\"moriv?page=mayz:trans&amp;format=fs&amp;operation=__lexical_entries" &
+						 XHTML_TEXT\"Lexical entries"]]),
+	     "Intermediate results of tree transformation",
+	     (xhtml_ol & XHTML_TEXT\$OpPage)].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Receive new tree
+%%
+
+apply_operation_list <- [pred].
+apply_operation_list([], $Output, $Output).
+apply_operation_list([($Class, $Order, $IsStrict)|$OperationList], $Input, $Output) :-
+    debug_message("tree transformation", "applying rule: ~s\n", [$Class]),
+    (transform_tree($Class, $Order, $IsStrict, $Input, $Next) ->
+     (get_array('*is_transform_rule_applied*'(1)) ->
+      set_rule_application($Class, "success") ;
+      true),
+     set_transformed_tree($Class, $Next) ;
+     set_rule_application($Class, "fail"),
+     fail),
+    apply_operation_list($OperationList, $Next, $Output).
+
+input_new_tree($String) :-
+    clear_internal_data,
+    (input_parse_tree($String, $InitTree)
+     ->
+     set_input_tree($InitTree)
+     ;
+     set_tree_inputting("fail"),
+     fail),
+    operation_list($OpList),
+    preprocess_parse_tree($InitTree, $Tree1),
+    apply_operation_list($OpList, $Tree1, $Tree2),
+    postprocess_parse_tree($Tree2, $OutTree),
+    (tree_to_derivation($OutTree, $Derivation)
+     ->
+     set_derivation($Derivation)
+     ;
+     set_derivation_making("fail"),
+     fail),
+    (extract_lexical_entries($Derivation, $LexList)
+     ->
+     set_lexical_entries($LexList)
+     ;
+     set_lexicon_extraction("fail"),
+     fail),
+    !.
+input_new_tree(_).
+
+getline <- [pred].
+getline($Handle, $N, $String) :-
+    ($N = 1 -> 
+     readln_string($Handle, $String);
+     $N1 is $N - 1,
+     readln_string($Handle, _), 
+     getline($Handle, $N1, $String)).
+
+input_new_tree_corpus($CorpusFile, $Line) :-
+    open_file_stream($CorpusFile, "r", $Handle),
+    strtoint($Line, $IntLine),
+    getline($Handle, $IntLine, $String),
+    close($Handle),
+    input_new_tree($String).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Generate result of tree transformation
+%%
+
+encode_mod_list <- [pred].
+encode_mod_list([], "").
+encode_mod_list([$Mod|$ModList], $ModStr) :-
+    encode_mod_list($ModList, $ModStr1),
+    concatenate_string(["-", $Mod, $ModStr1], $ModStr).
+encode_id <- [pred].
+encode_id([], "").
+encode_id([$ID|$IDList], $IDStr) :-
+    inttostr($ID, $IDStr1),
+    encode_id($IDList, $IDStr2),
+    concatenate_string(["-", $IDStr1, $IDStr2], $IDStr).
+encode_id2 <- [pred].
+encode_id2([], "").
+encode_id2([$ID|$IDList], $IDStr) :-
+    inttostr($ID, $IDStr1),
+    encode_id2($IDList, $IDStr2),
+    concatenate_string(["=", $IDStr1, $IDStr2], $IDStr).
+head_mark_map <- [pred].
+head_mark_map(head, ":head").
+head_mark_map(empty, ":empty").
+%%head_mark_map(non_empty, ":non_empty").
+head_mark_map(non_empty, "").
+head_mark_map(argument_non_empty, ":arg").
+head_mark_map(modifier_non_empty, ":mod").
+head_mark_map(argument_empty, ":empty_arg").
+head_mark_map(modifier_empty, ":empty_mod").
+encode_mark <- [pred].
+encode_mark($Mark, $Str) :-
+    head_mark_map($HeadMark, $Str),
+    type_equal($Mark, $HeadMark),
+    !.
+encode_mark(_, "").
+encode_word <- [pred].
+encode_word(INPUT\$Input & INPUT_POS\$POS, $EncodedWord) :-
+    concatenate_string([$Input, "/", $POS], $Word),
+    encode_xml_string($Word, $EncodedWord).
+encode_coind <- [pred].
+encode_coind([$CoInd], $Str) :-
+    !,
+    inttostr($CoInd, $Str1),
+    strcat("-", $Str1, $Str).
+encode_coind([], "").
+
+encode_tree_node <- [pred].
+encode_tree_node($String, $NodeID, $Output) :-
+    inttostr($NodeID, $NodeName),
+    concatenate_string(["moriv?page=mayz:trans:tree_node&node_id=", $NodeName], $HRef1),
+    encode_query_string($HRef1, $HRef),
+    encode_xml_string($String, $EncodedString),
+    $Output = (xhtml_a & A_TARGET\"_blank" & A_HREF\$HRef & XHTML_TEXT\$EncodedString).
+
+encode_tree <- [pred].
+encode_tree_dtrs <- [pred].
+encode_tree_dtrs([], [], $ID, $ID).
+encode_tree_dtrs([$TreeDtr|$TreeDtrs], [xhtml_dtr & DTR_EDGE\"" & XHTML_TEXT\$Dtr|$Dtrs], $InID, $OutID) :-
+    encode_tree($TreeDtr, $Dtr, $InID, $NextID),
+    encode_tree_dtrs($TreeDtrs, $Dtrs, $NextID, $OutID).
+encode_tree(tree_nts & TREE_NODE\($TreeNode & SYM\$Sym & FUNC\$Mod & ID\$ID & ID2\$ID2 & HEAD_MARK\$Mark) & TREE_DTRS\$TreeDtrs,
+	    xhtml_tree & XHTML_TEXT\[$EncodeNTS|$Dtrs], $InID, $OutID) :-
+    encode_mod_list($Mod, $ModStr),
+    encode_id($ID, $IDStr),
+    encode_id2($ID2, $ID2Str),
+    encode_mark($Mark, $MarkStr),
+    concatenate_string([$Sym, $ModStr, $IDStr, $ID2Str, $MarkStr], $NTS),
+    encode_tree_node($NTS, $InID, $EncodeNTS),
+    set_node_fs($InID, $TreeNode),
+    $NextID is $InID + 1,
+    encode_tree_dtrs($TreeDtrs, $Dtrs, $NextID, $OutID).
+encode_tree(tree_term & TREE_NODE\($TreeNode & SYM\$Sym & FUNC\$Mod & HEAD_MARK\$Mark & WORD\$Word),
+	    xhtml_tree & XHTML_TEXT\[$EncodeTerm, xhtml_dtr & DTR_EDGE\"" & XHTML_TEXT\$WordStr], $InID, $OutID) :-
+    encode_mod_list($Mod, $ModStr),
+    encode_mark($Mark, $MarkStr),
+    concatenate_string([$Sym, $ModStr, $MarkStr], $Term),
+    encode_word($Word, $WordStr),
+    encode_tree_node($Term, $InID, $EncodeTerm),
+    set_node_fs($InID, $TreeNode),
+    $OutID is $InID + 1.
+encode_tree(tree_empty & TREE_NODE\($TreeNode & SYM\$Sym & FUNC\$Mod & HEAD_MARK\$Mark & COIND\$CoInd & EMPTY_WORD\$Word),
+	    $EncodeEmpty, $InID, $OutID) :-
+    encode_coind($CoInd, $CoIndStr),
+    encode_mod_list($Mod, $ModStr),
+    encode_mark($Mark, $MarkStr),
+    concatenate_string([$Word, $CoIndStr, "/", $Sym, $ModStr, $MarkStr], $Empty),
+    encode_tree_node($Empty, $InID, $EncodeEmpty),
+    set_node_fs($InID, $TreeNode),
+    $OutID is $InID + 1.
+
+encode_fs_tree_sub <- [pred].
+encode_fs_tree_dtrs <- [pred].
+encode_fs_tree_dtrs([], [], [], []).
+encode_fs_tree_dtrs([$TreeDtr|$TreeDtrs], [xhtml_dtr & DTR_EDGE\"" & XHTML_TEXT\$Dtr|$Dtrs],
+		    $NodeList, $XHTMLList) :-
+    encode_fs_tree_sub($TreeDtr, $Dtr, $NodeList1, $XHTMLList1),
+    append($NodeList1, $NodeList2, $NodeList),
+    append($XHTMLList1, $XHTMLList2, $XHTMLList),
+    encode_fs_tree_dtrs($TreeDtrs, $Dtrs, $NodeList2, $XHTMLList2).
+encode_fs_tree_sub(tree_nts & TREE_NODE\$TreeNode & TREE_DTRS\$TreeDtrs,
+		   xhtml_tree & XHTML_TEXT\[$XHTML|$Dtrs],
+		   [$TreeNode|$NodeList], [$XHTML|$XHTMLList]) :-
+    !,
+    encode_fs_tree_dtrs($TreeDtrs, $Dtrs, $NodeList, $XHTMLList).
+encode_fs_tree_sub(TREE_NODE\$TreeNode, xhtml_tree & XHTML_TEXT\$XHTML, [$TreeNode], [$XHTML]).
+encode_fs_tree <- [pred].
+encode_fs_tree($Tree, $XHTML) :-
+    encode_fs_tree_sub($Tree, $XHTML, $NodeList, $XHTMLList),
+    get_variable('*xhtml_fs_namespace*', $NS),
+    tfstoxml_list($NodeList, $NS, $XHTMLList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Generate derivation tree
+%%
+
+encode_derivation_tree_sub <- [pred].
+encode_derivation_tree_dtrs <- [pred].
+encode_derivation_tree_dtrs([], [], [], []).
+encode_derivation_tree_dtrs([$Dtr|$Dtrs],
+			    [xhtml_dtr & DTR_EDGE\"" & XHTML_TEXT\$XHTML|$XHTMLDtrs],
+			    $NodeList, $XHTMLList) :-
+    encode_derivation_tree_sub($Dtr, $XHTML, $NodeList1, $XHTMLList1),
+    append($NodeList1, $NodeList2, $NodeList),
+    append($XHTMLList1, $XHTMLList2, $XHTMLList),
+    encode_derivation_tree_dtrs($Dtrs, $XHTMLDtrs, $NodeList2, $XHTMLList2).
+encode_derivation_tree_sub(derivation_internal &
+			   DERIV_SIGN\$Sign &
+			   DERIV_SCHEMA\$Schema &
+			   DERIV_DTRS\$DerivDtrs,
+			   xhtml_tree & XHTML_TEXT\[xhtml_fs &
+						    XHTML_TEXT\[xhtml_feat & FEAT_EDGE\"DERIV_SCHEMA" & XHTML_TEXT\$SchemaXHTML,
+								xhtml_feat & FEAT_EDGE\"DERIV_SIGN" & XHTML_TEXT\$SignXHTML]
+						    |$XHTMLDtrs],
+			   [$Sign, $Schema|$SignList], [$SignXHTML, $SchemaXHTML|$XHTMLList]) :-
+    encode_derivation_tree_dtrs($DerivDtrs, $XHTMLDtrs, $SignList, $XHTMLList).
+encode_derivation_tree_sub(derivation_terminal &
+			   DERIV_SIGN\$Sign &
+			   TERM_WORD\$Word,
+			   xhtml_tree & XHTML_TEXT\[$SignXHTML, xhtml_dtr & DTR_EDGE\"" & XHTML_TEXT\$WordXHTML],
+			   [$Sign, $Word], [$SignXHTML, $WordXHTML]).
+
+encode_derivation_tree <- [pred].
+encode_derivation_tree($Deriv, $XHTML) :-
+    encode_derivation_tree_sub($Deriv, $XHTML, $NodeList, $XHTMLList),
+    get_variable('*xhtml_fs_namespace*', $NS),
+    tfstoxml_list($NodeList, $NS, $XHTMLList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Generate list of lexical entries
+%%
+
+encode_list <- [pred].
+encode_list_dtrs <- [pred].
+encode_list_dtrs([], []).
+encode_list_dtrs([$InDtr|$InDtrs], ["Dtr", $OutDtr|$OutDtrs]) :-
+    encode_list($InDtr, $OutDtr),
+    encode_list_dtrs($InDtrs, $OutDtrs).
+encode_list([], []).
+encode_list([$NTS|$InDtrs], [$NTS|$OutDtrs]) :-
+    encode_list_dtrs($InDtrs, $OutDtrs).
+encode_list($Term & string, $Term).
+
+lexentry_table <- [pred].
+lexentry_table([], []).
+lexentry_table([($Key, $Term)|$FSList], [$Row|$Table]) :-
+    $Term = (TERM_WORD\$Word &
+	     LEXTEMPLATE_NAME\$LexTempName &
+	     LEXTEMPLATE_SIGN\$LexSign &
+%%	     LEXEME_NAME\$LexemeName &
+	     LEXEME_SIGN\$LexemeSign),
+    $Row = (xhtml_p &
+	    XHTML_TEXT\[xhtml_table &
+			XHTML_TEXT\[xhtml_tr &
+				    XHTML_TEXT\[xhtml_td &
+						XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"] &
+						XHTML_TEXT\[xhtml_table &
+							    XHTML_TEXT\[xhtml_tr &
+									XHTML_TEXT\[xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$LexTempName),
+										    xhtml_td & XHTML_TEXT\" extracted for ",
+										    xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$Key),
+										    xhtml_td & XHTML_TEXT\" from ",
+										    xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$Word)]]]],
+				    xhtml_tr &
+				    XHTML_TEXT\[xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$LexSign),
+						xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$LexemeSign)]]]),
+    lexentry_table($FSList, $Table).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Display results
+%%
+
+formatting_data <- [pred].
+formatting_data("tree", $Tree & tree, [$Output]) :-
+    encode_tree($Tree, $Output, 0, _).
+
+formatting_data("fstree", $Tree & tree, [$Output]) :-
+    encode_fs_tree($Tree, $Output).
+
+formatting_data("fs", $Tree & tree, [xhtml_tfstoxml & XHTML_TEXT\$Tree]).
+
+display_result <- [pred].
+display_result("__derivation", $Format, "Result: derivation", $Page) :-
+    (get_derivation($Data)
+     ->
+     (($Format = "tree" ; $Format = "fstree")
+      ->
+      encode_derivation_tree($Data, $Output),
+      $Page = [$Output]
+      ;
+      $Page = [xhtml_tfstoxml & XHTML_TEXT\$Data])
+     ;
+     $Page = ["No data for derivation."]).
+display_result("__lexical_entries", _, "Result: lexical entries", $Page) :-
+    (get_lexical_entries($Data) ->
+     lexentry_table($Data, $Page) ;
+     $Page = ["No data for lexical entries."]).
+display_result("__input", $Format, "Result: input tree", $Page) :-
+    (get_input_tree($Data) ->
+     formatting_data($Format, $Data, $Page) ;
+     $Page = ["No data for input tree."]).
+display_result($Class, $Format, $Title, $Page) :-
+    strcat("Result: ", $Class, $Title),
+    (get_transformed_tree($Class, $Data) ->
+     formatting_data($Format, $Data, $Page) ;
+     $Page = ["No data for Operation: ", $Class]).
+
+display_page <- [pred].
+display_page($Args, $Page) :-
+    initialize,
+    assoc("tree", $Args, $Tree),
+    !,
+    input_new_tree($Tree),
+    display_result("__input", "tree", $Title, $Result),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+display_page($Args, $Page) :-
+    assoc("operation", $Args, $Operation),
+    !,
+    (assoc("format", $Args, $Format) -> true; $Format = "tree"),
+    display_result($Operation, $Format, $Title, $Result),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+display_page($Args, $Page) :-
+    assoc("filename", $Args, $CorpusFile),
+    assoc("line", $Args, $Line),
+    !,
+    input_new_tree_corpus($CorpusFile, $Line),
+    display_result("__input", "tree", $Title, $Result),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+display_page($Args, $Page) :-
+    assoc("node_id", $Args, $NodeIDStr),
+    !,
+    strtoint($NodeIDStr, $NodeID),
+    get_node_fs($NodeID, $FS),
+    $Title = "Result: tree node",
+    $Result = [xhtml_tfstoxml & XHTML_TEXT\$FS],
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+display_page(_, $Page) :-
+    get_input_tree(_),
+    !,
+    display_result("__input", "tree", $Title, $Result),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+display_page(_, $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"Result" & XHTML_CLASS\"title"].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Grammar acquisition top page
+%%
+
+moriv_page("mayz:trans", $Args, $Title, $Page) :-
+    initialize,
+    set_cgi_arguments($Args),
+    get_variable('*moriv_trans_title*', $Title),
+    display_page($Args, $DisplayPage),
+    input_tree_page($InputTreePage),
+    operation_page($OperationPage),
+    $Page = [xhtml_div & XHTML_ID\"form" & XHTML_TEXT\$InputTreePage,
+	     xhtml_div & XHTML_ID\"menu" & XHTML_TEXT\$OperationPage,
+	     xhtml_div & XHTML_ID\"display" & XHTML_TEXT\$DisplayPage].
+
+moriv_page("mayz:trans:tree_node", $Args, $Title, $Page) :-
+    assoc("node_id", $Args, $NodeIDStr),
+    strtoint($NodeIDStr, $NodeID),
+    get_node_fs($NodeID, $FS),
+    $Title = "Result: tree node",
+    $Result = [xhtml_tfstoxml & XHTML_TEXT\$FS],
+    $Page = [xhtml_h3 & XHTML_TEXT\$Title & XHTML_CLASS\"title"|$Result].
+

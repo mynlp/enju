@@ -1,0 +1,1128 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>文法開発の例</title>
+</head>
+
+
+
+<body>
+<h1>文法開発の例</h1>
+
+<a href="ex_development.html">English version</a>
+
+<p>
+ここでは例として，次のようなコーパス "small.txt" を用いて
+ Enju の文法開発の流れを見ていきます。
+
+<blockquote>
+<pre style="font-size:medium">
+(S (NP-SBJ Ms./NNP Haag/NNP) (VP plays/VBZ (NP Elianti/NNP)) ./.)
+...
+</pre>
+</blockquote>
+
+<ol>
+   <li><a href="#transform">コーパスの変形</a></li>
+   <li><a href="#extract">辞書の抽出</a></li>
+   <ul>
+      <li><a href="#makederiv">derivation の作成</a></li>
+      <li><a href="#makelexicon">辞書の作成</a></li>
+      <li><a href="#refine">辞書の精製</a></li>
+   </ul>
+   <li><a href="#unigram">Unigram モデルの推定</a></li>
+   <ul>
+      <li><a href="#uni_probevent">確率イベントの出力</a></li>
+      <li><a href="#uni_mask">マスクによる素性の出力</a></li>
+      <li><a href="#uni_amis">素性の重みの計算</a></li>
+   </ul>
+   <li><a href="#featureforest">Feature forest モデルの推定</a></li>
+   <ul>
+      <li><a href="#ff_probevent">確率イベントの出力</a></li>
+      <li><a href="#ff_mask">マスクによる素性の出力</a></li>
+      <li><a href="#ff_amis">素性の重みの計算</a></li>
+   </ul>
+</ol>
+
+<h2><a name="transform">コーパスの変形</a></h2>
+
+<p>
+Enju の文法開発では，まず構文情報つきのコーパス Penn Treebank の構文木を変形して，
+HPSG 構文木に似た形の木を作ります．
+例のコーパス "small.txt" を treetrans ツールに入力して，
+構文木を変形し HPSG 構文木に似た形の木を作るには次のようなコマンドを用います．
+
+<blockquote>
+<pre style="font-size:medium">
+treetrans enju-devel/transmain.lil small.txt small.treebank
+</pre>
+</blockquote>
+
+この場合引数は次のようになります．
+<ul>
+  <li>"enju-devel/transmain.lil" は変形方法を指定するモジュール
+  <li>"small.txt" は変形前の構文木が記されているテキスト
+  <li>"small.treebank" は変形後の構文木が格納されるデータベース
+</ul> 
+
+<p>
+treetrans では初めに，
+コーパス "small.txt" の構文木を
+ <tt>input_parse_tree/2</tt> によって素性構造にします．
+例えば，一行目の "Ms. Haag plays Elianti." の木も
+<a href="ex_input_tree.xhtml">素性構造</a>となります．
+(実際は木の親子関係も素性構造で表されます)
+次に変形の前処理として，
+述語 <tt>nonterminal_mapping/2</tt> による
+各ノードの非終端記号の変換等をします．
+<p>
+この後，述語 <tt>tree_transform_class/3</tt> 等で
+設定されたパターンルールを用いて，素性構造の木を変形します．
+上の例の構文木の場合，まず空範疇にマークをつけるルールが適用され
+<a href ="ex_transformed1.xhtml">木</a>が得られます．
+変更された木では各ノードの HEAD_MARK 素性が 'non_empty' 型になっています．
+また次に句読点に関するルールが適用され，さらに
+<a href ="ex_transformed2.xhtml">木</a>が得られます．
+<p>
+このようにパターンルールの適用を繰り返し，
+最終的に <a href="ex_transformed.xhtml">HPSG 構文木に近い形の木</a> が得られます．
+最終的に得られた木は出力データベース "small.treebank" に格納されます．
+
+<h2><a name="extract">辞書の抽出</a></h2>
+<p>
+Enju の文法開発の次の段階では辞書を抽出します．
+上で変形した構文木から実際に HPSG 導出木を作り，
+導出木の末端ノードの単語情報と語彙項目から辞書とテンプレートデータベースを作ります．
+その後，作った辞書とテンプレートデータベースに精製処理をして
+最終的な辞書とテンプレートデータベースを得ます．
+
+<p>
+導出木，辞書とテンプレートの作成には lexextract ツールを使います．
+<blockquote>
+<pre style="font-size:medium">
+lexextract enju-devel/lexextract.lil small.treebank small.derivbank small.lexcon small.templates small.lexbank
+</pre>
+</blockquote>
+
+この場合，各引数は次のようになります．
+<ul>
+   <li>"enju-devel/lexextract.lil" は構文木から導出木への変換方法や導出木末端ノードから語彙素テンプレートの抽出方法を指定するモジュール
+   <li>"small.lexicon" は出力する辞書
+   <li>"small.templates" は出力するテンプレートデータベース
+   <li>"small.derivbank" は作られた導出木を格納するデータベース(後で曖昧性解消モデルの推定に使われる)
+   <li>"small.lexbank" は作られた導出木の末端ノードが格納されるデータベース
+</ul>
+
+<h3><a name="makederiv">導出木の作成</a></h3>
+<p>
+lexextract では入力された構文木から導出木を作る際に，
+導出木の根ノードにインターフェース述語 <tt>root_constraints/2</tt> による
+制約をかけます．
+Enju 文法の場合，根ノードの sign は次のような制約がかけられます．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2" />
+    <td><span class="edge_fs">SYNSEM</span></td>
+    <td>
+    <table>
+    <tr><td class="lprn" rowspan="2" />
+        <td><span class="edge_fs">LOCAL|CAT</span></td>
+	<td>
+	<table>
+	<tr><td class="lprn" rowspan="2" />
+            <td><span class="edge_fs">HEAD|MOD</span></td>
+	    <td>[ ]</td>
+	    <td class="rprn" rowspan="2" />
+	</tr>
+	<tr><td><span class="edge_fs">VAL</span></td>
+	    <td>
+	    <table>
+	    <tr><td class="lprn" rowspan="5" />
+	        <td>SUBJ</td>
+		<td> [ ] </td>
+	        <td class="rprn" rowspan="5" />
+	    </tr>
+	    <tr><td>COMPS</td>
+	        <td> [ ]</td>
+	    </tr>
+	    <tr><td>SPR</td>
+	        <td> [ ]</td>
+	    </tr>
+	    <tr><td>SPEC</td>
+	        <td> [ ]</td>
+	    </tr>
+	    <tr><td>CONJ</td>
+	        <td> [ ]</td>
+	    </tr>
+	    </table>
+	    </td>
+	</tr>
+	</table>
+	</td>
+	<td class="rprn" rowspan="2" />
+    </tr>
+    <tr><td><span class="edge_fs">NONLOCAL</span></td>
+        <td>
+	<table>
+	<tr><td class="lprn" rowspan="2" />
+	    <td><span class="edge_fs">INHER</span></td>
+	    <td>
+	    <table>
+	    <tr><td class="lprn" rowspan="3" />
+                <td><span class="edge_fs">REL</span></td>
+		<td> [ ] </td>
+		<td class="rprn" rowspan="3" />
+	    </tr>
+	    <tr><td><span class="edge_fs">SLASH</span></td>
+	        <td> [ ] </td>
+	    </tr>
+	    <tr><td><span class="edge_fs">F_REL</span></td>
+	        <td> [ ] </td>
+	    </tr>
+	    </table>
+	    <td class="rprn" rowspan="2">
+	</tr>
+	<tr><td><span class="edge_fs">TO_BIND</span></td>
+	    <td>
+	    <table>
+	    <tr><td class="lprn" rowspan="4" />
+                <td><span class="edge_fs">QUE</span></td>
+		<td> [ ] </td>
+		<td class="rprn" rowspan="4" />
+	    </tr>
+	    <tr><td><span class="edge_fs">REL</span></td>
+	        <td> [ ] </td>
+	    </tr>
+	    <tr><td><span class="edge_fs">SLASH</span></td>
+	        <td> [ ] </td>
+	    </tr>
+	    <tr><td><span class="edge_fs">F_REL</span></td>
+	        <td> [ ] </td>
+	    </tr>
+	    </table>
+	</tr>
+	</table>
+
+	</td>
+    </tr>
+    </table>
+    </td>
+    <td class="rprn" rowspan="2" />
+</tr>
+</table>
+
+<p>
+その後は入力の木を上から見ていき，親ノードからスキーマを逆適用して
+娘ノードを作っていきます．
+このとき，親ノードの SCHEMA_NAME 素性に指定されたスキーマを逆適用します．
+また，逆適用の方法は <tt>inverse_schema_binary/4</tt> と
+ <tt>inverse_schema_binary/4</tt>によって定めておきます．
+例えば
+<a href="ex_transformed.xhtml"> "Ms. Haag plays Elianti." の木</a>の
+ルートノードでは，SCHEMA_NAME 素性が "subj_head_schema" であり
+2個の娘ノードがあります．
+よって <tt>inverse_schema_binary/4</tt> に
+ "subj_head_schema" と derivation の
+ルートノードを与え，左右の娘として2個のノードを得ます．
+
+<p>
+最後に入力の木の末端ノードまでたどり着いたら，
+<tt>lexical_constraints/2</tt> によって 
+derivation の末端ノードに制約を加えます．
+このようにして例の
+ <a href="ex_derivation.xhtml">"Ms. Haag plays Elianti." の木からの derivation</a>
+が得られます．
+
+<h3><a name="makelexicon">辞書の作成</a></h3>
+
+<p>
+lexextract は次に，derivation の末端ノードを見て，
+単語と語彙項目の対応表である辞書と，
+語彙項目のテンプレートデータベースを抽出します．
+
+<p>
+例えば，"Ms. Haag plays Elianti." に対応する derivation には
+<a href="ex_deriv_plays.xhtml">plays に対応する末端ノード</a>があります．
+このノードから <tt>lexical_entry_template/3</tt> によって
+単語の情報や細かな制約を省き，
+<a href="ex_lexent.xhtml">このような語彙項目テンプレート</a>が得られます．
+
+<p>
+この語彙項目テンプレートに <tt>reduce_lexical_template/5</tt> を適用すると，
+語彙規則 "singular3rd_verb_rule" が逆適用されて
+<a href="ex_lexeme.xhtml">動詞の原型に当たる語彙素テンプレート</a>が得られます．
+つまり "plays/VBZ" の原形 "play/VB" に対応するテンプレートが得られます．
+この語彙素テンプレートに，語彙規則 "singular3rd_verb_rule" を
+順適用すると<a href="ex_lexent.xhtml">先ほどの語彙項目テンプレート</a>
+が得られることになります．
+
+<p>
+またこのとき，単語 "play/VB" から
+<a href="ex_lexeme.xhtml">上の語彙素テンプレート</a>への対応を
+辞書に登録します．
+単語 "play/VB" を表す辞書のキーを derivation 末端ノードの単語情報から計算します．
+例えば上のテンプレートのキーは次のような素性構造になります．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">word</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">BASE</span></td>
+    <td><span class="doublequoted">"play"</span></td>
+</tr>
+<tr><td><span class="edge_fs">POS</span></td>
+    <td><span class="doublequoted">"VB"</span></td>
+</tr>
+</table>
+
+よって辞書 "small.lexicon" にこのキーと
+<a href="ex_lexeme.xhtml">上の語彙素テンプレート</a>の名前のエントリを
+追加します．
+またテンプレートデータベース "small.templates" には，
+語彙素テンプレートの名前 "[NP.nom&lt V.bse&gt NP.acc]_lxm" と
+語彙素テンプレートの素性構造のエントリを追加します．
+
+<p>
+この処理を "small.treebank" の全構文木に行い，
+辞書 "small.lexicon" とテンプレートデータベース "small.templates" を
+作っていきます．
+また得られた derivation は出力データベース "small.derivbank" に，
+その derivation の末端ノードは出力データベース "small.lexbank" に格納します．
+
+
+<h3><a name="refine">辞書の精製</a></h3>
+
+<p>
+ここでは lexextract で作った辞書とテンプレートデータベースを精製します．
+つまり，頻度による足切りをしたり，
+語彙素に語彙規則を適用して語彙項目を作るなどの処理をします．
+この作業には lexrefine ツールを使います．
+
+<small>
+<blockquote>
+<pre>
+lexrefine enju-devel/lexrefine small.lexcon small.templates new.lexicon new.templates
+</pre>
+</blockquote>
+</small>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"enju-devel/lexrefine"
+   は語彙素から語彙項目を生成する語彙規則を指定するモジュール
+   <li>"small.lexicon" は精製前の辞書
+   <li>"small.templates" は精製前のテンプレートデータベース
+   <li>"new.lexicon" は精製後の辞書
+   <li>"new.templates" は精製後のテンプレートデータベース
+</ul>
+
+<p>
+まずテンプレートデータベースで語彙素テンプレートの頻度による足切りが行われます．
+ある語彙素テンプレートの頻度は，辞書の作成時に
+ <tt>reduce_lexical_template/5</tt> によってそのテンプレートが出力された回数です．
+
+<p>
+次に，残った語彙素テンプレートに
+<tt>expand_lexical_template/5</tt> によって語彙規則を適用し，
+語彙項目テンプレートを生成します．
+例えば<a href="ex_lexeme.xhtml">上で作った語彙素テンプレート</a>に
+語彙規則 "passive_verb_rule" を適用すると，
+<a href="ex_lexent_passive.xhtml">新たな語彙項目テンプレート</a>
+を得ることができます．
+この語彙項目テンプレートは，動詞の受動態に対応します．
+このようにして生成した語彙項目をテンプレートデータベースに新たに登録します．
+このとき語彙項目テンプレートの頻度は，元の語彙素テンプレートと同じ頻度に設定されます．
+
+<p>
+次に，辞書をテンプレートデータベースの変更に対応させます．
+上で足切りされたテンプレートを含む辞書のエントリを削除します．
+また，新たに登録された語彙項目テンプレートのための辞書エントリを作ります．
+例の場合，動詞 "play/VB" の語彙素テンプレートから
+受動態の語彙項目テンプレートを生成したので，
+辞書に受動態の単語 "played/VBN" をキーにして
+この語彙項目テンプレートを登録する必要があります．
+受動態の単語のキーを作るには，<tt>expand_lexicon/3</tt> を使います．
+ <tt>expand_lexicon/3</tt> は元の語彙素テンプレートの辞書エントリと
+新しい語彙項目テンプレートを見て新たなキーを計算します．
+例の場合，元の語彙素テンプレートのキーは単語 "play/VB" を表すものだったので，
+新たなキーは次のようになります．
+
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">word</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">BASE</span></td>
+    <td><span class="doublequoted">"play"</span></td>
+</tr>
+<tr><td><span class="edge_fs">POS</span></td>
+    <td><span class="doublequoted">"VBN"</span></td>
+</tr>
+</table>
+
+このキーは原形が "play" POSが "VBN" なので "played/VBN" に
+対応していることになります．
+このとき，このキー (の表す単語) の頻度に元の語彙素テンプレートの
+頻度が足されます．
+
+<p>
+最後に辞書に未知語のためのエントリを作ります．
+辞書のキー (の表す単語) のうち頻度が閾値以下のものが未知語とみなされます．
+未知語とされたキーに <tt>unknown_word_key/2</tt> を適用して，
+未知語のキーを作ります．
+例えば上の "played/VBN" のキーに適用すると，次のような未知語キーのなります．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2" />
+    <td><span class="type">word</span></td>
+    <td>
+    <td class="rprn" rowspan="2" />
+</tr>
+<tr><td><span class="edge_fs">POS</span></td>
+    <td><span class="doublequoted">"VBN"</span></td>
+</tr>
+</table>
+
+元のキーより制約を少なくして，POS が "VBN" の単語全てに対応するキーになっています．
+元のキーに割り当てられたテンプレートと未知語キーを対応させる辞書エントリを
+追加します．
+つまり，上の受動態のテンプレートが POS が "VBN" の単語全てに割り当てられます．
+また，元のキーの頻度が閾値以下ならば元のキーのエントリを削除します．
+
+<h2><a name="unigram">Unigram モデルの推定</a></h2>
+
+<p>
+ここでは，構文解析で曖昧性解消をするために使う確率モデルのひとつ，
+ Unigram モデルの推定をします．
+Unigram モデルは，各単語に対して語彙項目を割り当てる確率のモデルです．
+単語を<i>w</i>，周辺の単語列を<i>s</i>，語彙項目を<i>l</i> とすると，
+<i>p(l|w,s)</i> を求めます．
+Enju の確率モデルは最大エントロピーモデルになっているので，
+モデルの推定では素性の最適な重みを
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/"> amis </a>を使って
+計算することになります．
+
+<h3><a name="uni_probevent">確率イベントの出力</a></h3>
+
+<p>
+Unigram モデルの推定では，まず unimaker ツールにより
+確率イベントをファイルに出力します．
+確率イベントとは，以下のように // で区切られたフィールドを持つ文字列です．
+
+<blockquote>
+<pre style="font-size:medium">
+plays//VBZ//[NP.nom<V.bse>NP.acc]_lxm-singular3rd_verb_rule//uni
+</pre>
+</blockquote>
+
+最後のフィールドはこのイベントの<i>カテゴリ</i> を表しています．
+その他のフィールドはイベントの特徴を表す記号です．
+unimaker は derivation 中の単語とその語彙項目を表す確率イベントの
+リストをファイルに出力します．
+このとき正例の確率イベントとして，単語とその単語に実際に割り当てられた語彙項目の
+確率イベントを出力します．実際に割り当てられた語彙項目は，
+上の手順で得られた derivation の末端ノードから計算します．
+また負例の確率イベントとして，同じ単語に割り当てることのできる他の語彙項目の
+確率イベントを出力します．
+
+<blockquote>
+<pre style="font-size:medium">
+unimaker uni devel/unimake small.derivbank uni.uevent
+</pre>
+</blockquote>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"uni" はこれから推定するモデルの名前
+   <li>"devel/unimake" は確率イベントを抽出するための述語等を実装したモジュール
+   <li>"small.derivbank" は lexextract ツールが出力した derivbation データベース
+   <li>"uni.uevent" は確率イベントを出力するファイル
+</ul>
+
+<p>
+まず確率イベントを出力する準備として，derivbank 中の derivatoin から
+derivation word lattice と word lattice を作ります．
+word lattice は <tt>um_derivation_to_word_lattice/2</tt> によって
+作られます．例文 "Ms. Haag plays Elianti." から作られる
+word lattice の要素には次のものがあります．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4" />
+    <td><span class="type">extent_word</span></td>
+    <td />
+    <td />
+    <td />
+    <td class="rprn" rowspan="4" />
+</tr>
+<tr><td>left_pos</td><td>2</td></tr>
+<tr><td>right_pos</td><td>3</td></tr>
+<tr><td>word</td>
+    <td>&lt</td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"play"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBZ"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">2</span></td>
+    </tr>
+    </table>
+    </td><td>&gt</td>
+</tr>
+</table>
+
+この word lattice は構文解析器 up のチャートに入力されます．
+これにより，後で確率イベントを抽出するときに
+周辺の単語を特徴フィールドに含めることができます．
+
+<p>
+derivation word lattice は <tt>um_derivation_to_word_lattice/2</tt>
+ によって作ります．
+上の word lattice と異なる点は，
+word 素性に
+<a href="ex_deriv_plays.html">対応する derivation の末端ノード</a>が
+格納されていることです．
+
+<p>
+次に，derivation word lattice の各要素から正例と負例の確率イベントを
+抽出します．
+derivation word lattice の要素に格納された derivation 末端ノードから
+ <tt>um_correct_lexical_entry/2</tt> によって，
+実際に割り当てられた語彙項目の名前 ('lex_entry' 型)を得ます．
+例文の "play" に対応する末端ノードからは次の名前が得られます．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">lex_entry</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><spaxn class="edge_fs">LEX_WORD</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"play"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBZ"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">2</span></td>
+    </tr>
+    </table>
+    </td>
+</tr>
+<tr><td><span class="edge_fs">LEX_TEMPLATE</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="3" />
+        <td><span class="type">lex_template</span></td>
+	<td>
+	<td class="rprn" rowspan="3" />
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="type">[NP.nom&lt V.bse&gt NP.acc]_lxm</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">singular3rd_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+    </td>
+</tr>
+</table>
+
+また同じ単語に割り当てることのできる，他の語彙項目の名前を
+ <tt>um_complement_lexical_entry/2</tt> によって得ます．
+例の場合次のような名前が含まれます．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">lex_entry</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><spaxn class="edge_fs">LEX_WORD</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"play"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBZ"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">2</span></td>
+    </tr>
+    </table>
+    </td>
+</tr>
+<tr><td><span class="edge_fs">LEX_TEMPLATE</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="3" />
+        <td><span class="type">lex_template</span></td>
+	<td>
+	<td class="rprn" rowspan="3" />
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="type">[NP.nom&lt V.bse&gt NP.acc]_lxm</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">movement_rule, singular3rd_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+    </td>
+</tr>
+</table>
+
+<p>
+こうして得た語彙項目の名前を <tt>extract_lexical_event/4</tt> に
+与えて，確率イベントを取り出します．
+このとき正しい語彙項目の名前から取り出した確率イベントは，
+正例として出力します．
+それ以外の語彙項目から取り出した確率イベントは負例として出力します．
+unimaker の出力は次のようになります．
+
+<blockquote>
+<pre style="font-size:medium">
+event_2_2
+1       ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays
+//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//play//VB//[NP
+.nom&lt V.bse&gt NP.acc]_lxm//elianti//NNP//elianti//NNP//EOS//EOS//EOS//EO
+S//EOS//EOS//EOS//EOS//uni
+0       ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays
+//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-movement_rule-singular3rd_verb_rule/
+/play//VB//[NP.nom&lt V.bse&gt NP.acc]_lxm//elianti//NNP//elianti//NNP//EOS
+//EOS//EOS//EOS//EOS//EOS//EOS//EOS//uni
+0       ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays
+//VBZ//[NP.nom&lt VP.bse&gt ]_lxm-singular3rd_verb_rule//play//VB//[NP.nom&lt 
+VP.bse&gt ]_lxm//elianti//NNP//elianti//NNP//EOS//EOS//EOS//EOS//EOS//EO
+S//EOS//EOS//uni
+0       ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays
+//VBZ//[NP.nom&lt V.bse&gt NP.accNP.acc]_lxm-singular3rd_verb_rule//play//V
+B//[NP.nom&lt V.bse&gt NP.accNP.acc]_lxm//elianti//NNP//elianti//NNP//EOS//
+EOS//EOS//EOS//EOS//EOS//EOS//EOS//uni
+0       ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays
+//VBZ//[NP.nom&lt V.bse&gt NP.accNP.acc]_lxm-movement_rule-singular3rd_verb
+_rule//play//VB//[NP.nom&lt V.bse&gt NP.accNP.acc]_lxm//elianti//NNP//elian
+ti//NNP//EOS//EOS//EOS//EOS//EOS//EOS//EOS//EOS//uni
+
+event_2_3
+...
+</pre>
+</blockquote>
+
+この例の場合，
+event_2_2 は単語 "plays" に
+ "[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule" で
+表される語彙項目が対応する確率イベントを表しています．
+2行目の最初の "1" が正例であることを，3，4, 5, 6行目の最初の "0" が
+負例であることを表しています．
+"EOS" は文の終わりを表しています．
+
+<h3><a name="uni_mask">マスクによる素性の出力</a></h3>
+
+次に上のステップで出力された確率イベントにマスクをかけ，
+素性を取り出し，
+ amis 形式のデータファイル出力します．
+
+
+<blockquote>
+<pre style="font-size:medium">
+amisfilter lex grammar/lexmask uni.uevent lex.count lex.model lex.event
+</pre>
+</blockquote>
+
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"lex" はこれから推定するモデルの名前
+   <li>"grammar/lexmask" は確率イベントをかけるマスクを実装したモジュール
+   <li>"uni.uevent" は確率イベントが記されたファイル
+   <li>"lex.count" は素性の頻度を出力するファイル (テキスト形式)
+   <li>"lex.model" は amis のモデルファイル
+   <li>"lex.event" は amis のイベントファイル
+</ul>
+
+まず確率イベントファイル "uni.uevent" 中の正例の確率イベントに対して，
+確率イベントのカテゴリにしたがってマスクをかけます．
+マスクはモジュール "grammar/lexmask" の中で，
+<tt>feature_mask/3</tt> を使って定義されています．
+例えばカテゴリ "uni" に対して，
+(0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+というマスクが定義されているとします．
+これを上で出てきた正例の確率イベントにかけたとします．
+
+<blockquote>
+<pre style="font-size:medium">
+ms-period-//NNP//ms-period-//NNP//haag//NNP//haag//NNP//plays//VBZ//[
+NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//play//VB//[NP.nom&lt V.b
+se&lt NP.acc]_lxm//elianti//NNP//elianti//NNP//EOS//EOS//EOS//EOS//EOS//
+EOS//EOS//EOS//uni
+</pre>
+</blockquote>
+
+このとき次のような素性が得られます．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singul
+ar3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni
+</pre>
+</blockquote>
+
+このように，確率イベントファイルの中の全ての正例にマスクをかけて素性を作ります．
+作った素性の頻度を記録しカウントファイル "lex.count" に出力します．
+作った素性のうち頻度が閾値以上のものを採用し，
+モデルファイルとイベントファイルを作ります．
+モデルファイル "lex.model" には，採用した素性とその重みの初期値が記されます．
+例えば次のようになります．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singul
+ar3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni     1.0
+_//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singul
+ar3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni     1.0
+...
+</pre>
+</blockquote>
+
+イベントファイル "lex.event" には確率イベントファイル "uni.uevent" と
+同じ形式になっています．
+ただし，各確率イベントの代わりにマスクをかけて作った素性が記されています．
+また，採用されなかった素性は出力されていません．
+
+<blockquote>
+<pre style="font-size:medium">
+event_2_2
+1       _//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lx
+m-singular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_/
+/uni _//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-si
+ngular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni ...
+0       _//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lx
+m-movement_rule-singular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//
+_//_//_//_//_//uni _//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt 
+NP.acc]_lxm-movement_rule-singular3rd_verb_rule//_//_//_//_//_//_//_/
+/_//_//_//_//_//_//_//_//uni ...
+0       _//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt ]_lxm-sing
+ular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni _
+//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt ]_lxm-singular3rd_ve
+rb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni ...
+0       _//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.accNP.a
+cc]_lxm-singular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_/
+/_//_//uni _//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt NP.accNP
+.acc]_lxm-singular3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//
+_//_//_//uni ...
+0       _//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.accNP.a
+cc]_lxm-movement_rule-singular3rd_verb_rule//_//_//_//_//_//_//_//_//
+_//_//_//_//_//_//_//uni _//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt 
+V.bse&gt NP.accNP.acc]_lxm-movement_rule-singular3rd_verb_rule//_//_//_/
+/_//_//_//_//_//_//_//_//_//_//_//_//uni ...
+
+event_2_3
+...
+</pre>
+</blockquote>
+
+<h3><a name="uni_amis">素性の重みの計算</a></h3>
+
+<p>
+上のステップで得られた Amis 形式のモデルファイルとイベントファイルから
+ <a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> を使って
+素性の最適な重みを計算します．
+<small>
+<blockquote>
+<pre>
+amis devel/lexmodel.conf -m lex.model -e lex.event -o lex.output
+</pre>
+</blockquote>
+</small>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"devel/lexmodel.conf" は amis の設定ファイル
+   <li>"lex.model" は amisfilter が出力したモデルファイル
+   <li>"lex.event" は amisfilter が出力したイベントファイル
+   <li>"lex.output" は amis が出力するファイル
+</ul>
+
+出力ファイル "lex.output" には，モデルファイルと同じ形式で
+計算した素性の重みが記されます．
+
+<p>
+出力ファイルにはモデルファイルと同じ形式で，計算された素性の重みが示されています．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//_//_//haag//_//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singul
+ar3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni     1.0
+_//_//_//_//_//NNP//_//_//plays//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singul
+ar3rd_verb_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni     1.111370e+00
+...
+</pre>
+</blockquote>
+
+<h2><a name="featureforest">Feature forest モデルの推定</a></h2>
+
+<p>
+ここでは，構文解析で曖昧性解消をするために使う確率モデルのひとつ，
+ feature forest モデルの推定をします．
+feature forest モデルは，文に対してその構文木の確率を与えるモデルです．
+文を<i>s</i>，その構文木を <i>d</i> とすると，
+<i>p(d|s)</i> を求めます．
+Enju の確率モデルは最大エントロピーモデルになっているので，
+モデルの推定では素性の最適な重みを
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/"> amis </a>
+を使って計算することになります．
+
+<h3><a name="ff_probevent">確率イベントの出力</a></h3>
+
+<p>
+feature forest モデルの推定では，まず forestmaker ツールにより
+確率イベントを feature forest 形式でファイルに出力します．
+文法開発で使ったコーパスの中の文を，開発した文法で構文解析して
+文法上許される構文木を列挙します．
+その中でも文法開発の過程で得た derivation と同様の構文木を正例とし，
+構文木の特徴を表す確率イベントを出力します．
+他の構文木は負例として，確率イベントを出力します．
+
+<small>
+<blockquote>
+<pre>
+forestmaker forest devel/forestmake small.derivbank forest.uevent
+</pre>
+</blockquote>
+</small>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"forest" はこれから推定するモデルの名前
+   <li>"devel/forestmake" は構文解析のための文法や
+   構文木から確率イベントを抽出する述語を含むモジュール
+   <li>"small.derivbank" は lexextract ツールが出力した derivbation データベース
+   <li>"forest.event" は feature forest 形式の確率イベントを出力するファイル
+</ul>
+
+<p>
+正例として正解の構文木を "small.derivbank" の derivation から作ります．
+まず，正解語彙項目テンプレートの名前 ('lex_entry' 型) を
+ <tt>fm_correct_lexical_entry/2</tt> で計算します．
+正解構文木の中間ノードは， derivation の中間ノードの
+DERIV_SCHEMA 素性に指定されたスキーマを使って作っていきます．
+例の "Ms. Haag plays Elinati." の文の場合も
+<a href="ex_parse_tree.html">構文木</a>が得られます．
+
+<p>
+また負例として，文法上許される構文木を列挙するため，
+derivation の文を獲得した文法と UP に似た解析器で構文解析します．
+このとき，列挙される構文木の中に正解の構文木が含まれる必要があります．
+
+<p>
+そのために，derivation から derivation word lattice と word lattice の
+2種類の word lattic を構成します．
+word lattice は，<tt>fm_derivation_to_word_lattice/2</tt> で作られ，
+次のような要素を持ちます．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4" />
+    <td><span class="type">extent_word</span></td>
+    <td />
+    <td />
+    <td />
+    <td class="rprn" rowspan="4" />
+</tr>
+<tr><td>left_pos</td><td>1</td></tr>
+<tr><td>right_pos</td><td>2</td></tr>
+<tr><td>word</td>
+    <td>&lt</td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"plays"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"play"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBZ"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">2</span></td>
+    </tr>
+    </table>
+    </td><td>&gt</td>
+</tr>
+</table>
+この word lattice は構文解析器の前処理に使われます．
+
+<p>
+derivation word lattice は <tt>fm_derivation_to_deriv_word_lattice/2</tt> で
+作られます．
+上の word lattice と異なる点は，
+word 素性に derivation の末端ノードが格納されていることです．
+
+<p>
+構文解析器に語彙項目を入力するときには，
+ <tt>fm_lexical_entry/2</tt> に deriv word lattice の要素を与え，
+返り値の語彙項目を入力します．
+<tt>fm_lexical_entry/2</tt> は deriv word lattice の要素に格納された
+ derivation 末端ノードの sign を見て，
+返り値の中に正解の語彙項目テンプレートの名前が必ず含まれるようにしています．
+また，正解でない語彙項目テンプレートは，Unigram モデルでの FOM を計算して
+足切りしています．これは計算コストを小さくするためです．
+よって例の "plays" に対しては
+[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule で
+表される正解語彙項目テンプレートと，
+[NP.nom&lt VP.bse>]_lxm-singular3rd_verb_rule 等の
+正解でない語彙項目テンプレートが入力されます．
+
+<p>
+この後構文解析をすると，
+チャート上に derivation forest が得られます．
+つまり，チャート上に正解構文木と正解でない構文木が重なって表現されます．
+これと先ほど作られた正解構文木を使って確率イベントを出力します．
+まず，正解構文木の各ノードから <tt>extract_root_event/4</tt> 等により
+確率イベントを取り出し，正例として出力します．
+次に構文解析結果の構文木を列挙するため，チャートの中身を feature forest 形式で
+出力します．このときチャート上の各ノードから <tt>extract_root_event/4</tt> 等により
+確率イベントを取り出します．
+結果として一文に対する出力は次のようになります．
+
+<blockquote>
+<pre style="font-size:medium">
+event_2
+1        S_fin//plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_ver
+b_rule//play//VB//[NP.nom&lt V.bse&gt NP.acc]_lxm//2//1//m//root plays//VBZ
+//[NP.nom&lt V.bse&gt NP.acc]_lxm//haag//NNP//[D&lt N.3sg&gt ]_lxm//ARG1//1//sem 
+plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm//elianti//NNP//[D&lt N.3sg&gt ]_lxm//
+ARG2//1//sem SUBJ//1//1//m//m//NNP//VBZ//VP//plays//VBZ//[NP.nom&lt V.bs
+e&gt NP.acc]_lxm-singular3rd_verb_rule//play//VB//[NP.nom&lt V.bse&gt NP.acc]_
+...
+{ _ ( root22 S_fin//plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd
+_verb_rule//play//VB//[NP.nom&lt V.bse&gt NP.acc]_lxm//2//1//m//root { node
+22 ( b22_0 plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm//haag//NNP//[D&lt N.3sg
+&gt ]_lxm//ARG1//1//sem plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm//elianti//
+...
+
+event_3
+...
+</pre>
+</blockquote>
+
+前半が正例の確率イベントを列挙したもので，後半がチャートの中身を
+feature forest 形式で表したものです．
+全ての文の出力をあわせたものが，出力ファイル "forest.uevent" となります．
+
+<h3><a name="ff_mask">マスクによる素性の出力</a></h3>
+
+<p>
+forestmaker の出力した確率イベントのいくつかのフィールドを組み合わせて
+素性をつくり，amis 用のモデルファイル，イベントファイルを作ります．
+組み合わせるフィールドを指定するためにマスクを定義します．
+
+<small>
+<blockquote>
+<pre>
+amisfilter forest grammar/fullmask forest.uevent full.count full.model full.event
+</pre>
+</blockquote>
+</small>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"forest" はこれから推定するモデルの名前
+   <li>"grammar/fullmask" はマスクを定義したモジュール
+   <li>"forest.uevent" は forestmaker が出力した確率イベントファイル
+   <li>"full.model" は出力するモデルファイル
+   <li>"full.event" は出力するイベントファイル
+</ul>
+
+まず正例の確率イベントに，その確率イベントのカテゴリに定義されたマスクをかけ，
+素性を作ります．マスクは <tt>feature_mask/3</tt> でカテゴリごとに定義されます．
+例えば，"grammar/fullmask" モジュールで "root" カテゴリに対して
+マスク (0, 0, 1, 1,  0, 0, 0, 0, 0, 0) が定義されているとします．
+このとき，次の確率イベントにこのマスクを適用すると，
+
+<blockquote>
+<pre style="font-size:medium">
+S_fin//plays//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//p
+lay//VB//[NP.nom&lt V.bse&gt NP.acc]_lxm//2//1//m//root
+</pre>
+</blockquote>
+
+次のような素性を得ることになります．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//
+_//_//_//root
+</pre>
+</blockquote>
+
+このようにして作られる素性の頻度を記録し，閾値以上の頻度の素性のみを採用します．
+その上で amis のモデルファイルと feature forest 形式のイベントファイルを出力します．
+モデルファイル "full.model" には，採用した素性とその重みの初期値が記されます．
+例えば次のようになります．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//
+_//_//_//root    1.0
+...
+</pre>
+</blockquote>
+
+イベントファイル "full.event" は次のようになります．
+
+<blockquote>
+<pre style="font-size:medium">
+event_2
+1       _//_//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//
+_//_//_//_//_//root _//_//VBZ//_//_//_//_//_//_//_//root _//_//VBZ//[
+NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//_//_//_//roo
+t S_fin//_//_//_//_//_//_//_//_//_//root SUBJ//1//_//m//m//_//_//_//_
+//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//_//_//
+...
+{ _ ( root22 _//_//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule
+//_//_//_//_//_//_//root _//_//VBZ//_//_//_//_//_//_//_//root _//_//V
+BZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//_//_//_
+//root S_fin//_//_//_//_//_//_//_//_//_//root { node22 ( b22_0 SUBJ//
+1//_//m//m//_//_//_//_//_//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb
+...
+
+event_3
+......
+</pre>
+</blockquote>
+
+<h3><a name="ff_amis">素性の重みの計算</a></h3>
+
+amisfilter の出力したモデルファイルと feature forest 形式のイベントファイルを
+ amis に入力し，各素性の最適な重みを計算します．
+
+<small>
+<blockquote>
+<pre>
+amis devel/fullmodel.conf -m full.model -e full.event -o full.output
+</pre>
+</blockquote>
+</small>
+
+この場合，各引数は次のようになります．
+
+<ul>
+   <li>"devel/fullmodel.conf" は amis の設定ファイル
+   <li>"full.model" は amisfilter が出力したモデルファイル
+   <li>"full.event" は amisfilter が出力したイベントファイル
+   <li>"full.output" は amis が出力するファイル
+</ul>
+
+出力ファイル "full.output" には，モデルファイルと同じ形式で
+計算した素性の重みが記されます．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//VBZ//[NP.nom&lt V.bse&gt NP.acc]_lxm-singular3rd_verb_rule//_//_//_//
+_//_//_//root    7.699405e-01
+...
+</pre>
+</blockquote>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,105 @@
+%/**********************************************************************
+  * @module    =  enju:synmask
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: synmask.lil,v 1.4 2008-01-19 13:09:30 yusuke Exp $
+  * @version   =  Time-stamp: <2007-11-15 18:25:30 yusuke>
+  * @desc      =  Feature masks for synmodel
+  **********************************************************************
+%*/
+
+:- module("enju:synmask").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/amismodel").
+
+:- module_implementation.
+
+%% Auxiliary distribution
+%% feature_mask("hpsg-forest", "aux", [1]).
+
+%% Lexical entry
+%% Symbol Surface POS Temp Span NumComma
+%% feature_mask("hpsg-forest", "term", [0, 1, 1, 1, 0, 0]).
+%% feature_mask("hpsg-forest", "term", [0, 0, 1, 1, 0, 0]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Root condition
+%% Symbol  Surface POS Temp  Base BasePOS Lexeme  Span NumComma
+feature_mask("hpsg-forest", "root", [0,  0, 0, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "root", [0,  0, 1, 0,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "root", [0,  0, 1, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "root", [1,  0, 0, 0,  0, 0, 0,  0, 0]).
+
+%% Unary rule
+%% Rule LBPOS RBPOS  Symbol  Surface POS Temp  Base BasePOS Lexeme  Span NumComma
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  0, 0, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  0, 1, 0,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  0, 1, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  1,  0, 0, 0,  0, 0, 0,  0, 0]).
+
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  1, 0, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  1, 1, 0,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  0,  1, 1, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 0, 0,  1,  1, 0, 0,  0, 0, 0,  0, 0]).
+
+feature_mask("hpsg-forest", "unary", [1, 1, 1,  0,  0, 0, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 1, 1,  0,  0, 1, 0,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 1, 1,  0,  0, 1, 1,  0, 0, 0,  0, 0]).
+feature_mask("hpsg-forest", "unary", [1, 1, 1,  1,  0, 0, 0,  0, 0, 0,  0, 0]).
+
+%% Binary rule
+%% Rule Dist Depth AdjComma BoundComma LPOS RPOS LBPOS RBPOS
+%%     HeadSymbol Surf POS Temp Base BasePOS Lexeme Span NumComma
+%%     NHSymbol   Surf POS Temp Base BasePOS Lexeme Span NumComma
+
+%% with distance
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 0, 0, 1,  0, 0, 0, 1, 0, 0, 0, 0, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 0, 1,  0, 0, 1, 0, 0, 0, 0, 0, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 0, 1, 1, 0, 0, 0, 0, 1,  0, 0, 1, 1, 0, 0, 0, 0, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  1, 0, 0, 0, 0, 0, 0, 0, 1,  1, 0, 0, 0, 0, 0, 0, 0, 1]).  %% comma, sym
+
+%% with span
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 0, 1, 1,  0, 0, 0, 1, 0, 0, 0, 1, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 1, 1,  0, 0, 1, 0, 0, 0, 0, 1, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 0, 1, 1, 0, 0, 0, 1, 1,  0, 0, 1, 1, 0, 0, 0, 1, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  1, 0, 0, 0, 0, 0, 0, 1, 1,  1, 0, 0, 0, 0, 0, 0, 1, 1]).  %% comma, sym
+
+%% with distance + surface
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 0, 1, 0, 0, 0, 0, 1,  0, 1, 0, 1, 0, 0, 0, 0, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 0, 0, 0, 0, 0, 1,  0, 1, 1, 0, 0, 0, 0, 0, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 1, 0, 0, 0, 0, 1,  0, 1, 1, 1, 0, 0, 0, 0, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  1, 1, 0, 0, 0, 0, 0, 0, 1,  1, 1, 0, 0, 0, 0, 0, 0, 1]).  %% comma, sym
+
+%% with span + surface
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 0, 1, 0, 0, 0, 1, 1,  0, 1, 0, 1, 0, 0, 0, 1, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 0, 0, 0, 0, 1, 1,  0, 1, 1, 0, 0, 0, 0, 1, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 1, 0, 0, 0, 1, 1,  0, 1, 1, 1, 0, 0, 0, 1, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  1, 1, 0, 0, 0, 0, 0, 1, 1,  1, 1, 0, 0, 0, 0, 0, 1, 1]).  %% comma, sym
+
+%% with distance + head surface
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 0, 1, 0, 0, 0, 0, 1,  0, 0, 0, 1, 0, 0, 0, 0, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 0, 0, 0, 0, 0, 1,  0, 0, 1, 0, 0, 0, 0, 0, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 1, 0, 0, 0, 0, 1,  0, 0, 1, 1, 0, 0, 0, 0, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 0, 0,  1, 1, 0, 0, 0, 0, 0, 0, 1,  1, 0, 0, 0, 0, 0, 0, 0, 1]).  %% comma, sym
+
+%% with span + head surface
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 0, 1, 0, 0, 0, 1, 1,  0, 0, 0, 1, 0, 0, 0, 1, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 0, 0, 0, 0, 1, 1,  0, 0, 1, 0, 0, 0, 0, 1, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  0, 1, 1, 1, 0, 0, 0, 1, 1,  0, 0, 1, 1, 0, 0, 0, 1, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 0, 0,  1, 1, 0, 0, 0, 0, 0, 1, 1,  1, 0, 0, 0, 0, 0, 0, 1, 1]).  %% comma, sym
+
+%% with distance + outside pos
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 1, 1,  0, 0, 0, 1, 0, 0, 0, 0, 1,  0, 0, 0, 1, 0, 0, 0, 0, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 1, 1,  0, 0, 1, 0, 0, 0, 0, 0, 1,  0, 0, 1, 0, 0, 0, 0, 0, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 1, 1,  0, 0, 1, 1, 0, 0, 0, 0, 1,  0, 0, 1, 1, 0, 0, 0, 0, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 1, 0, 1, 1, 0, 0, 1, 1,  1, 0, 0, 0, 0, 0, 0, 0, 1,  1, 0, 0, 0, 0, 0, 0, 0, 1]).  %% comma, sym
+
+%% with span + outside pos
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 1, 1,  0, 0, 0, 1, 0, 0, 0, 1, 1,  0, 0, 0, 1, 0, 0, 0, 1, 1]).  %% comma, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 1, 1,  0, 0, 1, 0, 0, 0, 0, 1, 1,  0, 0, 1, 0, 0, 0, 0, 1, 1]).  %% comma, pos
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 1, 1,  0, 0, 1, 1, 0, 0, 0, 1, 1,  0, 0, 1, 1, 0, 0, 0, 1, 1]).  %% comma, pos, temp
+feature_mask("hpsg-forest", "bin", [1, 0, 0, 1, 1, 0, 0, 1, 1,  1, 0, 0, 0, 0, 0, 0, 1, 1,  1, 0, 0, 0, 0, 0, 0, 1, 1]).  %% comma, sym
+

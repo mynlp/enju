@@ -1,0 +1,545 @@
+%/**********************************************************************
+  * @module    = mayz:morivgrammar
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2009-12-17 13:55:01 yusuke>
+  * @desc      = Parser interface for MoriV
+  **********************************************************************
+%*/
+
+:- module("mayz:morivparser").
+
+:- module_interface.
+
+:- ensure_loaded("parser").
+:- ensure_loaded("moriv").
+:- ensure_loaded("word").
+:- ensure_loaded("tagger").
+:- ensure_loaded("display").
+
+'*moriv_parser_menu*' <- [variable].
+'*moriv_parser_title*' <- [variable].
+'*moriv_parser_heading*' <- [variable].
+
+%% To display user-defined page
+moriv_parser_display <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/debug").
+
+'*sentence_id*' <- [variable].
+'*sentence_cache*' <- [variable].
+'*parse_result_cache*' <- [variable].
+:-
+    define_variable('*moriv_parser_menu*'),
+    set_variable('*moriv_parser_menu*', []),
+    define_string_variable('*moriv_parser_title*'),
+    set_variable('*moriv_parser_title*', "MAYZ GUI - Parser Demo"),
+    define_variable('*moriv_parser_heading*'),
+    set_variable('*moriv_parser_heading*', "MAYZ GUI - Parser Demo"),
+    init_integer_variable('*sentence_id*'),
+    define_string_variable('*sentence_cache*'),
+    set_variable('*sentence_cache*', ""),
+    define_variable('*parse_result_cache*'),
+    set_variable('*parse_result_cache*', []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Utilities
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_nonterminal_symbol <- [pred].
+moriv_nonterminal_symbol($Sign, $Symbol) :-
+    (sign_label($Sign, $Symbol) ->
+     true ;
+     error_message("sign_label/2 failed\n"),
+     fail).
+
+moriv_terminal_symbol <- [pred].
+moriv_terminal_symbol($LexName, $Symbol) :-
+    (lexname_label($LexName, $Symbol) ->
+     true ;
+     error_message("lexname_label/2 failed\n"),
+     fail).
+
+moriv_edge_label_unary <- [pred].
+moriv_edge_label_unary($Schema, $Label) :-
+    (schema_edge_label_unary($Schema, $Label) ->
+     true ;
+     error_message("schema_edge_label_unary/2 failed\n"),
+     fail).
+
+moriv_edge_label_binary <- [pred].
+moriv_edge_label_binary($Schema, $LeftLabel, $RightLabel) :-
+    (schema_edge_label_binary($Schema, $LeftLabel, $RightLabel) ->
+     true ;
+     error_message("schema_edge_label_binary/3 failed\n"),
+     fail).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Sentence input frame
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+input_sentence_page <- [pred].
+input_sentence_page($Page) :-
+    get_variable('*moriv_parser_heading*', $Heading),
+    get_variable('*sentence_cache*', $Sentence1),
+    encode_xml_string($Sentence1, $Sentence),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Heading & XHTML_CLASS\"title",
+	     (xhtml_form & FORM_METHOD\"get" &
+	      FORM_ACTION\"moriv" & XHTML_ATTRIBUTES\[XML_ATTR\"onreset" & XML_ATTR_VAL\"this.sentence.value=''; return false;"] &
+	      XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Input sentence: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" &
+			   INPUT_SIZE\"70" & XHTML_NAME\"sentence" & INPUT_VALUE\$Sentence),
+			  (xhtml_input & INPUT_TYPE\"hidden" &
+			   XHTML_NAME\"page" & INPUT_VALUE\"parser"),
+			  (xhtml_input & INPUT_TYPE\"submit" &
+			   XHTML_NAME\"parse" & INPUT_VALUE\"Parse"),
+			  (xhtml_input & INPUT_TYPE\"reset" &
+			   INPUT_VALUE\"Clear"),
+			  (xhtml_input & INPUT_TYPE\"radio" &
+			   XHTML_NAME\"sentence_type" & INPUT_VALUE\"raw" &
+			   XHTML_ATTRIBUTES\[XML_ATTR\"checked" & XML_ATTR_VAL\"true"]),
+			  "raw",
+			  (xhtml_input & INPUT_TYPE\"radio" &
+			   XHTML_NAME\"sentence_type" & INPUT_VALUE\"tagged"),
+			  "tagged"]),
+	     $Menu],
+    get_variable('*moriv_common_menu*', $Menu).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Parse result frame
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parsing_time_result <- [pred].
+parsing_time_result($Time1, $Time2, $Time3) :-
+    get_analyze_word_time($Time1),
+    get_analyze_lexent_time($Time2),
+    get_analyze_parse_time($Time3),
+    !.
+parsing_time_result("---", "---", "---").
+
+moriv_parse_result_success <- [pred].
+moriv_parse_result_success($Result) :-
+    get_variable('*moriv_parser_menu*', $Menu),
+    get_sentence_length($Length),
+    get_edge_number($NumEdges),
+    parsing_time_result($Time1, $Time2, $Time3),
+    $ParseResult = [xhtml_p &
+		    XHTML_TEXT\["Result:",
+				xhtml_table & XHTML_CLASS\"result" &
+				XHTML_TEXT\[(xhtml_tr &
+					     XHTML_TEXT\[xhtml_th & XHTML_TEXT\"# words",
+							 xhtml_td & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"] &
+							 XHTML_CLASS\"number" & XHTML_TEXT\$Length]),
+					    (xhtml_tr &
+					     XHTML_TEXT\[xhtml_th & XHTML_TEXT\"# edges",
+							 xhtml_td & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\"2"] &
+							 XHTML_CLASS\"number" & XHTML_TEXT\$NumEdges]),
+					    (xhtml_tr &
+					     XHTML_TEXT\[xhtml_th & XHTML_ATTRIBUTES\[XML_ATTR\"rowspan" & XML_ATTR_VAL\"3"] & XHTML_TEXT\"Time",
+							 xhtml_td & XHTML_TEXT\"POS tagging.",
+							 xhtml_td & XHTML_CLASS\"number" & XHTML_TEXT\$Time1]),
+					    (xhtml_tr &
+					     XHTML_TEXT\[xhtml_td & XHTML_TEXT\"supertagging",
+							 xhtml_td & XHTML_CLASS\"number" & XHTML_TEXT\$Time2]),
+					    (xhtml_tr &
+					     XHTML_TEXT\[xhtml_td & XHTML_TEXT\"parsing",
+							 xhtml_td & XHTML_CLASS\"number" & XHTML_TEXT\$Time3])]]],
+    (root_edge_id_list([]) ->
+     $FailResult = [$ParseResult,
+		    xhtml_p &
+		    XHTML_TEXT\["Show",
+				xhtml_a & A_HREF\"moriv?page=parser&amp;display=wordlattice" & XHTML_CLASS\"menu" & XHTML_TEXT\"Word lattice"]],
+     append([xhtml_p & XHTML_TEXT\"Parsing failed."|$FailResult], [$Menu], $Result)
+     ;
+     get_variable('*sentence_id*', $SentID),
+     inttostr($SentID, $SentIDStr),
+     strcat("moriv?page=parser&amp;display=sign&amp;id=", $SentIDStr, $SignHRef),
+     strcat("moriv?page=parser&amp;display=fullsign&amp;id=", $SentIDStr, $FullSignHRef),
+     strcat("moriv?page=parser&amp;display=tree&amp;id=", $SentIDStr, $TreeHRef),
+     strcat("moriv?page=parser&amp;display=fomtree&amp;id=", $SentIDStr, $FOMTreeHRef),
+     strcat("moriv?page=parser&amp;display=fstree&amp;id=", $SentIDStr, $FSTreeHRef),
+     $SuccessResult = [$ParseResult,
+		       xhtml_p &
+		       XHTML_TEXT\["Show",
+				   xhtml_a & A_HREF\$SignHRef & XHTML_CLASS\"menu" & XHTML_TEXT\"Sign",
+				   "/",
+				   xhtml_a & A_HREF\$FullSignHRef & XHTML_CLASS\"menu" & XHTML_TEXT\"Sign (full)",
+				   "/",
+				   xhtml_a & A_HREF\$TreeHRef & XHTML_CLASS\"menu" & XHTML_TEXT\"Tree",
+				   "/",
+				   xhtml_a & A_HREF\$FOMTreeHRef & XHTML_CLASS\"menu" & XHTML_TEXT\"Tree (with FOM)",
+				   "/",
+				   xhtml_a & A_HREF\$FSTreeHRef & XHTML_CLASS\"menu" & XHTML_TEXT\"Tree (with signs)"],
+		       xhtml_p &
+		       XHTML_TEXT\["Show",
+				   xhtml_a & A_HREF\"moriv?page=parser&amp;display=wordlattice" & XHTML_CLASS\"menu" & XHTML_TEXT\"Word lattice"]],
+     append([xhtml_p & XHTML_TEXT\"Parsing finished."|$SuccessResult], [$Menu], $Result)).
+
+parse_status_string <- [pred].
+parse_status_string(preprocess_error, "preprocessing failed") :- !.
+parse_status_string(parse_error_too_long, ["too long sentence (", $Num, " words)"]) :-
+    !,
+    get_sentence_length($Num).
+parse_status_string(parse_error_edge_limit, "edge limit exceeded") :- !.
+parse_status_string(_, "unknown reason").
+
+moriv_parse_result_failure <- [pred].
+moriv_parse_result_failure($Result) :-
+    get_parse_status($ParseStatus),
+    parse_status_string($ParseStatus, $ParseStatusString),
+    ($ParseStatus = parse_error ->
+     $ShowLattice = [xhtml_p &
+		     XHTML_TEXT\["Show",
+				 xhtml_a & A_HREF\"moriv?page=parser&amp;display=wordlattice" & XHTML_CLASS\"menu" & XHTML_TEXT\"Word lattice"]] ;
+     $ShowLattice = []),
+    $Result = [xhtml_p &
+	       XHTML_TEXT\["Parsing error: ", $ParseStatusString]|
+	       $ShowLattice].
+
+moriv_parse_result_dispatch <- [pred].
+moriv_parse_result_dispatch("raw", $Sentence, $Result) :-
+    (enable_external_tagger,
+     parse($Sentence) ->
+     moriv_parse_result_success($Result) ;
+     moriv_parse_result_failure($Result)),
+    set_variable('*parse_result_cache*', $Result).
+moriv_parse_result_dispatch("tagged", $Sentence, $Result) :-
+    (disable_external_tagger,
+     parse($Sentence) ->
+     moriv_parse_result_success($Result) ;
+     moriv_parse_result_failure($Result)),
+    set_variable('*parse_result_cache*', $Result).
+
+parse_result_page <- [pred].
+parse_result_page($Args, $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"Parse result" & XHTML_CLASS\"title"|$Result],
+    (assoc("sentence", $Args, $Sentence),
+     get_variable('*sentence_cache*', $Cache),
+     $Sentence \= "",
+     $Sentence \= $Cache ->
+     inc_variable('*sentence_id*'),
+     set_variable('*sentence_cache*', $Sentence),
+     (assoc("sentence_type", $Args, $SentenceType) ->
+      true ;
+      $SentenceType = "raw"),
+     moriv_parse_result_dispatch($SentenceType, $Sentence, $Result)
+     ;
+     get_variable('*parse_result_cache*', $Result)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Node feature structure
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+node_feature_structure <- [pred].
+node_feature_structure($EdgeID, $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\["Edge sign", "ID=", $EdgeID] & XHTML_CLASS\"title",
+	     xhtml_tfstoxml & XHTML_TEXT\$Sign],
+    edge_sign($EdgeID, $Sign).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Top sign
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+best_sign_page <- [pred].
+best_sign_page([xhtml_h3 & XHTML_TEXT\"Best sign" & XHTML_CLASS\"title",
+		xhtml_p & XHTML_TEXT\["FOM = ", $FOM],
+		xhtml_tfstoxml & XHTML_TEXT\$Sign]) :-
+    best_fom_sign($ID, _, $FOM),
+    edge_sign($ID, $Sign).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Full sign
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+best_full_sign_page <- [pred].
+best_full_sign_page([xhtml_h3 & XHTML_TEXT\"Best sign (full)" & XHTML_CLASS\"title",
+		     xhtml_p & XHTML_TEXT\["FOM = ", $FOM],
+		     xhtml_tfstoxml & XHTML_TEXT\$Sign]) :-
+    best_fom_sign(_, $Sign, $FOM).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Parse tree
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+encode_node_link <- [pred].
+encode_node_link($Symbol1, $EdgeID, $Link) :-
+    encode_xml_string($Symbol1, $Symbol),
+    inttostr($EdgeID, $EdgeIDStr),
+    strcat("moriv?page=parser:node_sign&amp;node_id=", $EdgeIDStr, $Request),
+    $Link = (xhtml_a &
+	     A_HREF\$Request &
+	     A_TARGET\"_blank" &
+	     XHTML_TEXT\$Symbol).
+deriv_to_tree <- [pred].
+deriv_to_tree(parse_tree_terminal & EDGE_SIGN\$Sign & EDGE_ID\$ID & EDGE_LINK\LEX_NAME\$LexName,
+	      xhtml_tree & XHTML_TEXT\[$Link, xhtml_dtr & DTR_EDGE\"LEX" & XHTML_TEXT\$Word]) :-
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_node_link($Symbol, $ID, $Link),
+    moriv_terminal_symbol($LexName, $Word1),
+    encode_xml_string($Word1, $Word).
+deriv_to_tree(parse_tree_nonterminal_unary & EDGE_SIGN\$Sign & EDGE_ID\$ID & EDGE_LINK\APPLIED_SCHEMA\$Schema & U_TREE\$UnaryTree,
+	      xhtml_tree & XHTML_TEXT\[$Link, xhtml_dtr & DTR_EDGE\$UnaryLabel & XHTML_TEXT\$UnaryDtr]) :-
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_node_link($Symbol, $ID, $Link),
+    moriv_edge_label_unary($Schema, $UnaryLabel1),
+    encode_xml_string($UnaryLabel1, $UnaryLabel),
+    deriv_to_tree($UnaryTree, $UnaryDtr).
+deriv_to_tree(parse_tree_nonterminal_binary & EDGE_SIGN\$Sign & EDGE_ID\$ID & EDGE_LINK\APPLIED_SCHEMA\$Schema & L_TREE\$LeftTree & R_TREE\$RightTree,
+	      xhtml_tree & XHTML_TEXT\[$Link,
+				       xhtml_dtr & DTR_EDGE\$LeftLabel & XHTML_TEXT\$LeftDtr,
+				       xhtml_dtr & DTR_EDGE\$RightLabel & XHTML_TEXT\$RightDtr]) :-
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_node_link($Symbol, $ID, $Link),
+    moriv_edge_label_binary($Schema, $LeftLabel1, $RightLabel1),
+    encode_xml_string($LeftLabel1, $LeftLabel),
+    encode_xml_string($RightLabel1, $RightLabel),
+    deriv_to_tree($LeftTree, $LeftDtr),
+    deriv_to_tree($RightTree, $RightDtr).
+best_parse_tree_page <- [pred].
+best_parse_tree_page([xhtml_h3 & XHTML_TEXT\"Best parse tree" & XHTML_CLASS\"title",
+		      xhtml_p & XHTML_TEXT\["FOM = ", $FOM],
+		      $Tree]) :-
+    best_fom_parse_tree($ParseTree, $FOM),
+    deriv_to_tree($ParseTree, $Tree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Parse tree with FOM
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+encode_prob_link <- [pred].
+encode_prob_link($Symbol1, $FOM, $EdgeID, $Link) :-
+    encode_xml_string($Symbol1, $Symbol),
+    floattostr($FOM, $FOMStr),
+    inttostr($EdgeID, $EdgeIDStr),
+    strcat("moriv?page=parser:node_sign&amp;node_id=", $EdgeIDStr, $Request),
+    $Link = (xhtml_a &
+	     A_HREF\$Request &
+	     A_TARGET\"_blank" &
+	     XHTML_TEXT\[$Symbol, "(", $FOMStr, ")"]).
+deriv_to_prob_tree <- [pred].
+deriv_to_prob_tree(parse_tree_terminal & EDGE_ID\$ID & EDGE_SIGN\$Sign & EDGE_LINK\LEX_NAME\$LexName,
+		   xhtml_tree & XHTML_TEXT\[$Link, xhtml_dtr & DTR_EDGE\"LEX" & XHTML_TEXT\$Word]) :-
+    edge_fom($ID, $FOM),
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_prob_link($Symbol, $FOM, $ID, $Link),
+    moriv_terminal_symbol($LexName, $Word1),
+    encode_xml_string($Word1, $Word).
+deriv_to_prob_tree(parse_tree_nonterminal_unary & EDGE_ID\$ID & EDGE_SIGN\$Sign & EDGE_LINK\APPLIED_SCHEMA\$Schema & U_TREE\$UnaryTree,
+		   xhtml_tree & XHTML_TEXT\[$Link, xhtml_dtr & DTR_EDGE\$UnaryLabel & XHTML_TEXT\$UnaryDtr]) :-
+    edge_fom($ID, $FOM),
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_prob_link($Symbol, $FOM, $ID, $Link),
+    moriv_edge_label_unary($Schema, $UnaryLabel1),
+    encode_xml_string($UnaryLabel1, $UnaryLabel),
+    deriv_to_prob_tree($UnaryTree, $UnaryDtr).
+deriv_to_prob_tree(parse_tree_nonterminal_binary & EDGE_ID\$ID & EDGE_SIGN\$Sign & EDGE_LINK\APPLIED_SCHEMA\$Schema & L_TREE\$LeftTree & R_TREE\$RightTree,
+		   xhtml_tree & XHTML_TEXT\[$Link,
+					    xhtml_dtr & DTR_EDGE\$LeftLabel & XHTML_TEXT\$LeftDtr,
+					    xhtml_dtr & DTR_EDGE\$RightLabel & XHTML_TEXT\$RightDtr]) :-
+    edge_fom($ID, $FOM),
+    moriv_nonterminal_symbol($Sign, $Symbol),
+    encode_prob_link($Symbol, $FOM, $ID, $Link),
+    moriv_edge_label_binary($Schema, $LeftLabel1, $RightLabel1),
+    encode_xml_string($LeftLabel1, $LeftLabel),
+    encode_xml_string($RightLabel1, $RightLabel),
+    deriv_to_prob_tree($LeftTree, $LeftDtr),
+    deriv_to_prob_tree($RightTree, $RightDtr).
+
+best_prob_tree_page <- [pred].
+best_prob_tree_page([xhtml_h3 & XHTML_TEXT\"Best parse tree with FOMs" & XHTML_CLASS\"title",
+		     xhtml_p & XHTML_TEXT\["FOM = ", $FOM],
+		     $Tree]) :-
+    best_fom_parse_tree($Deriv, $FOM),
+    deriv_to_prob_tree($Deriv, $Tree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Best parse tree with signs
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+deriv_to_fs_tree <- [pred].
+deriv_to_fs_tree(parse_tree_terminal & EDGE_ID\$ID & EDGE_LINK\LEX_NAME\$LexName,
+		 $SignMap,
+		 xhtml_tree & XHTML_TEXT\[$EncodedSign, xhtml_dtr & DTR_EDGE\"LEX" & XHTML_TEXT\$Word]) :-
+    assoc($ID, $SignMap, $EncodedSign),
+    moriv_terminal_symbol($LexName, $Word1),
+    encode_xml_string($Word1, $Word).
+deriv_to_fs_tree(parse_tree_nonterminal_unary & EDGE_ID\$ID & EDGE_LINK\APPLIED_SCHEMA\$Schema & U_TREE\$UnaryTree,
+		 $SignMap,
+		 xhtml_tree & XHTML_TEXT\[$EncodedSign,
+					  xhtml_dtr & DTR_EDGE\$UnaryLabel & XHTML_TEXT\$UnaryDtr]) :-
+    assoc($ID, $SignMap, $EncodedSign),
+    moriv_edge_label_unary($Schema, $UnaryLabel1),
+    encode_xml_string($UnaryLabel1, $UnaryLabel),
+    deriv_to_fs_tree($UnaryTree, $SignMap, $UnaryDtr).
+deriv_to_fs_tree(parse_tree_nonterminal_binary & EDGE_ID\$ID & EDGE_LINK\APPLIED_SCHEMA\$Schema & L_TREE\$LeftTree & R_TREE\$RightTree,
+		 $SignMap,
+		 xhtml_tree & XHTML_TEXT\[$EncodedSign,
+					  xhtml_dtr & DTR_EDGE\$LeftLabel & XHTML_TEXT\$LeftDtr,
+					  xhtml_dtr & DTR_EDGE\$RightLabel & XHTML_TEXT\$RightDtr]) :-
+    assoc($ID, $SignMap, $EncodedSign),
+    moriv_edge_label_binary($Schema, $LeftLabel1, $RightLabel1),
+    encode_xml_string($LeftLabel1, $LeftLabel),
+    encode_xml_string($RightLabel1, $RightLabel),
+    deriv_to_fs_tree($LeftTree, $SignMap, $LeftDtr),
+    deriv_to_fs_tree($RightTree, $SignMap, $RightDtr).
+
+collect_signs <- [pred].
+collect_signs(parse_tree_terminal & EDGE_ID\$ID,
+	      [$Sign], [$EncodedSign], [($ID, $EncodedSign)]) :-
+    edge_sign($ID, $Sign).
+collect_signs(parse_tree_nonterminal_unary & EDGE_ID\$ID & U_TREE\$DtrTree,
+	      [$Sign|$SignList], [$EncodedSign|$EncodedSignList], [($ID, $EncodedSign)|$SignMap]) :-
+    edge_sign($ID, $Sign),
+    collect_signs($DtrTree, $SignList, $EncodedSignList, $SignMap).
+collect_signs(parse_tree_nonterminal_binary & EDGE_ID\$ID & L_TREE\$LeftTree & R_TREE\$RightTree,
+	      [$Sign|$SignList], [$EncodedSign|$EncodedSignList], [($ID, $EncodedSign)|$SignMap]) :-
+    edge_sign($ID, $Sign),
+    collect_signs($LeftTree, $SignList1, $EncodedSignList1, $SignMap1),
+    collect_signs($RightTree, $SignList2, $EncodedSignList2, $SignMap2),
+    append($SignList1, $SignList2, $SignList),
+    append($EncodedSignList1, $EncodedSignList2, $EncodedSignList),
+    append($SignMap1, $SignMap2, $SignMap).
+
+best_fs_tree_page <- [pred].
+best_fs_tree_page([xhtml_h3 & XHTML_TEXT\"Best parse tree with signs" & XHTML_CLASS\"title",
+		   xhtml_p & XHTML_TEXT\["FOM = ", $FOM],
+		   $Tree]) :-
+    best_fom_parse_tree($Deriv, $FOM),
+    collect_signs($Deriv, $SignList, $EncodedSignList, $SignMap),
+    get_variable('*xhtml_fs_namespace*', $NS),
+    tfstoxml_list($SignList, $NS, $EncodedSignList),
+    deriv_to_fs_tree($Deriv, $SignMap, $Tree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Word lattice
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% word_lattice_string <- [pred].
+%% word_lattice_string([], []).
+%% word_lattice_string([$Extent|$WordLattice], [$String|$StringList]) :-
+%%     extent_label($Extent, $String1),
+%%     !,
+%%     encode_xml_string($String1, $String),
+%%     word_lattice_string($WordLattice, $StringList).
+%% word_lattice_string([_|$WordLattice], $StringList) :-
+%%     word_lattice_string($WordLattice, $StringList).
+
+%% word_lattice_table <- [pred].
+%% word_lattice_table([], []).
+%% word_lattice_table([extent_word & left_position\$Left & right_position\$Right & word\$Word|$WordLattice],
+%% 		   [xhtml_tr &
+%% 		    XHTML_TEXT\[xhtml_td & XHTML_TEXT\["(", $Left, ",", $Right, ")"],
+%% 				xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$Word)]
+%% 		    |$Table]) :-
+%%     word_lattice_table($WordLattice, $Table).
+%% word_lattice_table([extent_bracket & left_position\$Left & right_position\$Right|$WordLattice],
+%% 		   [xhtml_tr &
+%% 		    XHTML_TEXT\[xhtml_td & XHTML_TEXT\["(", $Left, ",", $Right, ")"],
+%% 				xhtml_td & XHTML_TEXT\"Bracket"]
+%% 		    |$Table]) :-
+%%     word_lattice_table($WordLattice, $Table).
+
+%% word_lattice_page <- [pred].
+%% word_lattice_page([xhtml_h3 & XHTML_TEXT\"Word lattice" & XHTML_CLASS\"title"|$Page]) :-
+%%     (get_word_lattice($WordLattice) ->
+%%      word_lattice_string($WordLattice, $List),
+%%      join($List, " ", $String),
+%%      word_lattice_table($WordLattice, $Table),
+%%      $Page = [xhtml_p & XHTML_TEXT\$String,
+%% 	      xhtml_table & XHTML_CLASS\"result" & XHTML_TEXT\$Table] ;
+%%      $Page = ["'sentence_to_word_lattice/2' failed"]).
+
+make_word_row <- [pred].
+make_word_row($Length,
+	      (xhtml_tr &
+	       XHTML_TEXT\[xhtml_td & XHTML_TEXT\["(", $Left, ",", $Right, ")"],
+			   xhtml_td & XHTML_TEXT\(xhtml_tfstoxml & XHTML_TEXT\$Words)])) :-
+    $Length1 is $Length + 1,
+    make_num_list(0, $Length, $NumList1),
+    member($Left, $NumList1),
+    $RightBegin is $Left + 1,
+    make_num_list($RightBegin, $Length1, $NumList2),
+    member($Right, $NumList2),
+    words($Left, $Right, $Words),
+    $Words \= [].
+
+word_lattice_page <- [pred].
+word_lattice_page([xhtml_h3 & XHTML_TEXT\"Word lattice" & XHTML_CLASS\"title",
+		   xhtml_table & XHTML_CLASS\"result" & XHTML_TEXT\$Rows]) :-
+    get_sentence_length($Length),
+    findall($Row,
+	    make_word_row($Length, $Row),
+	    $Rows).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+display_dispatch <- [pred].
+display_dispatch("sign", _, $Page) :- !, best_sign_page($Page).
+display_dispatch("fullsign", _, $Page) :- !, best_full_sign_page($Page).
+display_dispatch("tree", _, $Page) :- !, best_parse_tree_page($Page).
+display_dispatch("fomtree", _, $Page) :- !, best_prob_tree_page($Page).
+display_dispatch("fstree", _, $Page) :- !, best_fs_tree_page($Page).
+display_dispatch("wordlattice", _, $Page) :- !, word_lattice_page($Page).
+display_dispatch($Display, $Args, $Page) :-
+    moriv_parser_display($Display, $Args, $Page),
+    !.
+
+display_page <- [pred].
+display_page($Args, $Page) :-
+    (assoc("display", $Args, $Display) ->
+     display_dispatch($Display, $Args, $Page)
+     ;
+     (display_dispatch("tree", $Args, $Page) ->
+      true ;
+      $Page = [])).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Parser top page
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_page("parser", $Args, $Title, $Page) :-
+    get_variable('*moriv_parser_title*', $Title),
+    parse_result_page($Args, $ParseResultPage),
+    display_page($Args, $DisplayPage),
+    input_sentence_page($InputSentencePage),
+    $Page = [xhtml_div & XHTML_ID\"form" & XHTML_TEXT\$InputSentencePage,
+	     xhtml_div & XHTML_ID\"menu" & XHTML_TEXT\$ParseResultPage,
+	     xhtml_div & XHTML_ID\"display" & XHTML_TEXT\$DisplayPage].
+
+moriv_page("parser:node_sign", $Args, $Title, $Page) :-
+    get_variable('*moriv_parser_title*', $Title1),
+    (assoc("node_id", $Args, $IDStr) ->
+     strtoint($IDStr, $ID),
+     node_feature_structure($ID, $Page),
+     concatenate_string([$Title1, ": Edge sign ID=", $IDStr], $Title)
+     ;
+     $Page = "",
+     $Title = $Title1).
+

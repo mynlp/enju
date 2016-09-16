@@ -1,0 +1,36 @@
+%/**********************************************************************
+  * @module    =  enju:semmask
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: semmask.lil,v 1.2 2007-04-18 02:10:49 yusuke Exp $
+  * @version   =  Time-stamp: <2007-04-18 10:55:39 yusuke>
+  * @desc      =  Feature masks for semmodel
+  **********************************************************************
+%*/
+
+:- module("enju:semmask").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/amismodel").
+
+:- module_implementation.
+
+%% Surf POS Temp  ArgSurf ArgPOS ArgTemp  ArgLabel Dist
+
+feature_mask("hpsg-forest", "sem", [1, 1, 1,   1, 1, 1,   1, 1]).
+feature_mask("hpsg-forest", "sem", [1, 0, 1,   1, 0, 1,   1, 1]).
+feature_mask("hpsg-forest", "sem", [0, 1, 1,   0, 1, 1,   1, 1]).
+
+feature_mask("hpsg-forest", "sem", [1, 1, 1,   1, 1, 1,   1, 0]).
+feature_mask("hpsg-forest", "sem", [1, 0, 1,   1, 0, 1,   1, 0]).
+feature_mask("hpsg-forest", "sem", [0, 1, 1,   0, 1, 1,   1, 0]).
+
+feature_mask("hpsg-forest", "sem", [1, 1, 0,   1, 1, 0,   1, 1]).
+feature_mask("hpsg-forest", "sem", [1, 0, 0,   1, 0, 0,   1, 1]).
+feature_mask("hpsg-forest", "sem", [0, 1, 0,   0, 1, 0,   1, 1]).
+
+feature_mask("hpsg-forest", "sem", [1, 1, 0,   1, 1, 0,   1, 0]).
+feature_mask("hpsg-forest", "sem", [1, 0, 0,   1, 0, 0,   1, 0]).
+feature_mask("hpsg-forest", "sem", [0, 1, 0,   0, 1, 0,   1, 0]).
+

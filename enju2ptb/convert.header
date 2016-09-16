@@ -1,0 +1,31 @@
+#!/bin/sh
+
+BASE_DIR=`dirname $0`
+BIN_DIR=bin
+DATA_DIR=../../lib/enju/DATA
+
+if [ x$1 = x"-h" ]; then
+    echo "Usage: convert [-genia] < (enju-xml) > (enju-ptb)"
+    exit 0;
+fi
+
+# find the absolute path to this script
+echo $BASE_DIR | grep -q '^/' 2> /dev/null > /dev/null
+if [ $? != 0 ]; then
+  BASE_DIR=`pwd`/$BASE_DIR
+fi
+
+if [ ! -d $BASE_DIR/$BIN_DIR ]; then
+    BIN_DIR=src
+fi
+
+if [ ! -d $BASE_DIR/$DATA_DIR ]; then
+    DATA_DIR=../DATA
+fi
+
+if [ x$1 = x"-genia" ]; then
+    CONV_GRAMMAR=$BASE_DIR/$DATA_DIR/genia0001-1600.conv-grammar
+else
+    CONV_GRAMMAR=$BASE_DIR/$DATA_DIR/wsj02-21.conv-grammar
+fi
+

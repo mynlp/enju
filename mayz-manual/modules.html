@@ -1,0 +1,676 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-modules.css">
+<title>LiLFeS modules</title>
+</head>
+
+
+
+<body>
+<h1>LiLFeS modules</h1>
+
+<a href="modules.ja.html">Japanese version</a>
+
+<p>
+In addition to the tools explained above, MAYZ provides LiLFeS
+modules to support grammar development.  These can be used by loading
+from (by "-l" option) or from a parser.
+
+<ul>
+  <li>Modules for grammar development
+  <ul>
+    <li><a href="#markhead">Marking head, argument, and modifier</a>
+    <li><a href="#binarizer">Binarizing a tree</a>
+    <li><a href="#treematch">Pattern matching of trees</a>
+  </ul>
+  <li>Modules for parsing
+  <ul>
+    <li><a href="#grammar">Looking up a lexicon and templates</a>
+    <li><a href="#tagger">Using an external tagger</a>
+  </ul>
+  <li>Browsing grammar development or parsing
+  <ul>
+    <li><a href="#morivtrans">Browsing the process of tree
+  transformation and grammar extraction</a>
+    <li><a href="#morivparser">Browsing the results of parsing</a>
+    <li><a href="#morivchart">Browsing a parse chart</a>
+    <li><a href="#morivgrammar">Browsing lexical entries</a>
+    <li><a href="#coverage">Evaluating coverage</a>
+    <li><a href="#evalparse">Evaluating parse accuracy</a>
+  </ul>
+  <li>Using a parser in applications
+  <ul>
+    <li><a href="#parseall">Store parse results in a database</a>
+  </ul>
+</ul>
+
+<hr>
+
+<h2><a name="markhead">Marking head, argument, and modifier</a></h2>
+
+<p>
+"mayz/markhead.lil" is a program for annotating a head, argument, or
+modifier mark toeach node in a tree.  By implementing several rules
+for marking, it automatically annotate marks to all nodes in a tree.
+
+<p>
+The interfaces for marking heads are as follows.  The first two refer
+to the MOD feature, while the other referes to the SYM feature to
+determine heads.
+
+<table border=1>
+<tr><td colspan=2><tt>head_tag(+$Tag)</tt>
+<tr><td colspan=2>The node will be marked as a head if the MOD feature
+includes $Tag.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>nonhead_tag(+$Tag)</tt>
+<tr><td colspan=2>The node will be marked as a non-head
+(argument or modifier) if the MOD feature includes $Tag.
+Arguments and modifiers are distinguished by other rules.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>head_table(+$Sym, +$Dir, +$SymList)</tt>
+<tr><td>$Sym<td>Symbol of the parent node
+<tr><td>$Dir<td>Direction of searching a head ("left" or "right")
+<tr><td>$SymList<td>List of symbols that should be marked as a head
+<tr><td colspan=2>When the symbol the parent node is $Sym, child nodes
+are searched in the direction $Dir (if "left", left-to-right, and
+"right", right-to-left), and the node labeled with the first
+element of $SymList is marked as a head.  If the first element is not
+found in the child nodes, the node labeled with the next element is
+searched.  If an element of $SymList is a list, the node labeled with
+a symbol in the list is marked as a head.  If no symbol is found, the
+left most node is marked as a head if $Dir is "left", and the right
+most one if "right".
+</table>
+
+<p>
+The following predicate marks heads in a parse tree using the above
+interfaces.
+
+<table border=1>
+<tr><td colspan=2><tt>mark_head(+$Tree)</tt>
+<tr><td>$Tree<td>parse tree
+<tr><td colspan=2>Annotates a head mark in a parse tree using the
+following algorithm.
+<ul>
+  <li>If one of the daughters is assigned "head", exit.
+  <li>If one of the daughters is assigned a modifier tag specified in
+  'head_tag/1', mark the node as a head.
+  <li>If a daughter is assigned a modifier tag specified in
+  'nonhead_tag/1', the node is ignored.
+  <li>Determine a head according to 'head_table/3'.
+</ul>
+</table>
+
+<p>
+The interfaces for marking modifiers and arguments are as follows.
+The program assumes that head marks are already assigned.  The first
+two refer to the MOD feature, while the rests refer to the SYM
+feature.
+
+<table border=1>
+<tr><td colspan=2><tt>argument_tag(+$Tag)</tt>
+<tr><td colspan=2>If the MOD feature includes $Tag, the node is marked
+as an argument.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>modifier_tag(+$Tag)</tt>
+<tr><td colspan=2>If the MOD feature includes $Tag, the node is marked
+as a modifier.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>head_argument_table(+$HeadSym, +$SymList)</tt>
+<tr><td>$HeadSym<td>symbol of the head
+<tr><td>$SymList<td>list of symbols
+<tr><td colspan=2>If the symbol of the head is $HeadSym, a sibling
+node is marked as an argument if its symbol is included in $SymList.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>symbol of the mother
+<tr><td>$SymList<td>list of symbols
+<tr><td colspan=2>If the symbol of the mother is $Sym, a sibling
+node is marked as an argument if its symbol is included in $SymList.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>left_argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>symbol of the mother
+<tr><td>$SymList<td>list of symbols
+<tr><td colspan=2>If the symbol of the mother is $Sym, a sibling node
+is marked as an argument if the node is in the left of the head and
+its symbol is included in $SymList.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>right_argument_table(+$Sym, +$SymList)</tt>
+<tr><td>$Sym<td>symbol of the mother
+<tr><td>$SymList<td>list of symbols
+<tr><td colspan=2>If the symbol of the mother is $Sym, a sibling node
+is marked as an argument if the node is in the right of the head and
+its symbol is included in $SymList.
+</table>
+
+<p>
+Using the above interface, the following predicate assigns argument or
+modifier marks to all nodes in a parse tree.
+
+<table border=1>
+<tr><td colspan=2><tt>mark_modifier(+$Tree)</tt>
+<tr><td>$Tree<td>parse tree
+<tr><td colspan=2>Nodes in $Tree are marked as a modifier or a
+argument using the following algorithm.
+<ul>
+  <li>If the node has a tag specified by 'argument_tag/1', it is
+  marked as "argument".
+  <li>If the node has a tag specified by 'modifier_tag/1', it is
+  marked as "modifier".
+  <li>Using 'head_argument_table/2', argument marks are assigned.
+  <li>Using 'argument_table/2', argument marks are assigned.
+  <li>Using 'left_argument_table/2', argument marks are assigned.
+  <li>Using 'right_argument_table/2', argument marks are assigned.
+  <li>All the remaining nodes are assigned "modifier".
+</ul>
+</table>
+
+<p>
+The above predicate ignored the nodes already assigned some marks.
+This means that you can assign marks to exceptional constructions
+before using the above tools.  User can also use the following
+interface for the marking of exceptional trees.  The following
+interface is used when the above predicate try to assign a mark to
+each node.
+
+<table border=1>
+<tr><td colspan=2><tt>mark_exceptional(+$Tree)</tt>
+<tr><td>$Tree<td>parse tree
+<tr><td colspan=2>A user marks $Tree.
+</table>
+
+<hr>
+
+<h2><a name="binarizer">Binarizing a tree</a></h2>
+
+<p>
+"mayz/binarizer.lil" provides a tool to binarize a tree annotated with
+head, modifier, and argument marks.
+
+<table border=1>
+<tr><td colspan=2><tt>tree_binarize(+$Tree, -$BinTree)</tt>
+<tr><td>$Tree<td>input tree
+<tr><td>$BinTree<td>binarized tree
+<tr><td colspan=2>$Tree is binarized into $BinTree.
+</table>
+
+<p>
+This predicate binarizes a tree where the head is centered and the
+right nodes of the head are in the lower part and the left ones are in
+the higher part.  If you need an exceptional binarization strategy,
+the following interface can be used.  It is called for each node in a
+tree.
+
+<table border=1>
+<tr><td colspan=2><tt>binarizer_preprocess(+$Tree, -$BinTree)</tt>
+<tr><td>$Tree<td>input tree
+<tr><td>$BinTree<td>binarized tree
+</table>
+
+<hr>
+
+<h2><a name="treematch">Pattern matching of trees</a></h2>
+
+<p>
+"mayz/treematch.lil" provides predicates for pattern matching of parse
+trees.  It is useful when you use <a
+href="treetrans.html">"treetrans"</a> to convert parse trees.  You
+can match and substitute parse trees using patten rules.
+
+<p>
+While ap pattern of a parse tree is represented with a feature
+structure representation of a parse tree (i.e., 'tree' type), you can
+additionally use 'tree_any' type.  It matches with zero or more than
+zero parse trees.  For example, the following pattern, 
+
+<blockquote>
+<pre>
+(tree &
+ TREE_NODE\SYM\"S" &
+ TREE_DTRS\[tree_any,
+            (tree & TREE_NODE\SYM\"VP"),
+            tree_any])
+</pre>
+</blockquote>
+matches a tree in which the top node is labeled with "S" and it has
+at least one daughter labeled with "VP".  It matches a tree even when
+the tree has more than zero daughters on the left and/or the right of
+the "VP" tree.  The trees that matched with 'tree_any' are stored in
+the feature ANY_TREES\.
+
+<p>
+The following predicates are provided for the matching and the
+substitution of parse trees using patterns.
+
+<table border=1>
+<tr><td colspan=2><tt>tree_match(+$Patten, +$Tree)</tt>
+<tr><td>$Pattern<td>pattern on a parse tree ('tree' or 'tree_any')
+<tr><td>$Tree<td>input parse tree ('tree')
+<tr><td colspan=2>Succeeds when the pattern matches with the parse tree.
+<tr><td colspan=2>
+<pre>
+> ?- tree_match((tree &
+                 TREE_NODE\SYM\"SBAR" &
+                 TREE_DTRS\[TREE_NODE\(SYM\"RB" & WORD\SURFACE\"rather"),
+                            TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+                            TREE_NODE\(SYM\"NP")]),
+                (tree &
+                 TREE_DTRS\[tree_any & ANY_TREES\[_|_],
+                            tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+                            tree & TREE_NODE\HEAD_MARK\argument])).
+yes
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_substitution(+$OutPattern, -$OutTree)</tt>
+<tr><td>$InPattern<td>pattern on a parse tree ('tree' or 'tree_any')
+<tr><td>$OutTree<td>output ('tree')
+<tr><td colspan=2>Convert a pattern on a parse tree (including
+    'tree_any') into an ordinary parse tree (without 'tree_any').
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_subst(+$InPattern, +$OutPattern, +$InTree, -$OutTree)</tt>
+<tr><td>$InPattern<td>pattern on an input parse tree ('tree' or 'tree_any')
+<tr><td>$OutPattern<td>pattern on an output parse tree ('tree' or 'tree_any')
+<tr><td>$InTree<td>input parse tree (tree)
+<tr><td>$OutTree<td>output (tree)
+<tr><td colspan=2>An input pattern is mathced with an input parse
+    tree, and if it succeeds, the output pattern is converted into an
+    output parse tree.  That is, it is equivalent to the following
+    operations.
+<blockquote>
+<pre>
+tree_match($InPattern, $InTree),
+tree_substitution($OutPattern, $OutTree).
+</pre>
+</blockquote>
+  See the manual of <a href="treetrans.html">"treetrans"</a> for an example.
+</table>
+
+<hr>
+
+<h2><a name="grammar">Looking up a lexicon, and templates</a></h2>
+
+<p>
+"mayz/grammar.lil" provides tools for looking up a lexicon and
+template in databases.
+
+<table border=1>
+<tr><td colspan=2><tt>import_lexicon(+$LexiconFile, +$TemplateFile)</tt>
+<tr><td>$LexiconFile<td>file name of a lexicon
+<tr><td>$TemplateFile<td>file name of a template database
+<tr><td colspan=2>Imports a lexicon and a template database.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_lexicon(+$Word, -$TempNameList)</tt>
+<tr><td>$Word<td>input word
+<tr><td>$TempNameList<td>list of lex_template
+<tr><td colspan=2>Looks up a lexicon, and return a list of template
+names.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_template(+$TempName, -$Sign)</tt>
+<tr><td>$TempName<td>lex_template
+<tr><td>$Sign<td>feature structure
+<tr><td colspan=2>Looks up a template in a template database, and
+returns a feature structure of a template.
+</table>
+
+<p>
+To use <tt>lookup_lexicon/2</tt>, the following interface must be
+implemented to get a database key from an input word.
+
+<table border=1>
+<tr><td colspan=2><tt>lexicon_lookup_key(+$Word, -$Key)</tt>
+<tr><td>$Word<td>input word
+<tr><td>$Key<td>key of a lexicon database
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>unknown_word_lookup_key(+$Word, -$Key)</tt>
+<tr><td>$Word<td>input word
+<tr><td>$Key<td>key of a lexicon database for an unknown word
+</table>
+
+<hr>
+
+<h2><a name="tagger">Using an external tagger</a></h2>
+
+<p>
+"mayz/tagger.lil" provides tools for using an external tagger.  The
+following predicates are used for the initialization and termination
+of an external tagger.
+
+<table border=1>
+<tr><td colspan=2><tt>initialize_external_tagger(+$Name, +$Arguments)</tt>
+<tr><td>$Name<td>command name of a tagger (string)
+<tr><td>$Arguments<td>command-line arguments of a tagger (list of strings)
+<tr><td colspan=2>Initializes an external tagger.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>terminate_external_tagger</tt>
+<tr><td colspan=2>Terminates an external tagger.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>is_external_tagger_initialized</tt>
+<tr><td colspan=2>Succeeds if a tagger is already initialized.
+</table>
+
+<p>
+After the initialization, the following predicates are used for
+turning on/off the tagger.
+
+<table border=1>
+<tr><td colspan=2><tt>enable_external_tagger</tt>
+<tr><td colspan=2>Turns on the tagger.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>disable_external_tagger</tt>
+<tr><td colspan=2>Turns off the tagger.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>is_external_tagger_enabled</tt>
+<tr><td colspan=2>Succeeds if a tagger is turned on.
+</table>
+
+<p>
+The following predicates passes an input sentence to a tagger, and
+the resulting string is returned.
+
+<table border=1>
+<tr><td colspan=2><tt>external_tagger(+$Input, -$Output)</tt>
+<tr><td>$Input<td>input string
+<tr><td>$Output<td>output string
+<tr><td colspan=2>When a tagger is turned on, $Input is passed to a
+tagger, and the output of the tagger is returned.  When a tagger is
+off, $Input is just returned to $Output.
+</table>
+
+<hr>
+
+<h2><a name="morivtrans">Browsing the process of tree transformation
+and grammar extraction</a></h2>
+
+<p>
+"mayz/morivtrans.lil" is a module for browsing the process of tree
+transformation (treetrans) and lexicon extraction (lexextract).  Using
+a web browser supporting XHTML and XSLT (e.g. FireFox) or <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>, you can
+browse tree structures and feature structures in the process of
+grammar development.
+
+<p>
+This module works as an HTTP server and a CGI.  First, load this
+module together with modules for tree transformation and lexicon
+extraction.
+<pre>% lilfes -l <em>tree_transformation_module</em> -l <em>lexicon_extraction_module</em> -l mayz/morivtrans</pre>
+Next, invoke "cgi" command.
+<pre>&gt; ?- cgi.</pre>
+Then, an HTTP server starts, and waits for a connection.  From your browser,
+access to the 27109 port of "/cgi-lilfes/moriv?" of the host where you are
+running the lilfes.
+<pre>http://<em>server_host</em>:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+Input a Penn Treebank-style tree to the form, and press the "Input"
+button.  You will see a menu in the lower-left area, and a parse tree
+in the lower-right area.  You can browse trees and feature structures
+using the lower-left menu.
+
+<hr>
+
+<h2><a name="morivparser">Browsing the results of parsing</a></h2>
+
+<p>
+"mayz/morivparser.lil" is a module for browsing the results of parsing
+with a grammar and a disambiguation model developed with MAYZ.  Using
+a web browser supporting XHTML and XSLT (e.g. FireFox) or
+<a>href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>, you
+can browse parse trees and signs of parse results.
+
+<p>
+To use this module, you need to implement the following interfaces in
+order to give a symbol to show a brief parse tree of a parse result.
+They are defined in "mayz/display.lil".
+
+<table border=1>
+<tr><td colspan=2><tt>sign_label(+$Sign, -$Symbol)</tt>
+<tr><td>$Sign<td>sign
+<tr><td>$Symbol<td>string
+<tr><td colspan=2>Returns a symbol representing the sign.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>lexname_label(+$LexName, -$Symbol)</tt>
+<tr><td>$LexName<td>LEX_NAME (the 2nd argument of lexical_entry/3)
+<tr><td>$Symbol<td>string
+<tr><td colspan=2>Returns a symbol representing LEX_NAME.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_edge_label_unary(+$SchemaName, -$Label)</tt>
+<tr><td>$SchemaName<td>schema name
+<tr><td>$Label<td>edge symbol
+<tr><td colspan=2>Returns a symbol assigned to the edge of unary
+schema application.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_edge_label_binary(+$SchemaName,
+-$LeftLabel, -$RightLabel</tt>
+<tr><td>$SchemaName<td>schema name
+<tr><td>$LeftLabel<td>symbol of the left edge
+<tr><td>$RightLabel<td>symbol of the right edge
+<tr><td colspan=2>Returns symbols assigned to the edges of binary
+schema application.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>schema_label(+$SchemaName, -$Label</tt>
+<tr><td>$SchemaName<td>schema name
+<tr><td>$Label<td>symbol
+<tr><td colspan=2>Returns a symbol representing a schema name.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>lex_template_label(+$LexTemplate, -$Label</tt>
+<tr><td>$LexTemplate<td>lex_template
+<tr><td>$Label<td>symbol
+<tr><td colspan=2>Returns a symbol representing a template name.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>word_label(+$Word, -$Label)</tt>
+<tr><td>$Word<td>word
+<tr><td>$Label<td>symbol
+<tr><td colspan=2>Returns a symbol representing a word.
+</table>
+<table border=1>
+<tr><td colspan=2><tt>extent_label(+$Extent, -$Label)</tt>
+<tr><td>$Extent<td>extent
+<tr><td>$Label<td>symbol
+<tr><td colspan=2>Returns a symbol representing an extent (an element
+of the 2nd argument of 'sentence_to_word_lattice/2').
+</table>
+
+<p>
+This module works as an HTTP server and a CGI.  When you run a parser,
+load "mayz/morivparser.lil", and execute the "cgi" command.  For
+example, when you use "mayzup",
+<pre>% mayzup -l <em>grammar_module</em> -l mayz/movirparser -e cgi</pre>
+Then, an HTTP server starts, and waits for a connection.  Using your browser,
+access to the 27109 port of "/cgi-lilfes/moriv?" of the host where lilfes is
+running.
+<pre>http://<em>server_host</em>:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+Enter a sentence in the form, and press the "Input" button.  You will
+see the brief result of parsing and a menu in the lower-left area.
+You can browse parse trees and feature structures using the menu.
+
+<hr>
+
+<h2><a name="morivchart">Browsing a parse chart</a></h2>
+
+<p>
+"mayz/morivchart.lil" is a module for browsing a parse chart (CKY
+table).  Using a web browser supporting XHTML and XSLT (e.g. FireFox)
+or <a href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>,
+you can brose internal parse results generated during parsing.
+
+<p>
+To use this module, you need to implement the interfaces for getting
+the symbols of parse trees.  The interfaces are defined in
+"mayz/display.lil".  For details, see <a href="#morivparser">Browsing
+the results of parsing</a>.
+
+<p>
+When you run a parser, load "mayz/morivchart", and execute the "cgi"
+command to run an HTTP server.  Then, access to the server using your
+browser.  Enter a sentence in the form, and you will see the chart in
+the lower-left area.  By clicking a chart cell, you will get the edges
+in the cell in the lower-right area.
+
+<hr>
+
+<h2><a name="morivgrammar">Browsing lexical entries</a></h2>
+
+<p>
+"mayz/morivgrammar.lil" is a module for browsing a lexicon using a web
+browser supporting XHTML and XSLT (e.g. FireFox) or <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a>.  You can
+browse a list lexical entries assigned to a word and their feature
+structures.
+
+<p>
+To use this module, you need to implement interfaces defined in 
+"display.lil".  For details, see <a href="#morivparser">Browsing the
+results of parsing</a>.
+
+<p>
+When you run a parser, load "mayz/morivgrammar", and execute the "cgi"
+command to run an HTTP server.  Then, access to the server using your
+browser.  Enter a word/POS in the form, and you will see a list of
+lexical entries.  Click the link in the list, and you will see the
+feature structure of a lexical entry in the lower-right frame.
+
+<hr>
+
+<h2><a name="coverage">Evaluating coverage</a></h2>
+
+<p>
+"mayz/coverage.lil" is a module to measure the coverage obtained by a
+grammar developed with MAYZ.  Together with a grammar module, load
+"mayz/coverage.lil", and execute the following predicate.
+<table border=1>
+<tr><td colspan=2><tt>eval_coverage(+$Lexbank, +$Lexicon, +$Template, +$OutputFile)</tt>
+<tr><td>$Lexbank<td>name of a lexbank used for the evaluation
+<tr><td>$Lexicon<td>file name of a lexicon
+<tr><td>$Templates<td>file name of a template database
+<tr><td>$OutputFile<td>file name of outputting results
+</table>
+For the evaluation of coverage, a lexbank of an unseen corpus is
+used.  Before the evaluation, you need to make a lexbank using
+"treetrans" and "lexextract".
+
+<hr>
+
+<h2><a name="evalparse">Evaluating parse accuracy</a></h2>
+
+<p>
+"mayz/evalparse.lil" is a module for evaluating the accuracy of
+parsing with a grammar and a probabilistic model developed with MAYZ.
+By implementing an interface to measure the number of correct answers
+for a sentence, you can measure the accuracy for the whole test
+corpus.
+
+<p>
+For the evaluation, the following interface is required to be
+implemented.
+<table border=1>
+<tr><td colspan=2><tt>eval_parse(+$Best, +$Correct, +$TermList,
+-$NumAnswers, -$NumOutputs, -$NumCorrects, -$NumPartials, -$Errors)</tt>
+<tr><td>$Best<td>parse_tree output by a parser
+<tr><td>$Correct<td>correct parse_tree
+<tr><td>$TermList<td>list of terminal nodes of a derivation
+(corresponding to a lexbank)
+<tr><td>$NumAnswers<td>Number of answers
+<tr><td>$NumOutputs<td>Number of outputs
+<tr><td>$NumCorrects<td>Number of exactly correct outputs
+<tr><td>$NumPartials<td>Number of partially correct outputs
+<tr><td>$Errors<td>list of strings (each element is output to the
+result file)
+</table>
+
+<p>
+When you run a parser, load "mayz/evalparse.lil", and execute the
+following predicate.  The result of evaluation is output to a file.
+<table border=1>
+<tr><td colspan=2><tt>eval_parse_file(+$Derivbank, +$OutputFile)</tt>
+<tr><td>$Derivbank<td>name of a derivbank
+<tr><td>$OutputFile<td>name of an output file
+<tr><td colspan=2>The accuracy of parsing is measured against
+$Derivbank, and the result is output to $OutputFile.
+</table>
+
+<hr>
+
+<h2><a name="parseall">Store parse results in a database</a></h2>
+
+<p>
+"mayz/parseall.lil" is a LiLFeS module to store parse results into
+LiLFeS database (lildb).  Each line of the input text is parsed, and
+the results are stored in a database.  The key of the database is the
+line number of the input.  If parsing fails, the result shows the
+reason of the failure with the type <tt>parse_error</tt> and its
+subtypes.
+
+<p>
+In this module, the following predicates are avaiable.
+
+<table border=1>
+<tr><td colspan=2>parse_all(+$Input, +$Output)
+<tr><td>$Input<td>Name of input file
+<tr><td>$Output<td>Name of database
+<tr><td colspan=2>Parse each line of the input file $Input, and store
+the results in the database $Output.
+</table>
+
+<table border=1>
+<tr><td colspan=2>parse_all(+$Output)
+<tr><td>$Output<td>Name of database
+<tr><td colspan=2>Parse each line of the standard input, and store the
+results in the database $Output.
+</table>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

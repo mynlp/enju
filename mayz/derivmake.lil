@@ -1,0 +1,220 @@
+%/**********************************************************************
+  * @module    = mayz:derivmake
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: derivmake.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   = Time-stamp: <2006-11-15 13:34:02 yusuke>
+  * @desc      = Parameters for derivation making (used by lexextract)
+  **********************************************************************
+%*/
+
+:- module("mayz:derivmake").
+
+:- module_interface.
+
+%%% parameters for derivation making
+
+root_constraints <- [pred].
+inverse_schema_unary <- [pred].
+inverse_schema_binary <- [pred].
+lexical_constraints <- [pred].
+
+%%% predicate (used in "DerivMaker" for debuggin)
+
+fail_point_root_constraints <- [pred].
+fail_point_inverse_schema_unary <- [pred].
+fail_point_inverse_schema_binary <- [pred].
+fail_point_lexical_constraints <- [pred].
+
+%%% predicate (used in "morivtrans.lil", not in "DerivMaker")
+
+tree_to_derivation <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("treetypes").
+:- ensure_loaded("derivtypes").
+:- ensure_loaded("lillib/fs").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/debug").
+
+path_string <- [pred].
+path_string($Path, $Str) :-
+    findall($FeatStr,
+	    (member($Feat, $Path),
+	     feattostr($Feat, $FeatStr)),
+	    $FeatStrList),
+    join($FeatStrList, ":", $Str).
+
+fail_reason_string <- [pred].
+fail_reason_string(fail_types & fail_1\$Type1 & fail_2\$Type2, $Str) :-
+    typetostr($Type1, $TypeStr1),
+    typetostr($Type2, $TypeStr2),
+    concatenate_string(["incompatible types ", $TypeStr1, " vs. ", $TypeStr2], $Str).
+fail_reason_string(fail_1_constr, "incompatible complex constraint (1st)").
+fail_reason_string(fail_2_constr, "incompatible complex constraint (2nd)").
+fail_reason_string(fail_other, "incompatible constraints").
+
+find_fail_point_string <- [pred].
+find_fail_point_string($A, $B, $Message, $String) :-
+    find_fail_point($A, $B, $Path, $Reason),
+    path_string($Path, $PathStr),
+    fail_reason_string($Reason, $ReasonStr),
+    concatenate_string([$Message, $ReasonStr, " at """, $PathStr, """"], $String).
+
+fail_point_root_constraints($Root1, $FailPoint) :-
+    (root_constraints($Root2) ->
+     (root_constraints($Root1) ->
+      $FailPoint = ""
+      ;
+      find_fail_point_string($Root1, $Root2, "", $FailPoint))
+     ;
+     $FailPoint = "'root_constraints/1' is not defined").
+
+fail_point_inverse_schema_unary($SchemaName, $Mother1, $Dtr1, $FailPoint) :-
+    (inverse_schema_unary($SchemaName, $Mother2, _) ->
+     (inverse_schema_unary($SchemaName, $Mother1, $Dtr2) ->
+      (inverse_schema_unary($SchemaName, $Mother1, $Dtr1) ->
+       $FailPoint = ""
+       ;
+       find_fail_point_string($Dtr1, $Dtr2, "unification failure in unary daughter: ", $FailPoint))
+      ;
+      find_fail_point_string($Mother1, $Mother2, "unification failure in mother: ", $FailPoint))
+     ;
+     typetostr($SchemaName, $SchemaNameStr),
+     strcat("'inverse_schema_unary/3' is not defined: ", $SchemaNameStr, $FailPoint)).
+
+fail_point_inverse_schema_binary($SchemaName, $Mother1, $Left1, $Right1, $FailPoint) :-
+    (inverse_schema_binary($SchemaName, $Mother2, _, _) ->
+     (inverse_schema_binary($SchemaName, $Mother1, $Left2, _) ->
+      (inverse_schema_binary($SchemaName, $Mother1, $Left1, $Right2) ->
+       (inverse_schema_binary($SchemaName, $Mother1, $Left1, $Right1) ->
+	$FailPoint = ""
+	;
+	find_fail_point_string($Right1, $Right2, "unification failure in right daughter: ", $FailPoint))
+       ;
+       find_fail_point_string($Left1, $Left2, "unification failure in left daughter: ", $FailPoint))
+      ;
+      find_fail_point_string($Mother1, $Mother2, "unification failure in mother: ", $FailPoint))
+     ;
+     typetostr($SchemaName, $SchemaNameStr),
+     strcat("'inverse_schema_binary/4' is not defined: ", $SchemaNameStr, $FailPoint)).
+
+fail_point_lexical_constraints($Word1, $Sign1, $FailPoint) :-
+    (lexical_constraints($Word2, _) ->
+     (lexical_constraints($Word1, $Sign2) ->
+      (lexical_constraints($Word1, $Sign1) ->
+       $FailPoint = ""
+       ;
+       find_fail_point_string($Sign1, $Sign2, "unification failure in lexical sign: ", $FailPoint))
+      ;
+      find_fail_point_string($Word1, $Word2, "unification failure in word: ", $FailPoint))
+     ;
+     $FailPoint = "'lexical_constraints/2' is not defined").
+
+remove_empty_nodes <- [pred].
+remove_empty_nodes([], [], 1, []).
+remove_empty_nodes([1|$Trees], [_|$Derivs], $IsEmpty, $OutDerivs) :-
+    !,
+    remove_empty_nodes($Trees, $Derivs, $IsEmpty, $OutDerivs).
+remove_empty_nodes([_|$Trees], [$Deriv|$Derivs], 0, [$Deriv|$OutDerivs]) :-
+    remove_empty_nodes($Trees, $Derivs, _, $OutDerivs).
+
+tree_to_derivation_main <- [pred].
+tree_to_derivation_dispatch <- [pred].
+tree_to_derivation_dispatch([$DtrTree & TREE_NODE\NODE_SIGN\$DtrSign],
+			    $SchemaName, $Sign,
+			    $DerivDtrs,
+			    $InLexList, $OutLexList,
+			    $IsEmpty) :-
+    (inverse_schema_unary($SchemaName, $Sign, $DtrSign) ->
+     true ;
+     is_debug_mode("mayz:derivmake"),
+     tree_span_string($DtrTree, $Span),
+     debug_message("mayz:derivmake", "'inverse_schema_unary/3' failed at ""~s""\n", [$Span]),
+     (fail_point_inverse_schema_unary($SchemaName, $Sign, $DtrSign, $FailPoint) ->
+      debug_message("mayz:derivmake", "~s\n", [$FailPoint]) ;
+      true),
+     fail),
+    !,
+    $DtrDeriv = DERIV_SIGN\$DtrSign,
+    tree_to_derivation_main($DtrTree, $DtrDeriv, $InLexList, $OutLexList, $DtrIsEmpty),
+    remove_empty_nodes([$DtrIsEmpty], [$DtrDeriv], $IsEmpty, $DerivDtrs).
+tree_to_derivation_dispatch([$LeftTree & TREE_NODE\NODE_SIGN\$LeftSign,
+			     $RightTree & TREE_NODE\NODE_SIGN\$RightSign],
+			    $SchemaName, $Sign,
+			    $DerivDtrs,
+			    $InLexList, $OutLexList,
+			    $IsEmpty) :-
+    (inverse_schema_binary($SchemaName, $Sign, $LeftSign, $RightSign) ->
+     true ;
+     is_debug_mode("mayz:derivmake"),
+     tree_span_string($LeftTree, $LeftSpan),
+     tree_span_string($RightTree, $RightSpan),
+     debug_message("mayz:derivmake", "'inverse_schema_binary/4' failed at ""~s"" + ""~s""\n", [$LeftSpan, $RightSpan]),
+     (fail_point_inverse_schema_binary($SchemaName, $Sign, $LeftSign, $RightSign, $FailPoint) ->
+      debug_message("mayz:derivmake", "~s\n", [$FailPoint]) ;
+      true),
+     fail),
+    !,
+    $LeftDeriv = DERIV_SIGN\$LeftSign,
+    $RightDeriv = DERIV_SIGN\$RightSign,
+    tree_to_derivation_main($LeftTree, $LeftDeriv, $InLexList, $NextLexList, $LeftIsEmpty),
+    tree_to_derivation_main($RightTree, $RightDeriv, $NextLexList, $OutLexList, $RightIsEmpty),
+    remove_empty_nodes([$LeftIsEmpty, $RightIsEmpty], [$LeftDeriv, $RightDeriv], $IsEmpty, $DerivDtrs).
+tree_to_derivation_main(tree_nts &
+			TREE_NODE\(SCHEMA_NAME\$SchemaName &
+				   NODE_SIGN\$Sign) &
+			TREE_DTRS\$TreeDtrs,
+			derivation_internal &
+			DERIV_SCHEMA\$SchemaName &
+			DERIV_SIGN\$Sign &
+			DERIV_DTRS\$DerivDtrs,
+			$InLexList, $OutLexList,
+			$IsEmpty) :-
+    tree_to_derivation_dispatch($TreeDtrs, $SchemaName, $Sign, $DerivDtrs, $InLexList, $OutLexList, $IsEmpty).
+tree_to_derivation_main(tree_term &
+			TREE_NODE\(WORD\$Word &
+				   NODE_SIGN\$Sign),
+			derivation_terminal &
+			TERM_WORD\$Word &
+			DERIV_SIGN\$Sign,
+			$LexList, [($Word, $Sign)|$LexList],
+			0).
+tree_to_derivation_main(tree_empty &
+			TREE_NODE\NODE_SIGN\$Sign,
+			derivation_terminal &
+			DERIV_SIGN\$Sign,
+			$LexList, $LexList,
+			1).
+
+coerce_lexical_constraints <- [pred].
+coerce_lexical_constraints([]).
+coerce_lexical_constraints([($Word, $Sign)|$LexList]) :-
+    (lexical_constraints($Word, $Sign) ->
+     true ;
+     is_debug_mode("mayz:derivmake"),
+     debug_message("mayz:derivmake", "'lexical_constraints/2' failed\n"),
+     (fail_point_lexical_constraints($Word, $Sign, $FailPoint) ->
+      debug_message("mayz:derivmake", "~s\n", [$FailPoint]) ;
+      true),
+     fail),
+    !,
+    coerce_lexical_constraints($LexList).
+
+tree_to_derivation($Tree & TREE_NODE\NODE_SIGN\$Sign,
+		   $Deriv & DERIV_SIGN\$Sign) :-
+    (root_constraints($Sign) ->
+     true ;
+     is_debug_mode("mayz:derivmake"),
+     debug_message("mayz:derivmake", "'root_constraints/1' failed\n"),
+     (fail_point_root_constraints($Sign, $FailPoint) ->
+      debug_message("mayz:derivmake", "~s\n", [$FailPoint]) ;
+      true),
+     fail),
+    !,
+    tree_to_derivation_main($Tree, $Deriv, [], $LexList1, _),
+    reverse($LexList1, $LexList),
+    coerce_lexical_constraints($LexList).
+

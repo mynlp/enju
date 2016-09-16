@@ -1,0 +1,56 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-intro.css">
+<title>What is MAYZ toolkit?</title>
+</head>
+
+
+
+<body>
+<h1>What is MAYZ toolkit?</h1>
+
+<a href="intro.ja.html">Japanese version</a>
+
+<p>
+The MAYZ Toolkit provides tools to support the corpus-oriented
+development of lexicalized grammars.  Corpus-oriented development is a
+new methodology of developing wide-coverage lexicalized grammars.  In
+conventional grammar development, grammar writers build a large
+lexicon manually, while in our method we first make a <em>derivation
+bank</em> (derivbank).  A derivbank is a treebank of a target grammar
+theory, e.g., HPSG treebank.  It includes real sentences annotated
+with its syntactic structure.  Annotations must conform to grammar
+rules (principles and schemas) assessed by the grammar theory.  When
+derivation structures are properly assigned to real sentences, a
+lexicon is extract from them.
+
+<p>
+The MAYZ Toolkit helps the development of a derivbank, and extracts a
+lexicon from the derivbank.  Users can make a large lexicalized
+grammar only by writing grammar rules (schemas) and heuristic rules
+for annotation.  In addition, it provides tools to make disambiguation
+models based on maximum entropy models.  You can make probabilistic
+disambiguation models only by writing pattern rules of extracting
+features of maximum entropy models.
+
+<p>
+The package also includes a general-purpose parser (Unification
+Parser, UP).  This parser supports beam thresholding using
+probabilistic models.  Users can readily apply grammars developed by
+MAYZ to real tasks.
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

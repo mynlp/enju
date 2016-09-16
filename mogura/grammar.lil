@@ -1,0 +1,32 @@
+%/**********************************************************************
+  * @module    =  mogura:grammar
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: grammar.lil,v 1.5 2010-04-09 15:38:31 matuzaki Exp $
+  * @version   =  
+  * @desc      =  Mogura grammar
+  **********************************************************************
+%*/
+
+:- module("mogura:grammar").
+
+%------------------------------------------------------------------------------
+:- module_interface.
+%------------------------------------------------------------------------------
+:- ensure_loaded("../enju/grammar").
+:- ensure_loaded("grammar_interface").
+
+%------------------------------------------------------------------------------
+:- module_implementation.
+%------------------------------------------------------------------------------
+parser_init :-
+    set_limit_edge_number(0).
+
+parser_init :-
+    'mogura:grammar_interface':set_cfg_grammar_file("DATA/mogura-Enju.cfg").
+
+%------------------------------------------------------------------------------
+% Implementation for ver 2.3 grammar
+%------------------------------------------------------------------------------
+:- ensure_loaded("grammar_impl-2_3").
+

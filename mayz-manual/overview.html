@@ -1,0 +1,184 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-overview.css">
+<title>Overview of grammar development</title>
+</head>
+
+
+
+<body>
+<h1>Overview of grammar development</h1>
+
+<a href="overview.ja.html">Japanese version</a>
+
+<ul>
+  <li><a href="#make_grammar">Making a grammar</a>
+  <li><a href="#make_probmodel">Makine a probabilistic model</a>
+</ul>
+
+
+<h2><a name="make_grammar">Making a grammar</a></h2>
+
+<p>
+To make a grammar, we use <a
+href="treetrans.html"><tt>treetrans</tt></a>, <a
+href="lexextract.html"><tt>lexextract</tt></a>, and <a
+href="lexrefine.html"><tt>lexrefine</tt></a>.  The process of grammar
+development is shown in the following figure.
+
+<p>
+<img src="development.png" width=640 height=480 alt="The process of
+grammar development">
+
+<ol>
+  <li>Prepare a source treebank
+    <p>At first, an input treebank is prepared.  A treebank annotated
+    with traces and predicate-argument structures, such as in Penn
+    Treebank, is best for the development of lexicalized grammars.
+    However, if you do not have such a treebank, you can add various
+    additional information into the corpus by using heuristic pattern
+    rules.  In an extremecase, if you have only a raw text, you can
+    start with annotating shallow analysis using exising shallow
+    parsers.
+  <li>Transform input trees, and increase annotations
+    <p>Using <a href="treetrans.html"><tt>treetrans</tt></a>, we
+    transform input trees, and annotate additional information to
+    them.  A tree is represented with a feature structure, and
+    transformation rules are writtein in LiLFeS.  For the easy wrigint
+    of rules, several interfaces are provided.  In addition, several
+    tools are provided for convenience, such as for binarization of
+    trees and for head detection.
+  <li>Extract a grammar
+    <p>Using <a href="lexextract.html"><tt>lexextract</tt></a>, we
+    make derivbank, lexbank, lexicon, and templates.  By implementing
+    grammar rules of the target grammar formalism, the tool
+    automatically extract a lexicon from the transformed treebank.
+    <p>First, to make a derivbank from a transformed treebank, we
+    implement inverse grammar rules (schemas and principles).  Next,
+    we implement an interface to extract a lexical entry template from
+    a terminal feature structure of a derivation tree.  Additionally,
+    by implementing inverse lexical rules, we can extract templates of
+    lexemes in which lexical transformations such as inflections are
+    abstracted.
+  <li>Refine the grammar
+    <p>Using <a href="lexrefine.html"><tt>lexrefine</tt></a>, we
+    refine the lexicon and the templates.  Due to the mistakes in the
+    tree transformation, the lexicon and templates obtained in the
+    above process may include unpleasant lexical entries.  They are
+    refined by filtering out infrequent lexical entry templates.  In
+    addition, although the original lexicon does not include lexical
+    entries for unknown words, we can make the unknown word entries by
+    regarding infrequent words in a treebank as an unknown word.
+    Furthermore, in this stage, we can apply lexical rules to the
+    templates.  This process can save the time for applying lexical
+    rules in parsing.
+</ol>
+
+
+<h2><a name="make_probmodel">Making a probabilistic model</a></h2>
+
+<p>
+To make a probabilistic disambiguation model, we use <a
+href="unimaker.html"><tt>unimaker</tt></a>, <a
+href="forestmaker.html"><tt>forestmaker</tt></a>, <a
+href="amisfilter.html"><tt>amisfilter</tt></a>，and an estimator for
+maximum entropy models, <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis</a> (version
+3.0 or higher).  The flow of making a model is as follows.
+
+<p>
+<img src="probmodel.png" width=640 height=480 alt="The process of
+making a probabilistic model">
+
+<h3>To make a unigram model</h3>
+
+<p>
+Unigram model assigns a probability of selecting a lexical entry to a
+word.  Given a word <i>w</i> and a lexical entry <i>l</i>, the model
+gives the probability <i>p(l|w)</i>.  This model can be easily
+estimated because the model estimation requires only cooccurrence
+counts of words and lexical entries.  However, this model attains
+relatively lower accuracy because it cannot capture the preferences of
+the application of grammar rules.  This model should be used when we
+test a grammar/parser, or in order to reduce the cost of making a
+feature forest model, which is described later.
+
+<p>
+To make a unigram model, we implement 
+<tt>extract_lexical_event/4</tt> and <tt>feature_mask/3</tt> defined
+in "mayz/amismodel.lil".  The former is for extracting an event from a
+words and a lexical entry.  The latter is for defining <em>masks</em>
+applied to the event, and <em>features</em> of maximum entropy models
+are extracted.
+
+<p>
+First, using <tt><a href="unimaker.html">unimaker</a></tt>, events are
+extracted into an initial event file.  Next, using <tt><a
+href="amisfilter.html">amisfilter</a></tt>, amis-style data files are
+created by applying masks to the initial event file.  Finally, using
+"amis", parameters of the model are estimated.
+
+
+<h3>To make a feature forest model</h3>
+
+A feature forest model give a probability of a derivation assigned to
+a given sentence.  Given a sentence <i>s</i> and its derivation
+<i>d</i>, the model gives <i>p(d|s)</i>.  The estimation of this model
+requires much computational cost because parsing all training
+sentences is required and event data will be huge.  However, various
+preferences, such as preference of grammar rules and bi-lexical
+depdendencies, can be incorporated to the model, and high accuracy is
+expected.
+
+<p>
+For the estimation of a feature forest model, we need a pair of a
+correct parse tree and a parse forest for each sentence in a training
+corpus.  Given a derivbank, "forestmaker" makes a correct parse tree
+from a derivation, and parses a sentence to make a parse forest.  To
+parse a sentence, we need to implement an interface for parsing.  For
+details, see <a href="usegrammar.html">How to use a grammar</a>.
+
+<p>
+To make a feature forest model, we implement an interface defined in "mayz/amismodel.lil":
+<tt>extract_terminal_event/6</tt>, <tt>extract_unary_event/7</tt>,
+<tt>extract_binary_event/8</tt>, <tt>extract_root_event/4</tt>, and
+<tt>feature_mask/3</tt>.
+The first four predicates are for extracting an event corresponding to
+a terminal node, unary schema application, binary schema application,
+and a root node, respectively.  The final one is for applying a mask
+to the extracted events, as in making a unigram model.
+
+<p>
+First, using <tt><a href="forestmaker.html">forestmaker</a></tt>,
+events are extracted and an initial event file is created.  The
+remaining process is the same as making a unigram model; <tt><a
+href="amisfilter.html">amisfilter</a></tt> makes an amis-style data
+files, and <a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis</a> estimates
+model parameters.
+
+<p>
+When making a feature forest model, a simpler model (e.g. a unigram
+model) can be used as a reference distribution.  By implementing 
+<tt>reference_prob_terminal/5</tt>, <tt>reference_prob_unary/6</tt>,
+<tt>reference_prob_binary/7</tt>, and <tt>reference_prob_root/3</tt>,
+we can specify a reference probability distribution of a terminal
+node, unary schema application, binary schema application, and a root
+node, respectively.
+
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,45 @@
+%/**********************************************************************
+  * @module    =  enju:tools
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: tools.lil,v 1.3 2011-05-02 08:15:28 matuzaki Exp $
+  * @version   =  Time-stamp: <2005-06-21 20:00:31 yusuke>
+  * @desc      =  Tools for file access
+  **********************************************************************
+%*/
+
+:- module("enju:tools").
+
+:- module_interface.
+
+get_enju_file_path <- [pred].
+
+enju_param <- [pred].
+'enju_param/2' <- [enju_param, 'pred/2'].
+
+:- module_extendable. %% for enju_param
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/strings").
+
+check_file <- [pred].
+% for windows
+check_file($File) :-
+    environ("ENJU_WIN", "1"),
+    !,
+    join(["if exist ", $File, " (exit 0) else (exit 1)"], "", $Test),
+    system($Test).
+% for linux
+check_file($File) :-
+    concatenate_string("test -r ", $File, $Test),
+    system($Test).
+get_enju_file_path($FileName, $FileName) :-
+    check_file($FileName),
+    !.
+get_enju_file_path($FileName, $Path) :-
+    environ("ENJU_DIR", $Dir),
+    concatenate_string([$Dir, "/", $FileName], $Path),
+    check_file($Path),
+    !.
+

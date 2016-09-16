@@ -1,0 +1,157 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Index of files</title>
+</head>
+
+
+
+<body>
+<h1>Index of files</h1>
+
+<a href="files.ja.html">Japanese version</a>
+
+<h2>"grammar" directory</h2>
+
+<p>
+This directory contains files in which types, schemas, and principles
+are defined.  The files will be installed in the "enju" directory.
+
+<dl>
+  <dt>display.lil
+  <dd>to convert a sign into a display string
+  <dt>forestevent.lil
+  <dd>to extract events of feature forest model
+  <dt>forestprob.lil
+  <dd>to compute a probability with feature forest model
+  <dt>fs.css
+  <dd>a stylesheet for browsing feature structures
+  <dt>fs.xsl
+  <dd>XSL for browsing feature structures
+  <dt>grammar.lil
+  <dd>implementation of "up" interfaces
+  <dt>lexmask.lil
+  <dd>masks for lexicalized unigram FOM model
+  <dt>lexmodel.lil
+  <dd>implementation of lexicalized unigram FOM model
+  <dt>macro.lil
+  <dd>macros of the structure of a sign
+  <dt>moriv.css
+  <dd>a stylesheet for moriv
+  <dt>moriv.lil
+  <dd>to browse parsing results with moriv
+  <dt>outputdep.lil
+  <dd>to output parse results in dependency format
+  <dt>outputxml.lil
+  <dd>to output parse results in XML format
+  <dt>preproc.lil
+  <dd>to preprocess words and POSs
+  <dt>schema.lil
+  <dd>implementation of ID schemas and principles
+  <dt>semantics.lil
+  <dd>implementation of semantic principles
+  <dt>stem.lil
+  <dd>a program of stemming
+  <dt>synmask.lil
+  <dd>masks for syntax FOM model
+  <dt>synmodel.lil
+  <dd>implementation of syntax FOM model
+  <dt>tools.lil
+  <dd>tools used in the parser
+  <dt>types.lil
+  <dd>definition of a type hierarchy of the HPSG grammar
+  <dt>unievent.lil
+  <dd>to extract events of unigram model
+  <dt>uniprob.lil
+  <dd>to compute a probability with unigram model
+</dl>
+
+<h2>"devel" directory</h2>
+
+<p>
+This directory contains pattern rules for treebank conversion and
+inverse grammar rules to make HPSG derivations.  The files will not be
+installed.
+
+<dl>
+  <dt>evalpas.lil
+  <dd>to evaluate the accuracy of predicate-argument relations
+  <dt>forestmake.lil
+  <dd>to make feature forest model
+  <dt>invlexrule.lil
+  <dd>implementation of inverse_lexical_rule
+  <dt>invschema.lil
+  <dd>implementation of inverse_schema
+  <dt>lexabstract.lil
+  <dd>for the abstraction of lexical entries
+  <dt>lexcommon.lil
+  <dd>programs commonly used in lexrule.lil, invlexrule.lil
+  <dt>lexextract.lil
+  <dd>setting file for lexextract
+  <dt>lexmodel.conf
+  <dd>amis configuration file for lexicalized unigram FOM model
+  <dt>lexrefine.lil
+  <dd>settinf file for lexrefine
+  <dt>lexrule.lil
+  <dd>implementation of lexical_rule
+  <dt>lextemplate.lil
+  <dd>implementation of lexical_entry_template
+  <dt>makesem.lil
+  <dd>to make the content of CONT feature
+  <dt>moriv.css
+  <dd>stylesheet for moriv
+  <dt>moriv.lil
+  <dd>to browse the process of grammar extraction with moriv
+  <dt>pqueue.lil
+  <dd>implementation of priority queue
+  <dt>synmodel.conf
+  <dd>amis configuration file for syntax FOM model
+  <dt>transmain.lil
+  <dd>setting file for treetrans
+  <dt>transrules/
+  <dd>pattern rules for tree conversion
+</dl>
+
+<h2>"parser" directory</h2>
+
+<p>
+This directory contains C++ source files for an Enju parser.
+
+<dl>
+  <dt>enju.cc
+  <dd>the main program of enju
+  <dt>outputxml.cc
+  <dd>for XML outputs
+</dl>
+
+<h2>"tools" directory</h2>
+
+<p>
+This directory contains several scripts.
+
+<dl>
+  <dt>err2html.prl
+  <dd>perl script for displaying *.err files in an HTML format
+  <dt>mrg2trees.prl
+  <dd>perl script for converting Penn-style *.mrg into *.trees
+  <dt>trees2raw.prl
+  <dd>perl script for converting *.trees into raw texts
+  <dt>trees2tagged.prl
+  <dd>perl script for converting *.trees into POS-tagged texts
+</dl>
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

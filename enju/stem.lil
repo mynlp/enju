@@ -1,0 +1,533 @@
+%/**********************************************************************
+  * @module    =  enju:stem
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  Stemming for English
+  * OBSOLETED by morphological analyzer in preproc.lil
+  ************************************************************************
+%*/
+
+:- module("enju:stem").
+
+:- module_interface.
+
+initialize_stemmer <- [pred].
+terminate_stemmer <- [pred].
+stemming <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("tools").
+
+'*enju_stemmer_handle*' <- [variable].
+:- define_variable('*enju_stemmer_handle*').
+
+initialize_stemmer($Name, $Args) :-
+    open_pty_stream($Name, $Args, $Handle),
+    set_variable('*enju_stemmer_handle*', $Handle).
+terminate_stemmer :-
+    get_variable('*enju_stemmer_handle*', $Handle),
+    close($Handle).
+
+stemming($Surface, $POS, $Base, $BasePOS) :-
+    get_variable('*enju_stemmer_handle*', $Handle),
+    format($Handle, "~s/~s\n", [$Surface, $POS]),
+    flush_output($Handle),
+    readln_string($Handle, $Str),
+    split($Str, 9, [$Base, $BasePOS]).
+
+%/*
+:- module_interface.
+
+stemming <- [pred].
+
+import_dictionary <- [pred].
+clear_dictionary <- [pred].
+
+make_dict <- [pred].
+
+:- module_implementation.
+
+word_class <- [bot].
+noun      <- [word_class].
+verb      <- [word_class].
+adjective <- [word_class].
+adverb    <- [word_class].
+
+dict_key <- [bot] + [CLASS\word_class].
+stem_key <- [dict_key] + [STEM\string].
+inf_key <- [dict_key] + [INF\string].
+
+stem <- [pred].
+
+stem_modal <- [pred].
+stem_3sg_verb <- [pred].
+stem_past_verb <- [pred].
+stem_no3sg_verb <- [pred].
+stem_prp_verb <- [pred].
+stem_pp_verb <- [pred].
+stem_noun <- [pred].
+stem_comp_adjective <- [pred].
+stem_sup_adjective <- [pred].
+stem_comp_adverb <- [pred].
+stem_sup_adverb <- [pred].
+
+'*stemming_table*' <- [pred].
+
+:- ensure_loaded("tools").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/strings").
+
+:- 
+    set_debug_mode("stem"),
+    db_open('*stemming_table*'(key_fs, array_value)).
+
+'*num*' <- [variable].
+:- init_integer_variable('*num*').
+
+%%%%%%%%%%%%%%%%%%%%% interface for WordNet %%%%%%%%%%%%%%%%%%%%%%%
+
+is_base_noun <- [pred].
+is_base_verb <- [pred].
+is_base_adjective <- [pred].
+is_base_adverb <- [pred].
+stem_exc_noun <- [pred].
+stem_exc_verb <- [pred].
+stem_exc_adjective <- [pred].
+stem_exc_adverb <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%% stemming implementation %%%%%%%%%%%%%%%%%%%%%
+
+base_check <- [pred].
+base_check([$Word], $Word) :- is_base_verb($Word).
+base_check([$Word|$Words], $Stem) :-
+    (is_base_verb($Word) ->
+     $Stem = $Word; base_check($Words, $Stem)).
+
+stem_3sg_verb($Word, $Stem) :- stem_exc_verb($Word, $Stem).
+stem_3sg_verb($Word, $Stem) :-
+    regex_match("[^aiueo]ies$", $Word),
+    regex_subst("ies$", "y", $Word, $Stem).
+stem_3sg_verb($Word, $Stem) :-
+    regex_match("((sh)|(ch)|s|x|z|o)es$", $Word),
+    regex_subst("es$", "e", $Word, $Stem1),
+    (is_base_verb($Stem1) ->
+     $Stem = $Stem1;
+     regex_subst("es$", "", $Word, $Stem)),
+    $Stem =\= "".
+stem_3sg_verb($Word, $Stem) :-
+    regex_subst("s$", "", $Word, $Stem),
+    $Stem =\= "".
+
+stem_no3sg_verb("'ve", "have").
+stem_no3sg_verb("are", "be").
+stem_no3sg_verb("'re", "be").
+stem_no3sg_verb("am", "be").
+stem_no3sg_verb("'m", "be").
+stem_no3sg_verb($Word, $Word).
+  
+stem_ruled_past_verb <- [pred].
+stem_ruled_past_verb("Cy", $Word, $Args) :-
+    (regex_match("[^aiueo]ied$", $Word) ->
+     regex_subst("ied$", "y", $Word, $Stem),
+     $Args = [$Stem];
+     stem_ruled_past_verb("CVT", $Word, $Args)), !.
+stem_ruled_past_verb("CVT", $Word, $Args) :-
+    (regex_match("[^aiueo][aiueo](b{2}|d{2}|f{2}|g{2}|l{2}|m{2}|n{2}|p{2}|r{2}|s{2}|t{2}|z{2})ed", $Word),
+     regex_subst("[bdfglmnprstz]ed$", "", $Word, $Word1),
+     regex_subst("ed$", "", $Word, $Word2) ->
+     $Args = [$Word1, $Word2];
+     stem_ruled_past_verb("ed", $Word, $Args)), !.
+stem_ruled_past_verb("ed", $Word, $Args) :-
+     regex_subst("ed$", "", $Word, $Word1),
+     regex_subst("ed$", "e", $Word, $Word2),
+     $Args = [$Word2, $Word1], !.
+stem_ruled_past_verb(_, $Word, $Args) :-
+    (is_base_verb($Word) ->
+     $Args = [$Word];
+     fail).
+
+stem_past_verb($Word, $Stem) :- stem_exc_verb($Word, $Stem), !.
+stem_past_verb($Word, $Stem) :- 
+    stem_ruled_past_verb("Cy", $Word, $Args),
+    (base_check($Args, $Stem) -> true; $Args = [$Stem|_]).
+
+stem_ruled_prp_verb <- [pred].
+stem_ruled_prp_verb("CVT", $Word, $Args) :-
+    (regex_match("[^aiueo][aiueo](b{2}|d{2}|f{2}|g{2}|l{2}|m{2}|n{2}|p{2}|r{2}|s{2}|t{2}|z{2})ing", $Word),
+     regex_subst("[bdfglmnprstz]ing$", "", $Word, $Word1),
+     regex_subst("ing$", "", $Word, $Word2) ->
+     $Args = [$Word1, $Word2];
+     stem_ruled_prp_verb("ing", $Word, $Args)).
+stem_ruled_prp_verb("ing", $Word, $Args) :-
+    regex_subst("ing$", "", $Word, $Word1),
+    regex_subst("ing$", "e", $Word, $Word2),
+    $Args = [$Word1, $Word2].
+
+stem_prp_verb($Word, $Stem) :- stem_exc_verb($Word, $Stem).
+stem_prp_verb($Word, $Stem) :-
+    stem_ruled_prp_verb("CVT", $Word, $Args),
+    (base_check($Args, $Stem) -> true; $Args = [$Stem|_]).
+
+stem_pp_verb($Word, $Stem) :- stem_past_verb($Word, $Stem).
+
+stem_modal("would", "will").
+stem_modal("'d", "will").
+stem_modal("could", "can").
+stem_modal("might", "may").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+stem_noun($Word, $Stem) :- stem_exc_noun($Word, $Stem), !.
+stem_noun($Word, $Word) :- regex_match("less$", $Word), !.
+stem_noun($Word, $Word) :- regex_match("ness$", $Word), !.
+stem_noun($Word, $Stem) :-
+    regex_match("[^aiueo]ies$", $Word),
+    regex_subst("ies$", "y", $Word, $Stem), !.
+stem_noun($Word, $Stem) :-
+    regex_match("((sh)|(ch)|s|x|z|o)es$", $Word),
+    regex_subst("es$", "e", $Word, $Stem1),
+    (is_base_noun($Stem1) ->
+     $Stem = $Stem1;
+     regex_subst("es$", "", $Word, $Stem)),
+    $Stem =\= "".
+stem_noun($Word, $Stem) :-
+    regex_subst("s$", "", $Word, $Stem),
+    $Stem =\= "",
+    !.
+stem_noun($Word, $Word).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+stem_comp <- [pred].
+stem_comp($Word, $Stem) :-
+    regex_match("[^aiueo]ier$", $Word),
+    regex_subst("ier$", "y", $Word, $Stem),
+    !.
+stem_comp($Word, $Stem) :-
+    regex_subst("er$", "", $Word, $Stem1),
+    (is_base_adjective($Stem1) ->
+     $Stem = $Stem1;
+     regex_subst("er$", "e", $Word, $Stem)),
+    $Stem =\= "".
+
+stem_sup <- [pred].
+stem_sup($Word, $Stem) :-
+    regex_match("[^aiueo]iest$", $Word),
+    regex_subst("iest$", "y", $Word, $Stem),
+    !.
+stem_sup($Word, $Stem) :-
+    regex_subst("est$", "", $Word, $Stem1),
+    (is_base_adjective($Stem1) ->
+     $Stem = $Stem1;
+     regex_subst("est$", "e", $Word, $Stem)),
+    $Stem =\= "".
+
+stem_comp_adjective($Word, $Stem) :- stem_exc_adjective($Word, $Stem), !.
+stem_comp_adjective($Word, $Stem) :- stem_comp($Word, $Stem), !.
+stem_comp_adjective($Word, $Word).
+
+stem_sup_adjective($Word, $Stem) :- stem_exc_adjective($Word, $Stem), !.
+stem_sup_adjective($Word, $Stem) :- stem_sup($Word, $Stem), !.
+stem_sup_adjective($Word, $Word).
+
+stem_comp_adverb($Word, $Stem) :- stem_exc_adverb($Word, $Stem), !.
+stem_comp_adverb($Word, $Stem) :- stem_comp($Word, $Stem), !.
+stem_comp_adverb($Word, $Word).
+
+stem_sup_adverb($Word, $Stem) :- stem_exc_adverb($Word, $Stem), !.
+stem_sup_adverb($Word, $Stem) :- stem_sup($Word, $Stem), !.
+stem_sup_adverb($Word, $Word).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+stemming($Surface, "MD", $Base, "MD") :-
+    stem_modal($Surface, $Base), !.
+stemming($Surface, "VBG", $Base, "VB") :-
+    stem_prp_verb($Surface, $Base), !.
+stemming($Surface, "VBZ", $Base, "VB") :-
+    stem_3sg_verb($Surface, $Base), !.
+stemming($Surface, "VBD", $Base, "VB") :-
+    stem_past_verb($Surface, $Base), !.
+stemming($Surface, "VBN", $Base, "VB") :-
+    stem_past_verb($Surface, $Base), !.
+stemming($Surface, "VBP", $Base, "VB") :-
+    stem_no3sg_verb($Surface, $Base), !.
+stemming($Surface, "NNS", $Base, "NN") :-
+    stem_noun($Surface, $Base), !.
+stemming($Surface, "NNPS", $Base, "NNP") :-
+    stem_noun($Surface, $Base), !.
+stemming($Surface, "JJR", $Base, "JJ") :-
+    stem_comp_adjective($Surface, $Base), !.
+stemming($Surface, "JJS", $Base, "JJ") :-
+    stem_sup_adjective($Surface, $Base), !.
+stemming($Surface, "RBR", $Base, "RB") :-
+    stem_comp_adverb($Surface, $Base), !.
+stemming($Surface, "RBS", $Base, "RB") :-
+    stem_sup_adverb($Surface, $Base), !.
+stemming($Surface, $POS, $Surface, $POS).
+
+
+output_stem <- [pred].
+output_stem($Surface, $Out) :-
+    is_base_verb($Surface),
+    format($Out, "~s\t~s\n", [$Surface, $Surface]), !.
+output_stem($Surface, $Out) :-
+    regex_match("ss$", $Surface),
+    format($Out, "~s\t~s\n", [$Surface, $Surface]), !.
+output_stem($Surface, $Out) :-
+    stem_modal($Surface, $Stem),
+    format($Out, "~s\t~s\n", [$Surface, $Stem]), !.
+output_stem($Surface, $Out) :-
+    stem_prp_verb($Surface, $Stem),
+    format($Out, "~s\t~s\n", [$Surface, $Stem]), !.
+output_stem($Surface, $Out) :-
+    stem_3sg_verb($Surface, $Stem),
+    format($Out, "~s\t~s\n", [$Surface, $Stem]), !.
+output_stem($Surface, $Out) :-
+    stem_past_verb($Surface, $Stem),
+    format($Out, "~s\t~s\n", [$Surface, $Stem]), !.
+output_stem($Surface, $Out) :-
+    stem_no3sg_verb($Surface, $Stem),
+    format($Out, "~s\t~s\n", [$Surface, $Stem]), !.
+
+stem_main <- [pred].
+stem_main($IN, $OUT) :-
+    readln_string($IN, $Surface),
+    inc_variable('*num*'),
+    output_stem($Surface, $OUT),
+    fail.
+stem_main(_, _) :-
+    get_variable('*num*', $N),
+    (0 is $N mod 1000 ->
+     debug_message("stem", "~d words processed.\n", [$N]);
+     true),
+    fail.
+stem_main($IN, $OUT) :-
+    \+ eof_stream($IN),
+    !,
+    stem_main($IN, $OUT).
+stem_main(_, _).
+    
+
+stem($InFile, $OutFile) :-
+    open_file_stream($InFile, "r", $IN),
+    open_file_stream($OutFile, "w", $OUT),
+    stem_main($IN, $OUT),
+    close($IN),
+    close($OUT).
+
+
+%%%%%%%%%%%%% make dictionary from WordNet %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+make_dict_base_noun_main <- [pred].
+make_dict_base_noun_main($Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Word|_]),
+    \+$Word = "",
+    db_insert('*stemming_table*'(STEM\$Word & CLASS\noun, 1)),
+    fail.
+make_dict_base_noun_main($Handle) :-
+    \+eof_stream($Handle),
+    !,
+    make_dict_base_noun_main($Handle).
+make_dict_base_noun_main(_).
+
+make_dict_base_noun <- [pred].
+make_dict_base_noun($NounIndexFile) :-
+    open_file_stream($NounIndexFile, "r", $Handle),
+    make_dict_base_noun_main($Handle),
+    close($Handle).
+
+make_dict_base_verb_main <- [pred].
+make_dict_base_verb_main($Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Word|_]),
+    \+$Word = "",
+    db_insert('*stemming_table*'(STEM\$Word & CLASS\verb, 1)),
+    fail.
+make_dict_base_verb_main($Handle) :-
+    \+eof_stream($Handle),
+    !, make_dict_base_verb_main($Handle).
+make_dict_base_verb_main(_).
+
+make_dict_base_verb <- [pred].
+make_dict_base_verb($VerbIndexFile) :-
+    open_file_stream($VerbIndexFile, "r", $Handle),
+    make_dict_base_verb_main($Handle),
+    close($Handle).
+
+make_dict_base_main <- [pred].
+make_dict_base_main($Class, $Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Word|_]),
+    \+$Word = "",
+    db_insert('*stemming_table*'(STEM\$Word & CLASS\$Class, 1)),
+    fail.
+make_dict_base_main($Class, $Handle) :-
+    \+eof_stream($Handle),
+    !, make_dict_base_main($Class, $Handle).
+make_dict_base_main(_, _).
+
+make_dict_base_adjective <- [pred].
+make_dict_base_adjective($AdjectiveIndexFile) :-
+    open_file_stream($AdjectiveIndexFile, "r", $Handle),
+    make_dict_base_main(adjective, $Handle),
+    close($Handle).
+
+make_dict_base_adverb <- [pred].
+make_dict_base_adverb($AdverbIndexFile) :-
+    open_file_stream($AdverbIndexFile, "r", $Handle),
+    make_dict_base_main(adverb, $Handle),
+    close($Handle).
+
+make_dict_exc_noun_main <- [pred].
+make_dict_exc_noun_main($Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Inflection, $Stem]),
+    db_insert('*stemming_table*'(INF\$Inflection & CLASS\noun, $Stem)),
+    fail.
+make_dict_exc_noun_main($Handle) :-
+    \+eof_stream($Handle),
+    !, make_dict_exc_noun_main($Handle).
+make_dict_exc_noun_main(_).
+
+make_dict_exc_noun <- [pred].
+make_dict_exc_noun($NounExcFile) :-
+    open_file_stream($NounExcFile, "r", $Handle),
+    make_dict_exc_noun_main($Handle),
+    close($Handle).
+
+make_dict_exc_verb_main <- [pred].
+make_dict_exc_verb_main($Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Inflection, $Stem]),
+    db_insert('*stemming_table*'(INF\$Inflection & CLASS\verb, $Stem)),
+    fail.
+make_dict_exc_verb_main($Handle) :-
+    \+eof_stream($Handle),
+    !, make_dict_exc_verb_main($Handle).
+make_dict_exc_verb_main(_).
+
+make_dict_exc_verb <- [pred].
+make_dict_exc_verb($VerbExcFile) :-
+    db_insert('*stemming_table*'(INF\"were" & CLASS\verb, "be")),
+    db_insert('*stemming_table*'(INF\"'s" & CLASS\verb, "be")),
+    db_insert('*stemming_table*'(INF\"'d" & CLASS\verb, "have")),
+    db_insert('*stemming_table*'(INF\"has" & CLASS\verb, "have")),
+    open_file_stream($VerbExcFile, "r", $Handle),
+    make_dict_exc_verb_main($Handle),
+    close($Handle).
+
+make_dict_exc_main <- [pred].
+make_dict_exc_main($Class, $Handle) :-
+    readln_string($Handle, $String),
+    split($String, " ", [$Inflection, $Stem]),
+    db_insert('*stemming_table*'(INF\$Inflection & CLASS\$Class, $Stem)),
+    fail.
+make_dict_exc_main($Class, $Handle) :-
+    \+eof_stream($Handle),
+    !, make_dict_exc_main($Class, $Handle).
+make_dict_exc_main(_, _).
+
+make_dict_exc_adjective <- [pred].
+make_dict_exc_adjective($AdjectiveExcFile) :-
+    db_insert('*stemming_table*'(INF\"better" & CLASS\adjective, "good")),
+    db_insert('*stemming_table*'(INF\"best" & CLASS\adjective, "good")),
+    db_insert('*stemming_table*'(INF\"worse" & CLASS\adjective, "bad")),
+    db_insert('*stemming_table*'(INF\"worst" & CLASS\adjective, "bad")),
+    db_insert('*stemming_table*'(INF\"more" & CLASS\adjective, "many")),
+    db_insert('*stemming_table*'(INF\"most" & CLASS\adjective, "many")),
+    db_insert('*stemming_table*'(INF\"less" & CLASS\adjective, "little")),
+    db_insert('*stemming_table*'(INF\"least" & CLASS\adjective, "little")),
+    open_file_stream($AdjectiveExcFile, "r", $Handle),
+    make_dict_exc_main(adjective, $Handle),
+    close($Handle).
+
+make_dict_exc_adverb <- [pred].
+make_dict_exc_adverb($AdverbExcFile) :-
+%%    db_insert('*stemming_table*'(INF\"better" & CLASS\adjective, "well")),
+%%    db_insert('*stemming_table*'(INF\"best" & CLASS\adjective, "well")),
+    db_insert('*stemming_table*'(INF\"worse" & CLASS\adverb, "bad")),
+    db_insert('*stemming_table*'(INF\"worst" & CLASS\adverb, "bad")),
+    db_insert('*stemming_table*'(INF\"more" & CLASS\adverb, "much")),
+    db_insert('*stemming_table*'(INF\"most" & CLASS\adverb, "much")),
+    db_insert('*stemming_table*'(INF\"less" & CLASS\adverb, "little")),
+    db_insert('*stemming_table*'(INF\"least" & CLASS\adverb, "little")),
+    open_file_stream($AdverbExcFile, "r", $Handle),
+    make_dict_exc_main(adverb, $Handle),
+    close($Handle).
+
+make_dict :-
+    debug_message("stem", "Making dictionaries from WordNet...\n"),
+    get_argv(0, $NounIndexFile),
+    get_argv(1, $VerbIndexFile),
+    get_argv(2, $AdjectiveIndexFile),
+    get_argv(3, $AdverbIndexFile),
+    get_argv(4, $NounExcFile),
+    get_argv(5, $VerbExcFile),
+    get_argv(6, $AdjectiveExcFile),
+    get_argv(7, $AdverbExcFile),
+    get_argv(8, $DictFile),
+    debug_message("stem", "Making base noun dictionary...\n"),
+    make_dict_base_noun($NounIndexFile),
+    debug_message("stem", "Making base verb dictionary...\n"),
+    make_dict_base_verb($VerbIndexFile),
+    debug_message("stem", "Making base adjective dictionary...\n"),
+    make_dict_base_adjective($AdjectiveIndexFile),
+    debug_message("stem", "Making base adverb dictionary...\n"),
+    make_dict_base_adverb($AdverbIndexFile),
+    debug_message("stem", "Making noun exception dictionary...\n"),
+    make_dict_exc_noun($NounExcFile),
+    debug_message("stem", "Making verb exception dictionary...\n"),
+    make_dict_exc_verb($VerbExcFile),
+    debug_message("stem", "Making adjective exception dictionary...\n"),
+    make_dict_exc_adjective($AdjectiveExcFile),
+    debug_message("stem", "Making adverb exception dictionary...\n"),
+    make_dict_exc_adverb($AdverbExcFile),
+    debug_message("stem", "Saving DB...\n"),
+    db_save($DictFile, '*stemming_table*'(_, _)),
+    debug_message("stem", "Closing DB...\n"),
+    db_close('*stemming_table*'(_, _)).
+
+%%%%%%%%%%%%%%%%%%%% use WordNet %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+is_base_noun($Word) :-
+    db_find('*stemming_table*'(STEM\$Word & CLASS\noun, 1)).
+
+is_base_verb($Word) :-
+    db_find('*stemming_table*'(STEM\$Word & CLASS\verb, 1)).
+
+is_base_adjective($Word) :-
+    db_find('*stemming_table*'(STEM\$Word & CLASS\adjective, 1)).
+
+is_base_adverb($Word) :-
+    db_find('*stemming_table*'(STEM\$Word & CLASS\adverb, 1)).
+
+stem_exc_noun($Inflection, $Stem) :-
+    db_find('*stemming_table*'(INF\$Inflection & CLASS\noun, $Stem)).
+
+stem_exc_verb($Inflection, $Stem) :-
+    db_find('*stemming_table*'(INF\$Inflection & CLASS\verb, $Stem)).
+
+stem_exc_adjective($Inflection, $Stem) :-
+    db_find('*stemming_table*'(INF\$Inflection & CLASS\adjective, $Stem)).
+
+stem_exc_adverb($Inflection, $Stem) :-
+    db_find('*stemming_table*'(INF\$Inflection & CLASS\adverb, $Stem)).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+import_dictionary($DictFile) :-
+    (db_load($DictFile, '*stemming_table*'(_,_)) ->
+     true;
+     error_message("Dictionary file ""~s"" does not exist!\n", [$DictFile]),
+     fail).
+clear_dictionary :-
+    db_clear('*stemming_table*'(_, _)).
+%*/
+

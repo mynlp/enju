@@ -1,0 +1,48 @@
+%/**********************************************************************
+  * @module    =  enju:macro
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: macro.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   =  Time-stamp: <2007-04-13 17:33:38 yusuke>
+  * @desc      =  Macros
+  **********************************************************************
+%*/
+
+:- module("enju:macro").
+
+:- module_interface.
+
+is_root_sign <- [pred].
+is_sentence_sign <- [pred].
+is_S <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("types").
+
+is_root_sign(SYNSEM\(LOCAL\CAT\(HEAD\MOD\[] &
+				VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[])) &
+		     NONLOCAL\(INHER\(REL\[] &
+				      SLASH\[] &
+				      F_REL\[]) &
+			       TO_BIND\(REL\[] &
+					SLASH\[] &
+					F_REL\[])))).
+
+is_sentence_sign($Sign &
+		 SYNSEM\LOCAL\CAT\HEAD\(hpsg_verb &
+					VFORM\hpsg_fin)) :-
+    is_root_sign($Sign).
+
+is_S(SYNSEM\(LOCAL\CAT\(HEAD\(hpsg_verb &
+			      VFORM\hpsg_fin) &
+			VAL\(SUBJ\[] &
+			     COMPS\[] &
+			     SPR\[] &
+			     SPEC\[] &
+			     CONJ\[])))).
+

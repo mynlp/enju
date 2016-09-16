@@ -1,0 +1,104 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>MoriV を使う</title>
+</head>
+
+
+
+<body>
+<h1>MoriV を使う</h1>
+
+<a href="develmoriv.html">English version</a>
+
+<p>
+treetrans による木構造変換や lexextract による辞書抽出の詳細を
+グラフィカルにブラウズするために，MoriV を使うことができます．
+MoriV は，素性構造や木構造を表すタグで拡張された XHTML を
+表示することができるウェブブラウザです．
+普通のウェブブラウザでは素性構造や木構造を見ることはできませんが，
+FireFox など，XSLT とXHTML をサポートしているウェブブラウザを使えば，
+XSLT で変換された素性構造や木構造を見ることができます．
+
+<h2>木構造変換，辞書抽出の過程をブラウズする</h2>
+
+木構造変換や辞書抽出の過程をブラウズするためには "enju-devel/moriv.lil" を使います．
+このモジュールは，http サーバおよび cgi として動作します．
+まず，"enju-devel/moriv.lil" を読みこみます．
+
+<small><pre>% lilfes -l enju-devel/moriv</pre></small>
+
+次に，cgi コマンドを起動します．
+
+<small><pre>&gt ?- cgi.</pre></small>
+
+すると，http サーバが起動し，接続待ち状態になります．
+サーバを起動したホストの 27109 ポートの /cgi-lilfes/moriv? に，
+ブラウザでアクセスしてください．
+
+<small><pre>http://サーバを起動したホスト:27109/cgi-lilfes/moriv?</pre></small>
+
+次のようなページが表示されます．
+
+<p>
+<center>
+<img src="show_fstree.png" alt="文法獲得のための mayz GUI">
+</center>
+
+<p>
+上側のフレームで構文木を入力すると，
+下側のフレームで文法抽出の各ステップでの処理結果を見ることができます．
+入力する構文木の形式は treetrans の入力と同じです．
+
+<p>
+構文木は一番上の入力フォームに直接入力して Input ボタンを押すか，
+その下の入力フォームにファイル名と行番号を指定して Read ボタンを
+押すことで入力できます．
+
+<p>
+左下のメニューを選ぶと右下に処理結果を表示します．
+Input tree のメニューでは treetrans に入力した構文木の形が見られます．
+同様に Derivation メニューでは lexextract が
+(木構造変換後の)構文木からつくった derivation が，
+Lexical entries メニューでは derivation から得られる語彙項目が表示されます．
+その下のメニューでは，treetrans による木構造変換の過程が見られます．
+木構造変換のルール名が適用する順番に表示されているので，
+ルール名を選ぶとそのルールを適用した直後の木を見ることができます．
+
+<p>
+構文木は treetrans 内では素性構造で表されますが，
+表示されるのは各ノードが記号 (TREENODE\SYM素性) になっている木です．
+加えて，各ノードとして素性構造の一部 (TREE_NODE 素性の値) 
+を表示する形式も選べます．
+その場合は各メニューの fstree を選びます．
+全体の素性構造を見たい場合には fs を選びます．
+Derivation では各ノードに DERIV_SIGN 素性の値が表示される形式と，
+全体の素性構造を表示する形式 (fs) が選べます．
+
+<p>
+Lexical entries メニューでは，
+入力された単語ごとに次のものを表示します．
+
+<ol>
+   <li>単語から抽出した語彙項目の名前 ('lex_template' 型)
+   <li>語彙項目の名前を辞書に登録するためのキー ('word' 型)
+   <li>辞書のキーの元になった単語 ('word' 型)
+   <li>語彙項目の素性構造 ('hpsg_word' 型)
+   <li>語彙項目の元になった語彙素項目の素性構造 ('hpsg_lxm' 型)
+</ol>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

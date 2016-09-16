@@ -1,0 +1,357 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Parsing process example</title>
+</head>
+
+
+
+<body>
+<h1>Parsing process example</h1>
+
+<a href="ex_process.ja.html">Japanese version</a>
+<p>
+In this section, we would take the sentence "I saw a girl with a telescope." as an example to illustrate how parsing is done by 
+Enju．
+
+<ul>
+  <li><a href="#preprocess">Preprocessing</a>
+  <li><a href="#lexicon">Creating Lexical Entries</a>
+  <li><a href="#parsing">Chart-parsing</a>
+  <ul>
+    <li><a href="#edge">Creating Edges</a>
+    <li><a href="#chart">Charting Parses</a>
+    <li><a href="#link">Linking the Edges</a>
+  </ul>
+  <li><a href="#output">Output</a>
+</ul>
+
+<h2><a name="preprocess">Preprocessing</a></h2>
+
+<p>
+As described in the <a href="preprocess.html">Preprocessing</a> section, preprocessing is 
+handled by the <tt>sentence_to_word_lattice/2</tt> predicate．
+
+<p>
+The input sentences is first tagged by the <tt>external_tagger/2</tt> predicate．
+
+<pre>
+"I/PRP saw/VBD a/DT girl/NN with/IN a/DT telescope/NN ./."
+</pre>
+
+The tagged sentence is then processed into a list of Word/POS pairs and stemmed. 
+Next, feature structures of the 'extent_word' type is created by the <tt>token_to_word_lattice/2</tt>
+predicate for each word. Below is the representation of "saw" as a feature structure of the 'extent_word' type.
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4" />
+    <td><span class="type">extent_word</span></td>
+    <td />
+    <td />
+    <td />
+    <td class="rprn" rowspan="4" />
+</tr>
+<tr><td>left_pos</td><td>1</td></tr>
+<tr><td>right_pos</td><td>2</td></tr>
+<tr><td>word</td>
+    <td>&lt</td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"see"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBD"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">1</span></td>
+    </tr>
+    </table>
+    </td><td>&gt</td>
+</tr>
+</table>
+
+A list of this kind of feature structures is the output of the <tt>sentence_to_word_lattice/2</tt> predicate.
+
+
+<h2><a name="lexicon">Creating Lexical Entries</a></h2>
+
+<p>
+We use the predicates <tt>lexical_entry/2</tt> and 
+<tt>lexical_entry_sign/2</tt> for passing the signs of lexical entries to up.
+
+<p>
+The <tt>lexical_entry/2</tt> predicate is called by the value of the word feature of  a feature structure of the 'extent_word' type. The value assigned to this feature is a list of 'word'. <tt>lookup_lexicon/2</tt> would look for the template for each element of the list. The subclauses<tt>lexicon_lookup_key</tt> and <tt>unknown_word_lookup_key/2</tt>  of <tt>lookup_lexicon/2</tt>would come up with keys for retrieving lexical entries from the dictionary.  
+
+For the  feature structure corresponding to  "saw",  the value of the word feature is a one-item list. The key corresponding to this item created by <tt>lexicon_lookup_key/2</tt> is made up by the based form and the POS of the input word. The key for  "saw" is given as follows:
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">word</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">BASE</span></td>
+    <td><span class="doublequoted">"see"</span></td>
+</tr>
+<tr><td><span class="edge_fs">POS</span></td>
+    <td><span class="doublequoted">"VBD"</span></td>
+</tr>
+</table>
+
+Looking up the dictionary using the above key would return a list of 'lex_template'. Below is the list resulted:
+
+<table class="fs">
+    <tr><td class="lprn" rowspan="3"/>
+        <td colspan="2"><span class="type">lex_template</span></td>
+        <td class="rprn" rowspan="3"/>
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="doublequoted">"[npVPnp]xm_10"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">past_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+
+Supplying the above feature structure of the 'lex_template' type to the <tt>lexical_entry/2</tt> predicate would return the following feature structure:
+
+<table class="fs">
+<tr><td class="lprn" rowspan="3" />
+    <td><span class="type">lex_entry</span></td>
+    <td>
+    <td class="rprn" rowspan="3" />
+</tr>
+<tr><td><span class="edge_fs">LEX_WORD</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="8"/>
+        <td colspan="2"><span class="type">word</span></td>
+        <td class="rprn" rowspan="8"/>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">SURFACE</span></td>
+        <td><span class="doublequoted">"saw"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE</span></td>
+        <td><span class="doublequoted">"see"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">INPUT_POS</span>
+            <span class="shared_id"><a name="shared_id1">1</a></span></td>
+        <td><span class="doublequoted">"VBD"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POS</span>
+            <span class="shared_id">
+	    <a href="#shared_id1">1</a></span></td>
+    </tr>
+    <tr><td><span class="edge_fs">BASE_POS</span></td>
+        <td><span class="doublequoted">"VB"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">POSITION</span></td>
+        <td><span class="decimal">1</span></td>
+    </tr>
+    </table>
+    </td>
+</tr>
+<tr><td><span class="edge_fs">LEX_TEMPLATE</span></td>
+    <td>
+    <table class="fs">
+    <tr><td class="lprn" rowspan="3"/>
+        <td colspan="2"><span class="type">lex_template</span></td>
+        <td class="rprn" rowspan="3"/>
+    </tr>
+    <tr><td><span class="edge_fs">LEXEME_NAME</span></td>
+        <td><span class="doublequoted">"[npVPnp]xm_10"</span></td>
+    </tr>
+    <tr><td><span class="edge_fs">LEXICAL_RULES</span></td>
+        <td>&lt<span class="type">past_verb_rule</span>&gt</td>
+    </tr>
+    </table>
+    </td>
+</tr>
+</table>
+
+After calling the <tt>lexical_entry/2</tt> predicate for each feature structure of the 'extent_word' type  resulted from preprocessing, a FOM (figure of merit) score is calculated for each lexical entry with the <tt>fom_lexical_entry/3</tt> predicate. Supplying the <tt>fom_lexical_entry/3</tt> with a feature structure of the 'word' type and a feature structure of the 'lex_entry' type a FOM score. Lexical entry assigned a low FOM score would be prunned．
+
+<p>
+Next, the <tt>lexical_entry_sign/2</tt> predicate is called for each of the remaining feature structure of the 'lex_entry' type. Under the <tt>lexical_entry_sign/2</tt> predicate, a <tt>lookup_template/2</tt> predicate is defined for looking up the dictionary using the value of the LEX_TEMPLATE feature of a feature structure of the 'lex_entry' type. For the feature structure of the lex_entry type given immediately before this paragraph, we would obtain a template like  <a href="saw_lextemp.html">this</a>. Information that varies from lexical entries would be  added to the template. In addition, the value of the LEX_WORD\INPUT feature would unify with the value of the PHON feature. 
+
+．
+<a href="saw_lexent.html">The result</a>of these operations would be the output of the 
+<tt>lexical_entry_sign/2</tt> predicate.
+
+<p>
+The output is a feature structure of the  sign type. It is supplied to the  <tt>reduce_sign/3</tt> predicate for factoring．Factoring is the operation of removing information from a feature structure of the sign type. Instances of equivalent signs are contracted into a single sign. The contracted sign is used for any parsing to be done in future. Supplying a sign to the <tt>reduce_sign/3</tt> would return a contracted sign and the information removed from the sign. 
+．(For more details, please look at the <a href="#link">link</a>section.)
+After that, supplying  with the <tt>fom_terminal/4</tt> predicate a feature structure of 'lex_entry' type, a contracted sign corresponding to the same feature structure and prunned information during contraction returns a FOM score. At this point, sign with low FOM scores are prunned as well. 
+
+<h2><a name="parsing">Chart Parsing</a></h2>
+
+<p>
+UP makes use of data structures generally referred to as edges, charts and links for parsing. 
+
+<h3><a name="edge">Edges</a></h3>
+
+<p>An edge is made up by a left position, a right position, a sign, a list of links and a FOM score. The left position and the right position is for marking the position of a parsed fragment. In short, an edge is essentially the representation of the sign corresponding to a fragment starting from the left position and ending at the right position. The extra information are the information stored as a list of links for recovering prunned information and a FOM score for disambiguation. 
+
+<h3><a name="chart">Chart</a></h3>
+
+<p>
+A chart is a data structure used for preserving the state of a parse. We use a 2-D table to represent such a chart. Each element in the chart is referred to as a CKY cell. For the sentence "I saw a girl with a telescope", the chart constructed at the point parsing starts is as follows:．
+
+<center>
+<img src="up_chart.png" alt="チャート">
+</center>
+
+Each CKY cell is written as S[i][j] where i and j are positions of the input sentence. S[0][1] is where the IDs of  edges corresponding to "I" are stored.
+S[1][2] is where the IDs of edges corresponding to "saw" are stored.，S[6][7] is where the IDs of edges corresponding to 
+"telescope"  are stored．As parsing proceeds, the IDs of edges corresponding to larger fragments are stored in CKY cells as wel. For example，
+S[0][2] is where IDs of edges corresponding to "I saw" are stored. S[1][3] is where IDs of edges corresponding to "saw a" are stored. 
+S[0][3] is for storing the IDs of edges corresponding to the even larger fragment "I saw a"．Suppose the input sentence is of length n，the CKY cell that stores the IDs of edges corresponding to the whole sentence would be S[0][n]. For the example sentence, this CKY cell would be S[0][7]．
+
+<h3><a name="link">Link</a></h3>
+<p>
+When parsing proceeds, syntactic rules defined by <tt>id_schema_unary/4</tt> and 
+<tt>id_schema_binary/5</tt>would be applied to child nodes for forming mother nodes. For example, the result of applying syntactic rules on edges stored in S[1][2] and
+S[2][4] would be stored in S[1][4]．At this point, signs that are equivalent and stored in the same CKY cell would be contracted into one sign as a result of the factoring operation defined by the <tt>reduce_sign/3</tt> predicate. Factoring removes information that can be recovered after parsing finishes. In order to allow such recovery, data structures referred to as links are created for enabling such recovery. Information removed by factoring includes the signs of child nodes and semantic representations. This kind of information are stored as links. Given that edges resulted from contraction are formed with more than one edges. one such edge would correspond to multiple links. After parsing finishes, the whole parse tree can be traced through the links between edges. 
+
+
+<p>
+For the example sentence "I saw a girl with a telescope.",
+among the edges stored in S[1][2] is one edge that contains a sign that looks like <a href="s12sign.html">this</a> and among the edges stored in S[2][4] is another edge that contains another sign that looks like 
+<a href="s24sign.html">this</a>．The 'head_comp_schema'  specified  by the<tt>id_schema_binary/5</tt> predicate is then applied to these two signs．
+The arguments of the <tt>id_schema_binary/5</tt> predicate are the name of the schema to be applied, the feature structure of the left daughter, the feature structure of the right daughter, the feature structure of the mother node and the lilfes program to be executed after applying the specified schema. (The <tt>id_schema_unary/4</tt> predicate has only one feature structure for daughter nodes.)
+The feature structures of the left daughter and the right daughter of the 'head_comp_schema' are roughly as follows:
+
+<table class="fs">
+<tr><td><span class="shared_id">F</span>
+    <td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: &lt <span class="shared_id">B</span> | <span class="shared_id">C</span> &gt
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>    
+    <td class="rprn" rowspan="1">
+    <td>,
+    <td><span class="shared_id">G</span>
+    <td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td>SYNSEM: <span class="shared_id">B</span>
+    </table>
+    <td class="rprn" rowspan="1">    
+</table>
+
+The two signs given above are unified with the edges of daughter nodes. The sign of the mother node would become as follows. (The Valence Principle is hardcoded in the schema)．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: <span class="shared_id">C</span>
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>
+    <td class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">DTR
+        <td>
+	<table class="fs">
+	<tr><td class="lprn" rowspan="2">
+	    <td>HEAD_DTR: <span class="shared_id">F</span>
+	    <td class="rprn" rowspan="2">
+	<tr><td>NONHEAD_DTR: <span class="shared_id">G</span>
+	</table>
+    </table>
+</table>
+
+Next, depending on the lilfes program specified to be executed after applying the schema, the signs of both the mother node and the daughter nodes would be unified with feature structures that satisfy other principles. 
+The sign of <a href="mothersign.html">the mother node</a> obtained would be processed by 
+<tt>reduce_sign/3</tt>for  factoring．What <tt>reduce_sign/3</tt> does is to return a contracted sign and a feature structure stored in a link. The original sign can be recovered by unifying the contracted sign with the feature structure stored in a link. As a result of factoring, we can obtain a 
+
+<a href="s14sign.html">contracted sign</a>from a complete sign. 
+
+Now we pass to the <tt>fom_binary/6</tt> predicate the name of the relevant schema
+(In this case, the 'head_comp_schema'), the sign of the left daughter, the sign of the right daughter, the sign of the mother node after factoring and the feature structure stored in a link during factoring. The output of the predicate would be the FOM score for applying the relevant schema. 
+
+(If it is a schema specified by the <tt>id_schema_unary/4</tt> predicatebeing applied, 
+the <tt>fom_unary/5</tt> predicate would be used instead of <tt>fom_binary/6</tt>  )
+
+In this way, the edge of the mother node is calculated and stored in S[1][4].
+
+<p>
+So parsing proceeds until we come to the CKY cell corresponding to the whole sentence (In this case, it is S[0][7]). 
+A FOM score would be calculated for each of the edge in this cell by the <tt>fom_root/2</tt> predicate. Supplying the sign of a root node to <tt>fom_root/2</tt> would return the FOM score of that sign. Whether these edges satisfy the root condition would be determined by the
+<tt>root_sign/1</tt> predicate. For the example sentence "I saw a girl with a telescope.", there is a sign like <a href="best_edge_sign.html">this</a> in S[0][7] which gets the highest FOM among all edges that satisfy the root condition. 
+This sign is the result of contracting two signs into one, one of which corresponding to the analysis that attaches 
+ "with a telescope" to the VP, the other corresponding to the analysis that attaches "with a telescope" to the NP. By tracing through the edges and the links, following the path with the best FOM score, we can recover 
+
+<a href="best_fom_sign.html">the sign with the best FOM score</a>.
+
+<h2><a name="output">Output</a></h2>
+
+<p>
+The sign with the highest FOM score obtained from the above parse would be outputed. 
+
+For the above example, the output from the "enju/outputdeps.lil" module would be as follows:
+<pre>
+ROOT  ROOT  ROOT  ROOT  -1  ROOT  saw       see       VBD  VB   1
+saw   see   VBD   VB     1  ARG1  I         i         PRP  PRP  0
+saw   see   VBD   VB     1  ARG2  girl      girl      NN   NN   3
+a     a     DT    DT     2  ARG1  girl      girl      NN   NN   3
+a     a     DT    DT     5  ARG1  telescope telescope NN   NN   6
+with  with  IN    IN     4  ARG1  saw       see       VBD  VB   1
+with  with  IN    IN     4  ARG2  telescope telescope NN   NN   6
+
+</pre>
+
+
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

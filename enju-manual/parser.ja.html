@@ -1,0 +1,341 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>構文解析器の使い方</title>
+</head>
+
+
+
+<body>
+<h1>構文解析器の使い方</h1>
+
+<a href="parser.html">English version</a>
+
+<ul>
+  <li><a href="#run">Enju の起動</a>
+  <li><a href="#output">出力フォーマット</a>
+  <li><a href="#args">コマンドライン引数</a>
+  <li><a href="#env">環境変数</a>
+</ul>
+
+<hr>
+
+<h2><a name="run">Enju の起動</a></h2>
+
+<p>
+<tt>enju</tt>コマンドまたは<tt>mogura</tt>コマンドを実行してください．
+<tt>enju</tt>は解析速度は遅いが高精度，<tt>mogura</tt>はやや精度が落ちるが高速なパーザです．
+
+<p>
+コマンドを実行すると，文法のデータファイルを読み込み，入力待ちになります．
+
+<pre>
+% enju
+Enju 2.4
+Copyright (c) 2005-2009, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+Loading grammar module "enju/grammar"... done.
+Loading FOM module "enju/synmodel"... done.
+Loading parser module "mayz/up"... done.
+Loading module "enju/outputdep"... done.
+Initializing parser...
+  Initializing external tagger: /usr/local/bin/stepp -e -m /usr/local/share/stepp/models_wsj02-21c
+  Initializing morphological analyzer: /usr/local/bin/enju-morph -s /usr/local/lib/enju/DATA
+  Initializing supertagger:
+    lexicon:   /usr/local/lib/enju/DATA/Enju.lexicon
+    model:     /usr/local/share/enju/enju-super.conf
+    parameter: /usr/local/lib/enju/DATA/Enju-lex.output.gz
+  Loading template database: /usr/local/lib/enju/DATA/Enju.templates
+  Loading Syntax FOM model: /usr/local/lib/enju/DATA/Enju-syn.output.gz
+  done.
+done.
+Ready
+</pre>
+
+<p>
+ここで文を一行で入力して下さい．
+すると，解析結果が標準出力に出力されます．
+以下の例は，"Enju is an efficient HPSG parser." という文を入力したときの出力結果です．
+
+<pre>
+ROOT      ROOT      ROOT    ROOT    -1      ROOT            ROOT    is      be      VBZ     VB      1
+is        be        VBZ     VB      1       verb_arg12      ARG1    Enju    enju    NNP     NNP     0
+is        be        VBZ     VB      1       verb_arg12      ARG2    parser  parser  NN      NN      5
+an        an        DT      DT      2       det_arg1        ARG1    parser  parser  NN      NN      5
+efficient efficient JJ      JJ      3       adj_arg1        ARG1    parser  parser  NN NN       5
+HPSG      hpsg      NNP     NNP     4       noun_arg1       ARG1    parser  parser  NN      NN      5
+
+</pre>
+
+<hr>
+
+<h2><a name="output">出力フォーマット</a></h2>
+
+<p>
+Enju は，述語-項関係フォーマット，XML フォーマット，stand-off フォーマットでの出力をサポートしています．
+また，CGI サーバとして XML フォーマットを返すインタフェースもあります．
+
+<h3>述語-項関係フォーマット</h3>
+
+<p>
+デフォルトでは，単語間の述語-項関係が出力されます．
+例えば，他動詞 love は２つの名詞句を項としてとるので，たとえば "I love you." という文を解析すると，love と I の述語-主語関係，love と you の述語-目的語関係が出力されます．
+一行が一つの述語-項関係，空行が文の終わりを表します．
+各行の各カラムは，タブで区切られ，以下の情報を表しています．
+
+<ul>
+  <li>述語の単語の入力文字列
+  <li>述語の単語の base form
+  <li>述語の単語の品詞 (Penn Treebank 形式)
+  <li>述語の単語の base form の品詞 (Penn Treebank 形式)
+  <li>述語の単語の位置(0から始まる)
+  <li>述語の型
+  <li>述語と項の関係のラベル (MOD, ARG1, ..., ARG4)
+  <li>項の単語の入力文字列
+  <li>項の単語の base form
+  <li>項の単語の品詞 (Penn Treebank 形式)
+  <li>項の単語の base form の品詞 (Penn Treebank 形式)
+  <li>項の単語の位置(0から始まる)
+</ul>
+
+<p>
+始めの行は，文全体の主辞(ルート)となる述語を表しています．
+この行では，述語は ROOT という文字列で表され，関係の型とラベルも ROOT となっています．
+また，項が未知の場合(省略など)，その単語や品詞は UNKNOWN と出力されます．
+
+<p>
+単語の位置は，0 から始まる整数で表されます．
+上の例では，Enju は 0, is は 1, ... そして parser が 6 になります．
+ピリオドや疑問符など，品詞が "." の単語は無視されます．
+ROOT と UNKNOWN の単語位置は -1 と出力されます．
+
+<p>
+述語と項の関係のラベルは，MOD, ARG1, ..., ARG4 の５つのうちの１つで表されます．
+ARG1 は動詞の主語や修飾語(形容詞や前置詞など)の修飾先を指します．
+ARG2 は動詞，前置詞，名詞などの目的語を指します．
+ARG3 以降も同様に動詞などの目的語を指します．
+MOD は，分詞構文などにおいて動詞句や副詞句が動詞句を修飾し，その動詞句が主語とならない時，その修飾先を指します．
+
+<p>
+述語は必ずしも統語上の主辞ではありません．
+上の例で，"an efficient HPSG parser" の主辞は "parser" ですが，"parser" は述語 "efficient" の項となります．
+これは，例えば "An HPSG parser is efficient" の "parser" と"efficient" の関係も同じ述語-項関係で表すためです．
+
+<p>
+文全体を解析することに失敗した場合は，部分的な解析結果が出力されます．
+このときは，解析できた各部分について ROOT 行が出力されるため，ROOT 行が複数出力されます．
+また，述語-項関係が連結グラフにならないことがあります．
+
+<p>
+構文解析が失敗した場合は，"Parsing failure:" と出力され，その後に失敗の原因が表示されます．
+
+<h3>XML フォーマット</h3>
+
+<p>
+Enju は，XML 形式や stand-off 形式での出力もサポートしています．
+Enju の起動時に -xml オプションを指定すると XML 形式で，-so オプションを指定すると stand-off 形式で出力されます．
+これらの形式では，単語間の述語-項関係だけでなく，句構造も出力されます．
+
+<p>
+XML 形式では，述語-項関係と句構造が XML のタグおよび属性で表されます．
+一文の構造が一行に出力されます．
+以下の例は，"Enju is an efficient HPSG parser." を入力したときの結果です（実際は一行で出力されます）．
+
+<pre>
+&lt;sentence id="s0" parse_status="success"&gt;&lt;cons id="c0" cat="S" xcat="" head="c3" sem_head="c3" 
+schema="subj_head"&gt;&lt;cons id="c1" cat="NP" xcat="" head="c2" sem_head="c2" schema="empty_spec_head"&gt;
+&lt;cons id="c2" cat="NX" xcat="" head="t0" sem_head="t0"&gt;&lt;tok id="t0" cat="N" pos="NNP" base="enju"
+lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"&gt;Enju&lt;/tok&gt;&lt;/cons&gt;&lt;/cons&gt; &lt;cons id="c3" cat="VP" 
+xcat="" head="c4" sem_head="c4" schema="head_comp"&gt;&lt;cons id="c4" cat="VX" xcat="" head="t1" 
+sem_head="t1"&gt;&lt;tok id="t1" cat="V" pos="VBZ" base="be" tense="present" aspect="none" voice="active" 
+aux="minus" lexentry="[NP.nom&amp;lt;V.cpl.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule" pred="verb_arg12"
+arg1="c1" arg2="c5"&gt;is&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c5" cat="NP" xcat="" head="c7" sem_head="c7" 
+schema="spec_head"&gt;&lt;cons id="c6" cat="DP" xcat="" head="t2" sem_head="t2"&gt;&lt;tok id="t2" cat="D" 
+pos="DT" base="an" lexentry="[&amp;lt;D&amp;gt;]N" pred="det_arg1" arg1="c7"&gt;an&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c7" 
+cat="NX" xcat="" head="c9" sem_head="c9" schema="mod_head"&gt;&lt;cons id="c8" cat="ADJP" xcat="" head="t3" 
+sem_head="t3"&gt;&lt;tok id="t3" cat="ADJ" pos="JJ" base="efficient" lexentry="[&amp;lt;ADJP.adj&amp;gt;]N" 
+pred="adj_arg1" arg1="c9"&gt;efficient&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c9" cat="NX" xcat="" head="c11" 
+sem_head="c11" schema="mod_head"&gt;&lt;cons id="c10" cat="NP" xcat="" head="t4" sem_head="t4"&gt;&lt;tok id="t4" 
+cat="N" pos="NNP" base="hpsg" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm-noun_adjective_rule" pred="noun_arg1" 
+arg1="c11"&gt;HPSG&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c11" cat="NX" xcat="" head="t5" sem_head="t5"&gt;&lt;tok id="t5" 
+cat="N" pos="NN" base="parser" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"&gt;parser&lt;/tok&gt;&lt;/cons&gt;
+&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;.&lt;/sentence&gt;
+</pre>
+
+<p>
+文全体は&lt;sentence&gt;タグで出力されます．
+構文解析が成功した場合は，parse_status 属性の値が "success" となります．
+句構造は，&lt;cons&gt; タグで表されます．
+句の構成素を&lt;cons&gt; タグで囲み，cat 属性でその句のシンボルを表します．
+たとえば，名詞句の"an efficient HPSG parser" は，&lt;cons cat="NP"&gt;an efficient HPSG parser&lt;/cons&gt; と表します．
+
+<p>
+それぞれの単語は，&lt;tok&gt; タグで囲んで出力されます．
+属性 pos, base がそれぞれ品詞と base form を表します．cat 属性は cons タグと同じです．
+
+<p>
+cons および tok タグには，テキスト中で一意の ID 番号が割り当てられます．
+ID 番号は id 属性で表示されます．
+cons タグには head 属性があり，これは子供の cons または tok の中で，syntactic head (統語上の主辞) になっているもののID 番号を表します．
+また，sem_head は意味上の主辞の ID 番号を表します．
+例えば，助動詞句では，head 属性は助動詞の ID を指しますが，sem_head 属性は動詞句の ID を指します．
+
+<p>
+単語の述語-項関係は，tok タグの中の mod, arg1, arg2, ..., arg4 属性で表します．
+述語になる単語の中の各属性は，項になる句の ID 番号を表します．
+上の例では，"is" を囲んでいる tok タグでは，arg1="c1" arg2="c5" と出力されていますが，これはそれぞれ "Enju" と "an efficient HPSG parser" を支配する句の ID 番号になっています．
+
+<p>
+文全体を解析することに失敗した場合は，部分的な解析結果が出力されます．
+この時，parse_status 属性の値は "fragmental parse" になります．
+&lt;sentence&gt;タグの直下に複数の&lt;cons&gt;タグが出力され，それぞれが部分解析結果に相当します．
+
+<p>
+構文解析に失敗した場合は，parse_status 属性の値が失敗原因を表す文字列になります．
+&lt;cons&gt;や&lt;tok&gt;タグは出力されません．
+
+<p>
+XML フォーマットでは，それ以外にもさまざまな文法情報が出力されます．
+詳しくは <a href="enju-output-spec.html">"Enju OutputSpecifications"</a> を参照してください．
+
+<h3>Stand-off フォーマット</h3>
+
+<p>
+Stand-off 形式では，XML の各タグが支配する領域を，元の入力テキストの文字位置で出力します．
+一行が一つのタグに相当します．
+上の例の XML 出力は，以下のような stand-off 形式で出力されます．
+
+<pre>
+0       33      sentence id="s0" parse_status="success"
+0       32      cons id="c0" cat="S" xcat="" head="c3" sem_head="c3" schema="subj_head"
+0       4       cons id="c1" cat="NP" xcat="" head="c2" sem_head="c2" schema="empty_spec_head"
+0       4       cons id="c2" cat="NX" xcat="" head="t0" sem_head="t0"
+0       4       tok id="t0" cat="N" pos="NNP" base="enju" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"
+5       32      cons id="c3" cat="VP" xcat="" head="c4" sem_head="c4" schema="head_comp"
+5       7       cons id="c4" cat="VX" xcat="" head="t1" sem_head="t1"
+5       7       tok id="t1" cat="V" pos="VBZ" base="be" tense="present" aspect="none" voice="active" aux="minus" lexentry="[NP.nom&amp;lt;V.cpl.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule" pred="verb_arg12" arg1="c1" arg2="c5"
+8       32      cons id="c5" cat="NP" xcat="" head="c7" sem_head="c7" schema="spec_head"
+8       10      cons id="c6" cat="DP" xcat="" head="t2" sem_head="t2"
+8       10      tok id="t2" cat="D" pos="DT" base="an" lexentry="[&amp;lt;D&amp;gt;]N" pred="det_arg1" arg1="c7"
+11      32      cons id="c7" cat="NX" xcat="" head="c9" sem_head="c9" schema="mod_head"
+11      20      cons id="c8" cat="ADJP" xcat="" head="t3" sem_head="t3"
+11      20      tok id="t3" cat="ADJ" pos="JJ" base="efficient" lexentry="[&amp;lt;ADJP.adj&amp;gt;]N" pred="adj_arg1" arg1="c9"
+21      32      cons id="c9" cat="NX" xcat="" head="c11" sem_head="c11" schema="mod_head"
+21      25      cons id="c10" cat="NP" xcat="" head="t4" sem_head="t4"
+21      25      tok id="t4" cat="N" pos="NNP" base="hpsg" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm-noun_adjective_rule" pred="noun_arg1" arg1="c11"
+26      32      cons id="c11" cat="NX" xcat="" head="t5" sem_head="t5"
+26      32      tok id="t5" cat="N" pos="NN" base="parser" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"
+</pre>
+
+<p>
+行中の要素はタブで区切られています．
+はじめの要素はタグの開始位置，２つめは終了位置です．
+位置は入力テキスト中の絶対位置です．
+３つめがタグの内容を表します．
+始めにタグのラベル (cons や tok など) が出力され，その後に属性が出力されます．
+タグや属性は XML フォーマットと同じです．
+
+<h3>CGI サーバ</h3>
+
+<p>
+Enju を HTTP サーバとして利用することで，ネットワーク経由で enju が利用できます．
+Enju を "-cgi ポート番号" オプション付きで起動すると，Enju は CGI サーバとして動作します．
+オプションで起動したポート番号の "/cgi-lilfes/enju?" にアクセスし，CGI 引数として "sentence" に文を与えると，その文の解析結果が XML 形式で返されます．
+
+<p>
+例えば，localhost で "enju -cgi 10000" を起動して，
+<pre>
+http://localhost:10000/cgi-lilfes/enju?sentence=Enju+is+an+efficient+HPSG+parser.
+</pre>
+にアクセスすると，上で示した XML 出力と同じ結果が得られます．
+
+<p>
+引数なしで "/cgi-lilfes/enju?" にアクセスすると，簡単な HTML フォームが返されます．
+XHTML, Javascript と XSLT をサポートしたウェブブラウザ（例えば FireFox）を利用すれば，このインタフェースで CGI サーバの動作を試すことができます．
+
+<h3>その他</h3>
+
+<p>
+自分で lilfes プログラムを書くことによって，Enju が出力する構文解析結果の詳細な情報を利用して，自分なりの出力を得ることができます．
+例えば，上で説明した述語-項関係や XML 出力は，実際は HPSG 構文解析の結果を LiLFeS プログラム(outputdep.lil, outputxml.lil) で変換することで計算されています．
+構文解析結果にアクセスする詳しい方法については，<a href="advanced.ja.html">発展的な使い方</a>を参照して下さい．
+
+<hr>
+
+<h2><a name="args">コマンドライン引数</a></h2>
+
+<p>
+Enju の起動時に，オプションやコマンドライン引数で動作を指定することができます．
+以下は主なオプションとコマンドライン引数です．
+
+<table border=1>
+<tr><td colspan=2>enju [オプション] [-a 引数]
+<tr><td colspan=2>"-a" オプションより後ろの引数は，コマンドライン引数として LiLFeS プログラムに渡されます．
+<tr><td colspan=2>オプション
+<tr><td>-h<td>ヘルプを表示する
+<tr><td>-hh<td>詳しいヘルプを表示する
+<tr><td>-D ディレクトリ<td>文法ファイルが置いてあるディレクトリを指定する．
+<tr><td>-L ディレクトリ<td>LiLFeS モジュールのサーチパスを指定する
+（LILFES_PATH 環境変数の先頭に追加される）．
+<tr><td>-t タガー<td>品詞タガーを指定する．
+<tr><td>-m ステマー<td>ステマーを指定する．
+<tr><td>-s スーパータガー<td>外部のスーパータガー(語彙項目割り当て器)を使う．
+<tr><td>-nt<td>品詞タガーを使わない．
+<tr><td>-d<td>述語-項関係フォーマットで出力する．
+<tr><td>-xml<td>XML 形式で出力する．
+<tr><td>-so<td>stand-off 形式で出力する．
+<tr><td>-conll<td>CoNLL 形式で出力する．
+<tr><td>-cgi ポート番号<td>CGI サーバを起動する．
+<tr><td>-genia<td>生物医学文献用の構文解析モデルを使う．
+<tr><td>-brown<td>文学・小説用の構文解析モデルを使う．
+<tr><td>-A<td>品詞タガーの曖昧出力を使う（精度が向上するが速度が落ちる）．
+<tr><td>-N 数<td>Nベストの解析結果を出力する．
+<tr><td>-W 数<td>単語数の上限値を設定する．
+<tr><td>-l モジュール名<td>LiLFeS モジュールをロードする．
+<tr><td>-e LiLFeSコマンド<td>LiLFeS プログラムを実行する．
+<tr><td>-i<td>インタラクティブモードにする(lilfes コマンドプロンプトを表示する)．
+<tr><td>-n<td>インタラクティブモードにしない．
+</table>
+
+<p>
+オプション "-l" で lilfes モジュールを指定した場合は，そのモジュールを読みこみます．
+オプション "-e" で lilfes コマンドを指定した場合は，それを実行します．
+インタラクティブモードの場合は，lilfes のコマンドプロンプトを表示して，lilfes コマンドの入力待ちとなります．
+Ctrl-D を押すとインタラクティブモードは終了します．
+
+<hr>
+
+<h2><a name="env">環境変数</a></h2>
+
+<p>
+文法データや LiLFeS モジュールをデフォルトの場所以外にインストールした場合は，以下の環境変数を設定し，インストール場所を Enju に教える必要があります．
+環境変数の値は，<a href="#args"> コマンドライン引数</a>の値で上書きされます．
+
+<p>
+<table border=1>
+<tr><th>環境変数<th>説明
+<tr><td>ENJU_PREFIX<td>Enju をインストールしたディレクトリを指定する
+    （文法データ，デフォルトの品詞タガーとステマーの場所が影響を受ける）
+<tr><td>ENJU_DIR<td>文法ファイルのディレクトリを指定する（-D オプショ
+ンに相当）
+<tr><td>ENJU_TAGGER<td>品詞タガーを指定する（-t オプションに相当）
+<tr><td>LILFES_PATH<td>LiLFeS モジュールの探索パスを指定する（-L オプ
+ションに相当）
+<tr><td>LD_LIBRARY_PATH<td>liblilfes の場所を指定する．
+</table>
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

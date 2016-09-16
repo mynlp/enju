@@ -1,0 +1,386 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>How to use Enju</title>
+</head>
+
+
+
+<body>
+<h1>How to use Enju</h1>
+
+<a href="parser.ja.html">Japanese version</a>
+
+<ul>
+  <li><a href="#run">Running Enju</a>
+  <li><a href="#output">Output format</a>
+  <li><a href="#args">Command-line arguments</a>
+  <li><a href="#env">Environment variables</a>
+</ul>
+
+<hr>
+
+<h2><a name="run">Running Enju</a></h2>
+
+<p>
+Run the command "<tt>enju</tt>" or "<tt>mogura</tt>".  "<tt>enju</tt>"
+is a slow but high accuracy parser, while "<tt>mogura</tt>" is a
+slightly low-accurate but very fast parser.
+
+<p>
+The parser starts reading data files and waits for your input.
+
+<pre>
+% enju
+Enju 2.3
+Copyright (c) 2005-2008, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+Loading grammar module "enju/grammar"... done.
+Loading FOM module "enju/synmodel"... done.
+Loading parser module "mayz/up"... done.
+Loading module "enju/outputdep"... done.
+Initializing parser...
+  Loading grammar database: /usr/local/lib/enju/DATA/Enju.lexicon /usr/local/lib/enju/DATA/Enju.templates
+  Initializing external tagger: /usr/local/bin/stepp -t -m /usr/local/share/stepp/models_wsj02-21
+  Initializing morphological analyzer: /usr/local/bin/enju-morph /usr/local/lib/enju/DATA
+  Loading Unigram FOM model: /usr/local/lib/enju/DATA/Enju-lex.output.gz
+  Loading Syntax FOM model: /usr/local/lib/enju/DATA/Enju-syn.output.gz
+Loading lexicon table file '/usr/local/lib/enju/DATA/Enju.lexicon.tbl'... done
+done.
+Ready
+</pre>
+
+<p>
+Input a sentence in a line, and you will get the parse result in the
+standard output.  The following example is an output for the sentence
+"Enju is an efficient HPSG parser."
+
+<pre>
+ROOT    ROOT    ROOT    ROOT    -1      ROOT    ROOT    is      be      VBZ     VB      1
+is      be      VBZ     VB      1       verb_arg12      ARG1    Enju    enju    NNP     NNP     0
+is      be      VBZ     VB      1       verb_arg12      ARG2    parser  parser  NN      NN      5
+an      an      DT      DT      2       det_arg1        ARG1    parser  parser  NN      NN      5
+efficient       efficient       JJ      JJ      3       adj_arg1        ARG1    parser  parser  NN NN       5
+HPSG    hpsg    NNP     NNP     4       noun_arg1       ARG1    parser  parser  NN      NN      5
+
+</pre>
+
+<hr>
+
+<h2><a name="output">Output format</a></h2>
+
+<p>
+Enju supports a predicate-argument relation format, an XML format, and
+a stand-off format.  It also has a CGI server to respond XML-format
+outputs.
+
+<h3>Predicate-argument relation format</h3>
+
+<p>
+By default, the output is a set of predicate-argument relations
+between words.  For example, transitive verb "love" takes two nominal
+arguments.  When Enju parses the sentence "I love you.", it outputs a
+predicate-subject relation between "love" and "I", and a
+predicate-object relation between "love" and "you".  Each line
+represents one predicate-argument relation, and an empty line
+indicates the end of the sentence.  Columns of a line are separated by
+tabs, and express the following information.
+
+<ul>
+  <li>Input string of the predicate word
+  <li>Base form of the predicate word
+  <li>POS of the predicate word (Penn-style POS tags)
+  <li>POS of the base form of the predicate word
+  <li>Position of the predicate word in a sentence (starting from 0)
+  <li>Predicate type
+  <li>Label of the relation between the predicate and its argument words
+  (MOD, ARG1, ..., ARG4)
+  <li>Input string of the argument word
+  <li>Base form of the argument word
+  <li>POS of the argument word
+  <li>POS of the base form of the argument word
+  <li>Position of the argument word in a sentence
+</ul>
+
+<p>
+The first line represents the root predicate of the sentence.  In this
+line, the predicate is represented as "ROOT" and the label of the relation
+is also represented as "ROOT".  If the argument of a predicate is
+missing (for example, a logical subject in a passive expression
+without "by" phrase), it is shown as "UNKNOWN".
+
+<p>
+The position of a word is represented with an integer starting from
+zero.  In the example, the position of "Enju" is 0, "is" is 1, ... and
+"parser" is 6.  Words whose POS is "." (e.g. "." and "?") are
+ignored.  The position numbers of "ROOT" and "UNKNOWN" are output as
+"-1".
+
+<p>
+The label of a relation is represented with one of "MOD", "ARG1", ...,
+and "ARG4".  "ARG1" is for a subject of a verb, a target of
+modification by modifiers (such as modifiers and prepositions), etc.
+"ARG2" represents an object of verbs, prepositions, etc.  The other
+"ARGx" represents objects and complements of verbs, etc.  "MOD" is
+used for participial constructions etc.  It denotes a clause modified
+by another clause, such as a verbal or an adverbial clause, and the
+subordinate clause has its own ARG1.
+
+<p>
+A predicate word is not always a head word.  In the above example, The
+head word for "an efficient HPSG parser" is "parser" but "parser" is
+an argument of the predicate "efficient".  This is because, for
+example, we represent the relation between "parser" and "efficient" in
+the sentence "An HPSG parser is efficient" as the same
+predicate-argument relations.
+
+<p>
+When the parsing of the whole sentence fails, fragmental parse results
+are output.  In this case, multiple "ROOT" lines are output because a
+ROOT line is output for each fragmental parse result.  Note that
+predicate-argument relations do not necessarily form a connected
+graph.
+
+<p>
+If parsing fails completely, the parser shows "Parsing failure" and
+its reason.
+
+<h3>XML format</h3>
+
+<p>
+Enju supports the output in XML and stand-off formats.  The parse
+results are output in the XML format when specifying "-xml" option,
+while in the stand-off format with "-so" option.  These formats
+represent not only predicate-argument relations but also phrase
+structures.
+
+<p>
+In the XML format, phrase structure and predicate-argument structure
+are printed with XML tags and their attributes.  The structure of a
+sentence is shown in a line.  The following example is the output of
+parsing "Enju is an efficient HPSG parser." (the actual output is in
+one line).
+
+<pre>
+&lt;sentence id="s0" parse_status="success"&gt;&lt;cons id="c0" cat="S" xcat="" head="c3" sem_head="c3" 
+schema="subj_head"&gt;&lt;cons id="c1" cat="NP" xcat="" head="c2" sem_head="c2" schema="empty_spec_head"&gt;
+&lt;cons id="c2" cat="NX" xcat="" head="t0" sem_head="t0"&gt;&lt;tok id="t0" cat="N" pos="NNP" base="enju"
+lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"&gt;Enju&lt;/tok&gt;&lt;/cons&gt;&lt;/cons&gt; &lt;cons id="c3" cat="VP" 
+xcat="" head="c4" sem_head="c4" schema="head_comp"&gt;&lt;cons id="c4" cat="VX" xcat="" head="t1" 
+sem_head="t1"&gt;&lt;tok id="t1" cat="V" pos="VBZ" base="be" tense="present" aspect="none" voice="active" 
+aux="minus" lexentry="[NP.nom&amp;lt;V.cpl.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule" pred="verb_arg12"
+arg1="c1" arg2="c5"&gt;is&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c5" cat="NP" xcat="" head="c7" sem_head="c7" 
+schema="spec_head"&gt;&lt;cons id="c6" cat="DP" xcat="" head="t2" sem_head="t2"&gt;&lt;tok id="t2" cat="D" 
+pos="DT" base="an" lexentry="[&amp;lt;D&amp;gt;]N" pred="det_arg1" arg1="c7"&gt;an&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c7" 
+cat="NX" xcat="" head="c9" sem_head="c9" schema="mod_head"&gt;&lt;cons id="c8" cat="ADJP" xcat="" head="t3" 
+sem_head="t3"&gt;&lt;tok id="t3" cat="ADJ" pos="JJ" base="efficient" lexentry="[&amp;lt;ADJP.adj&amp;gt;]N" 
+pred="adj_arg1" arg1="c9"&gt;efficient&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c9" cat="NX" xcat="" head="c11" 
+sem_head="c11" schema="mod_head"&gt;&lt;cons id="c10" cat="NP" xcat="" head="t4" sem_head="t4"&gt;&lt;tok id="t4" 
+cat="N" pos="NNP" base="hpsg" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm-noun_adjective_rule" pred="noun_arg1" 
+arg1="c11"&gt;HPSG&lt;/tok&gt;&lt;/cons&gt; &lt;cons id="c11" cat="NX" xcat="" head="t5" sem_head="t5"&gt;&lt;tok id="t5" 
+cat="N" pos="NN" base="parser" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"&gt;parser&lt;/tok&gt;&lt;/cons&gt;
+&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;&lt;/cons&gt;.&lt;/sentence&gt;
+</pre>
+
+<p>
+The entire sentence is bracketed by &lt;sentence&gt;.  When the
+parsing has succeeded, the "parse_status" attribute will be "success".
+Phrase structures are represented with &lt;cons&gt;.  A constituent is
+bracketed by &lt;cons&gt;, and the attribute "cat" represents the
+phrase symbol of the constituent.  For example, a noun phrase, "an
+efficient HPSG parser", is represented as "&lt;cons cat="NP"&gt;an
+efficient HPSG parser&lt;/cons&gt;".
+
+<p>
+Each word is bracketed by &lt;tok&gt;.  The attributes "pos" and
+"base" represent a part-of-speech and a base form.  "cat" represents
+the same information as in &lt;cons&gt;.
+
+<p>
+ID numbers (unique in an input file) are assigned to all "cons" and
+"tok".  ID numbers are represented with the attribute "id".  The tags
+"cons" include the attributes "head", which represent the syntactic
+head daughter of the phrase.  "sem_head" represents the semantic head
+of the phrase.  For example, the head of an auxiliary verb phrase is
+an auxiliary verb, while its semantic head is a main verb.
+
+<p>
+Predicate-argument relations of words are represented with the
+attributes "mod", "arg1", ..., "arg4" in "tok".  A predicate word has
+some of the above attributes, each of which represents the ID number
+of an argument phrase.  In the above example, the "tok" tag for "is"
+has arg1="c1" arg2="c5", and they represent the ID numbers of "Enju"
+and "an efficient HPSG parser", respectively.
+
+<p>
+When the parsing of the whole sentence fails, fragmental parse results
+are output.  In this case, the attribute "parse_status" will be
+"fragmental parse".  Multiple &lt;cons&gt; elements are output
+directly under &lt;sentence&gt;, and each of them represents a
+fragmental parse result.
+
+<p>
+When parsing has failed, the "parse_status" attribute of
+&lt;sentence&gt; represents the reason of the failure.  Neither
+&lt;cons&gt; nor &lt;tok&gt; are output.
+
+<p>
+In the XML format, more syntactic/semantic information is output.  For
+details, see <a href="enju-output-spec.html">"Enju Output
+Specifications"</a>.
+
+<h3>Stand-off format</h3>
+
+<p>
+In the stand-off format, the span of each tag is represented with the
+position in the original input sentence.  Each line represents a tag.
+The above XML-format output is represented with the following
+stand-off format.
+
+<pre>
+0       33      sentence id="s0" parse_status="success"
+0       32      cons id="c0" cat="S" xcat="" head="c3" sem_head="c3" schema="subj_head"
+0       4       cons id="c1" cat="NP" xcat="" head="c2" sem_head="c2" schema="empty_spec_head"
+0       4       cons id="c2" cat="NX" xcat="" head="t0" sem_head="t0"
+0       4       tok id="t0" cat="N" pos="NNP" base="enju" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"
+5       32      cons id="c3" cat="VP" xcat="" head="c4" sem_head="c4" schema="head_comp"
+5       7       cons id="c4" cat="VX" xcat="" head="t1" sem_head="t1"
+5       7       tok id="t1" cat="V" pos="VBZ" base="be" tense="present" aspect="none" voice="active" aux="minus" lexentry="[NP.nom&amp;lt;V.cpl.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule" pred="verb_arg12" arg1="c1" arg2="c5"
+8       32      cons id="c5" cat="NP" xcat="" head="c7" sem_head="c7" schema="spec_head"
+8       10      cons id="c6" cat="DP" xcat="" head="t2" sem_head="t2"
+8       10      tok id="t2" cat="D" pos="DT" base="an" lexentry="[&amp;lt;D&amp;gt;]N" pred="det_arg1" arg1="c7"
+11      32      cons id="c7" cat="NX" xcat="" head="c9" sem_head="c9" schema="mod_head"
+11      20      cons id="c8" cat="ADJP" xcat="" head="t3" sem_head="t3"
+11      20      tok id="t3" cat="ADJ" pos="JJ" base="efficient" lexentry="[&amp;lt;ADJP.adj&amp;gt;]N" pred="adj_arg1" arg1="c9"
+21      32      cons id="c9" cat="NX" xcat="" head="c11" sem_head="c11" schema="mod_head"
+21      25      cons id="c10" cat="NP" xcat="" head="t4" sem_head="t4"
+21      25      tok id="t4" cat="N" pos="NNP" base="hpsg" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm-noun_adjective_rule" pred="noun_arg1" arg1="c11"
+26      32      cons id="c11" cat="NX" xcat="" head="t5" sem_head="t5"
+26      32      tok id="t5" cat="N" pos="NN" base="parser" lexentry="[D&amp;lt;N.3sg&amp;gt;]_lxm" pred="noun_arg0"
+</pre>
+
+<p>
+Elements of a line are seperated with tabs.  The first and the second
+columns represent the start and the end position, respectively.
+Positions are abosolute positions from the beginning of the input
+file.  The last column represents the content of a tag.  The label of
+a tag (e.g. "cons" and "tok") is output first, and the rest
+represents the attributes.  Information of tags and attributes is the
+same as that of the XML format.
+
+<h3>CGI server</h3>
+
+<p>
+You can access Enju via a network by using Enju as an HTTP server.
+Run "enju -cgi port_number", and Enju works as a CGI server.  Access
+to "/cgi-lilfes/enju?" of the specified port number, give a sentence
+as a CGI argument, "sentence", and you will get a parse result in the
+XML format.
+
+<p>
+For example, when you run "enju -cgi 10000" at "localhost", and access
+to:
+<pre>
+http://localhost:10000/cgi-lilfes/enju?sentence=Enju+is+an+efficient+HPSG+parser.
+</pre>
+You will get the XML output as is shown above.
+
+<p>
+When you access to "/cgi-lilfes/enju?" without any arguments, a simple
+HTML form will be output.  You can try the CGI server by using a web
+browser that supports XHTML, Javascript and XSLT (e.g. FireFox).
+
+<h3>Others</h3>
+
+By writing LiLFeS programs by yourself, you can format the output of
+parsing as you like.  Predicate-argument relations and XML outputs
+described above are actually formatted by the LiLFeS programs
+(outputdep.lil, outputxml.lil).  For details, see <a
+href="advanced.html">"Advanced usage"</a>.
+
+<hr>
+
+<h2><a name="args">Command-line arguments</a></h2>
+
+<p>
+Enju accepts the following options and command-line arguments.
+
+<table border=1>
+<tr><td colspan=2>enju [options] [-a arguments]
+<tr><td colspan=2>Arguments following "-a" are passed to LiLFeS
+programs as command-line arguments.
+<tr><td colspan=2>Options
+<tr><td>-h<td>Show help message
+<tr><td>-hh<td>Show detailed help message
+<tr><td>-D directory<td>Specify the directory of the Enju grammar
+<tr><td>-L directory<td>Specify the directory of LiLFeS modules (the
+directory is added to the beginning of "LILFES_PATH".)
+<tr><td>-t tagger<td>Specify a POS tagger
+<tr><td>-m stemmer<td>Specify a stemmer
+<tr><td>-nt<td>Disable a POS tagger
+<tr><td>-d<td>Output in predicate-argument relation format
+<tr><td>-xml<td>Output in XML format
+<tr><td>-so<td>Output in stand-off format
+<tr><td>-conll<td>Output in CoNLL-style format
+<tr><td>-cgi port_number<td>Start CGI server
+<tr><td>-genia<td>Use a parsing model for the biomedical domain
+<tr><td>-brown<td>Use a parsing model for the literature domain
+<tr><td>-A<td>Allow ambiguous POS tagging (improves parsing accuracy, but lowers parsing speed)
+<tr><td>-N number<td>Output N-best results
+<tr><td>-W number<td>Limit number of sentence length
+<tr><td>-E number<td>Limit number of edges
+<tr><td>-C number<td>Limit size of large constituents
+<tr><td>-l module<td>Load LiLFeS program
+<tr><td>-e command<td>Execute LiLFeS command
+<tr><td>-i<td>Go into interactive mode (show lilfes prompt)
+<tr><td>-n<td>Non-interactive mode
+</table>
+
+<p>
+When LiLFeS modules are specified with "-l", the modules are loaded to
+the parser.  If LiLFeS commands are specified with "-e", Enju executes
+the specified lilfes commands.  With the "-i" option, Enju shows a
+lilfes prompt and waits for the input of lilfes programs.  "Ctrl-D"
+ends the interactive mode.
+
+<hr>
+
+<h2><a name="env">Environment variables</a></h2>
+
+<p>
+When you have installed grammar data and/or LiLFeS modules in
+non-default directories, you need to set the following environment
+variables to tell Enju the installation directories.  Environment
+variables are overwritten by <a href="#args">command-line
+arguments</a>.
+
+<p>
+<table border=1>
+<tr><th>Variable<th>Description
+<tr><td>ENJU_PREFIX<td>Specify the directory where Enju is installed
+    (affects the places for the grammar data, default POS tagger and
+    stemmer)
+<tr><td>ENJU_DIR<td>Specify the directory of the Enju grammar
+(corresponding to "-D")
+<tr><td>ENJU_TAGGER<td>Specify a POS tagger (corresponding to "-t")
+<tr><td>ENJU_MORPH<td>Specify a stemmer (corresponding to "-m")
+<tr><td>LILFES_PATH<td>Specify search paths of LiLFeS modules
+(corresponding to "-L")
+<tr><td>LD_LIBRARY_PATH<td>Specify the directory of liblilfes
+</table>
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,49 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Output</title>
+</head>
+
+
+
+<body>
+<h1>Output</h1>
+
+<a href="output.ja.html">Japanese version</a>
+
+<p>
+Enju makes use of the universal parser up. It is possible to view the output of a parse by making use of the interface provided with up. But the interface comes with up is written as a Lilfes predicate. In order to make use of the result of a parse, one has to write a Lilfes program. This seems overdemanding to end-users. So Enju does something with the result of a parse and put it in a more user-friendly format. 
+
+<p>
+Enju can output predicate-argument relations between words and phrase structures in XML format. The former is done by "grammar/outputdep.lil". The later is done by "grammar/outputxml.lil". In the following, we will explain the operations related to them. 
+
+<h2><a name="dependency">Outputing predicate-argument relations</a></h2>
+<p>"grammar/outputdep.lil" is the program for outputing predicate-argument relations between words. As explained in the section on <a href="pas.html">Predicate-argument Structures</a>, ENJU can compute predicate-argument structures from the input. A predicate-argument structure is formatted into a set of relations between two words.
+The elements of the set of relations are MODARG, ARG1, ..., ARG5 etc. For more details on output format, please refer to the section on <a
+href="parser.html">How to use ENJU</a>in the ENJU user manaul.
+
+
+<h2><a name="xml">XML Output</a></h2>
+Phrase structures can be represented by trees and trees can be represented by XML. Phrases are represented by tags. POS labels are represented by attributes. Predicate-argument structures are not represented by trees. Each node is assigned an ID and relations between IDs are outputed. 
+
+<p>ENJU would first determine the phrase structure of the input sentence and which phrases are taken by which as arguments from the result of a parse. The relevant operations are done by the <tt>xml_phrase_structure/2</tt> predicate in the "grammar/outputxml.lil" file. The search for this purpose starts from the root following a depth-first approach. The items being searched for are the values of the CONT features of signs. If a value is instantiated, the node from which the value is taken is preserved. After the search finishes, nodes with instantiated values for their CONT features would be used again for assigning ID values to relations used for representing predicate-argument structures of words. 
+
+<p>
+The output computed by <tt>xml_phrase_structure/2</tt> represents feature structures. The program that outputs the structures in XML is written in C++. The program is "parser/outputxml.cc". Passing an input sentence and the output of xml_phrase_structure to this program would align the words in the input sentence with the terminal nodes in the outpu of xml_phrase_structure and insert tags in appropriate positions. 
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

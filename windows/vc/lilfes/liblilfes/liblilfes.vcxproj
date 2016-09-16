@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{45FE83CD-189E-4658-A13F-B7D1DCC5B540}</ProjectGuid>
+    <RootNamespace>liblilfes</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\..\..\Debug\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\..\..\lib\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\..\ll\src;..\..\..\ext\boost_1_55_0;..\..\..\ext\bzip2-1.0.5-bin\include;..\..\..\ext\zlib-1.2.8\;..\..\..\ext\dlfcn-win32-shared-r19\include;..\..\..\..\ll\include\liblilfes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/D _DEBUG %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_MBCS;_ITERATOR_DEBUG_LEVEL=2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\..\..\ll\src;..\..\..\ext\boost_1_55_0;..\..\..\ext\bzip2-1.0.5-bin\include;..\..\..\ext\zlib-1.2.8\;..\..\..\..\ll\include\liblilfes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\ll\src\basic.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\bitmap.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\builtin.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\builtinfs.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\cell.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\code.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\code2.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\compile.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\display.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\errors.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\fariths.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\ftype.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\initial.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lex.cc" />
+    <ClCompile Include="..\..\..\..\ll\src\lildbm-db.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lildbm-dbtree.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lildbm-interface.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lildbm-schema.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lildbm.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\load_so.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\lregex.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\machine.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\machine2.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\memalloc.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\memchk.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\misc.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\module.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\option.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\outform.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\parse.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\proc.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\profile.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\rl_stream.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\search_path.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\stream.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\string.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\structur.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\system.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\tokenizer.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\trace.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\utility.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\version.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\xml.cpp" />
+    <ClCompile Include="..\..\..\..\ll\src\yacc.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\basic.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\bfstream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\bitmap.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\builtin.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\cell.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\code.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\codelist.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\config_liblilfes.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\CppPred.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\errors.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ftype.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\gfstream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\in.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\initial.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lconfig.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lconfig_win.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldlfcn_win.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lexer.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-basic.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-c-if.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-cell.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-core.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-db.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-dbtree.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-env.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-schema.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-type.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lilfes.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lregex.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lstring.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\machine.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\memalloc.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\module.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\option.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\outform.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\parse.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\proc.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\procstream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\profile.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\rl_stream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\search_path.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\sockstream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\stream.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\structur.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\tokenizer.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\utility.h" />
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\xml.h" />
+    <ClInclude Include="..\..\..\..\ll\src\FlexLexer.h" />
+    <ClInclude Include="..\..\..\..\ll\src\yacc.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

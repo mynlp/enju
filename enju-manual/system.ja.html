@@ -1,0 +1,95 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>システム構成</title>
+</head>
+
+
+
+<body>
+<h1>システム構成</h1>
+
+<a href="system.html">English version</a>
+
+<p>
+Enju ユーザマニュアルの<a href="grammar.ja.html">Enju 文法の構造の節</a>で説明されているとおり，Enju は MAYZ ツールキットの汎用パーザ up を利用しています．
+up とのインタフェースについて詳しくは <a href="../mayz-manual/up.ja.html">up のマニュアル</a>を参照して下さい．
+
+<p>
+Enju では以下の図のように up に渡す情報が作られ，up の出力を利用して最終出力を作成します．
+
+<p>
+<img src="architecture.ja.png" height=480 height=360 alt="文法のアーキテクチャ">
+<p>
+以下では，各処理について簡単に説明します．
+
+<h2><a name="preprocess">前処理</a></h2>
+
+<p>
+入力文字列に品詞タグ付けや stemming を行い，word lattice に変換して up に渡します．
+これらの処理は "enju/preproc.lil" の述語 <tt>sentence_to_word_lattice/2</tt> などで実装されています．
+詳しくは，<a href="preprocess.ja.html">前処理の節</a>を見て下さい．
+</p>
+
+<h2><a name="lexicon">辞書引き，語彙項目</a></h2>
+
+<p>
+次に，up では word lattice をもとに，各単語に語彙項目を割り当てます．
+語彙項目を割り当てるためには，述語 <tt>word_to_lookup_keys/2</tt>， <tt>lexical_entry_sign/2</tt> が使われています．
+述語 <tt>word_to_lookup_keys/2</tt> では，word lattice 内の品詞などの情報から語彙項目辞書を引くためのキーが計算されます．
+up ではそのキーをもとに語彙項目辞書を引き、単語に割り当てる語彙項目の ID を得ています．
+述語 <tt>lexical_entry_sign/2</tt> では，語彙項目の ID から実際に語彙項目の sign が生成されて up に渡されます．
+2個の述語は両方とも "enju/schema.lil" で実装されています．
+詳しくは，<a href="lexicon.ja.html">辞書とテンプレートデータベースの節</a>を参照して下さい．
+</p>
+
+<h2><a name="grammar">文法規則</a></h2>
+
+<p>
+次に，up では割り当てられた語彙項目とHPSG の文法規則を用いて構文解析を行います．
+HPSG の文法規則，すなわちスキーマとプリンシプルは述語 <tt>id_schema_unary/4</tt>, <tt>id_schema_binary/5</tt> を使って up に伝えています．
+Enju のスキーマとプリンシプルについては，<a href="schemata.ja.html">スキーマとプリンシプルの節</a>を参照して下さい．
+実装は "enju/schema.lil" にあります．
+</p>
+
+<p>
+また，構文木のルート条件は "enju/schema.lil" 中の述語 <tt>root_sign/1</tt> によって up に伝えられています。
+その実体は "enju/macro.lil" で定義されている述語 <tt>is_root_sign/1</tt> です．
+</p>
+
+<h2><a name="probmodel">確率モデル</a></h2>
+
+<p>
+up では構文解析結果が複数ある場合，一番尤もらしい結果を選ぶために確率モデルを使った曖昧性解消を行っています．
+確率モデルには，語彙項目割り当ての曖昧性解消に使われるモデルと構文解析結果の曖昧性解消に使われるモデルがあります．
+構文解析結果の曖昧性解消に使われるモデルは "enju/synmodel.lil" で実装されています．
+2個のモデルについて詳しくは，<a href="probmodel.ja.html">確率モデルの節</a>を参照して下さい．
+</p>
+
+<h2><a name="output">出力</a></h2>
+
+<p>
+Enju では, up の構文解析結果をエンドユーザが使いやすい形（述語項関係や XML）に加工して出力します．
+述語項関係への変換は，"enju/outputdep.lil" で，XML 出力への変換は "enju/outputxml.lil" で実装されています．
+詳しくは，<a href="output.ja.html">出力の節</a>を参照して下さい．
+
+<p>
+また，up の出力や文法の詳細はグラフィカルにブラウズすることができます．
+詳しくは，<a href="moriv.ja.html">GUI を使う</a>を参照して下さい．
+</p>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

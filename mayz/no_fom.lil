@@ -1,0 +1,12 @@
+:- module("mayz:no_fom").
+
+:- module_interface.
+:- ensure_loaded("parser").
+
+:- module_implementation.
+
+fom_root(_, 0.0).
+fom_binary(_, _, _, _, _, 0.0).
+fom_unary(_, _, _, _, 0.0).
+fom_terminal(_, _, _, 0.0).
+

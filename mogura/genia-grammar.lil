@@ -1,0 +1,32 @@
+%/**********************************************************************
+  * @module    =  mogura:genia-grammar
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: genia-grammar.lil,v 1.6 2010-06-18 08:53:43 yusuke Exp $
+  * @version   =  
+  * @desc      =  Mogura grammar for bio literature
+  **********************************************************************
+%*/
+
+:- module("mogura:grammar").
+
+%------------------------------------------------------------------------------
+:- module_interface.
+%------------------------------------------------------------------------------
+:- ensure_loaded("../enju/genia-grammar").
+:- ensure_loaded("grammar_interface").
+
+%------------------------------------------------------------------------------
+:- module_implementation.
+%------------------------------------------------------------------------------
+parser_init :-
+    set_limit_edge_number(0).
+
+parser_init :-
+    'mogura:grammar_interface':set_cfg_grammar_file("DATA/mogura-Enju-GENIA.cfg").
+
+%------------------------------------------------------------------------------
+% Implementation for ver 2.3 grammar
+%------------------------------------------------------------------------------
+:- ensure_loaded("grammar_impl-2_3").
+

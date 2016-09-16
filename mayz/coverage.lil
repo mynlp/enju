@@ -1,0 +1,252 @@
+%/**
+  * @module    = mayz:coverage
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2009-12-11 16:22:40 yusuke>
+  * @cvs       = $Id: coverage.lil,v 1.5 2009-12-11 08:33:57 yusuke Exp $
+  * @desc      = To measure the strong coverage of the grammar
+%*/
+
+:- module("mayz:coverage").
+
+:- module_interface.
+
+:- ensure_loaded("lexicon").
+:- ensure_loaded("derivtypes").
+
+eval_coverage <- [pred].
+'eval_coverage/3' <- [eval_coverage, 'pred/3'].
+'eval_coverage/4' <- ['eval_coverage/3', 'pred/4'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+%:- ensure_loaded("derivtool").
+%:- ensure_loaded("interface").
+%:- ensure_loaded("parameter").
+%:- ensure_loaded("treetypes").
+
+'*derivbank*' <- [pred].
+'*template_hash*' <- [pred].
+
+'*num_all_sentences*' <- [variable].
+'*num_error_sentences*' <- [variable].
+'*num_too_long_sentences*' <- [variable].
+'*num_uncovered_sentences*' <- [variable].
+'*num_covered_sentences*' <- [variable].
+
+'*num_all_words*' <- [variable].
+'*num_seen*' <- [variable].
+'*num_sw_sc*' <- [variable].
+'*num_sw_uc*' <- [variable].
+'*num_uw_sc*' <- [variable].
+'*num_uw_uc*' <- [variable].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+deriv_to_lexlist <- [pred].
+deriv_to_lexlist_loop <- [pred].
+deriv_to_lexlist_loop([], []).
+deriv_to_lexlist_loop([$Deriv|$Derivs], $LexList) :-
+    deriv_to_lexlist($Deriv, $LexList1),
+    append($LexList1, $LexList2, $LexList),
+    deriv_to_lexlist_loop($Derivs, $LexList2).
+deriv_to_lexlist($Term & derivation_terminal, [$Term]) :- !.
+deriv_to_lexlist(derivation_internal & DERIV_DTRS\$Dtrs, $LexList) :-
+    deriv_to_lexlist_loop($Dtrs, $LexList).
+
+find_equivalent_template <- [pred].
+find_equivalent_template($Template1, $TempNameList) :-
+    member($TempName, $TempNameList),
+    lookup_template($TempName, $Template2),
+    equivalent($Template1, $Template2),
+    !.
+
+output_uncovered_lexentry <- [pred].
+output_uncovered_lexentry($Err, $ID, $Word, $POS, $LexName, $ErrorType) :-
+    format($Err, "Sentence ~d: ~s  ~s/~s ~s\n", [$ID, $ErrorType, $Word, $POS, $LexName]).
+
+output_template <- [pred].
+output_template($Err, $Template) :-
+    printAVMtostr($Template, $TemplateStr),
+    format($Err, "~s", [$TemplateStr]).
+
+check_lex_coverage <- [pred].
+check_lex_coverage($ID, TERM_WORD\($Word & INPUT\$Input & INPUT_POS\$POS) & LEXTEMPLATE_NAME\$LexTempName & LEXTEMPLATE_SIGN\$Template1, $Err) :-
+    (lookup_lexicon($Word, $TempNameList & [_|_]) ->
+     (find_equivalent_template($Template1, $TempNameList) ->
+      inc_variable('*num_seen*')
+      ;
+      (db_find('*template_hash*'($Template1, $TemplateName)) ->
+       output_uncovered_lexentry($Err, $ID, $Input, $POS, $TemplateName, "<sw,sc>"),
+       inc_variable('*num_sw_sc*') ;
+       output_uncovered_lexentry($Err, $ID, $Input, $POS, $LexTempName, "<sw,uc>"),
+       output_template($Err, $Template1),
+       inc_variable('*num_sw_uc*')),
+      fail)
+     ;
+     (db_find('*template_hash*'($Template1, $TemplateName)) ->
+      output_uncovered_lexentry($Err, $ID, $Input, $POS, $TemplateName, "<uw,sc>"),
+      inc_variable('*num_uw_sc*') ;
+      output_uncovered_lexentry($Err, $ID, $Input, $POS, $LexTempName, "<uw,uc>"),
+      output_template($Err, $Template1),
+      inc_variable('*num_uw_uc*')),
+     fail).
+
+check_strong_coverage <- [pred].
+check_strong_coverage([], _, _, []).
+check_strong_coverage([$Lex|$LexList], $DerivID, $Err, $UnknownList) :-
+    inc_variable('*num_all_words*'),
+    (check_lex_coverage($DerivID, $Lex, $Err) ->
+     $UnknownList = $NextUnknownList ;
+     $UnknownList = [$Lex|$NextUnknownList]),
+    check_strong_coverage($LexList, $DerivID, $Err, $NextUnknownList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eval_coverage_sentence <- [pred].
+eval_coverage_sentence($Iter, $Output, $Err) :-
+    db_find($Iter, '*derivbank*'($DerivID, $Deriv)),
+    inc_variable('*num_all_sentences*'),
+
+    (deriv_to_lexlist($Deriv, $LexList) ->
+     true ;
+     format($Output, "No. ~d: ERROR! deriv_to_lexlist/2 failed\n", [$DerivID]),
+     inc_variable('*num_error_sentences*'),
+     fail),
+
+    (check_strong_coverage($LexList, $DerivID, $Err, $UnknownList) ->
+     true ;
+     format($Output, "No. ~d: ERROR! check_strong_coverage/4 failed\n", [$DerivID]),
+     inc_variable('*num_error_sentences*'),
+     fail),
+
+    length($LexList, $NumWords),
+    ($NumWords <= 40 ->
+     true ;
+     format($Output, "No. ~d: too long sentence: ~d words\n", [$DerivID, $NumWords]),
+     inc_variable('*num_too_long_sentences*')),
+
+    ($UnknownList = [] ->
+     format($Output, "No. ~d: covered sentence: ~d words\n", [$DerivID, $NumWords]) ;
+     format($Output, "No. ~d: uncovered sentence: ~d words\n", [$DerivID, $NumWords]),
+     inc_variable('*num_uncovered_sentences*'),
+     fail),
+
+    inc_variable('*num_covered_sentences*'),
+
+    (0 is $DerivID mod 100 ->
+     get_variable('*num_all_words*', $NumAllWords),
+     format($Output, "~d sentences processed.  # words = ~d\n", [$DerivID, $NumAllWords]) ;
+     true),
+    fail.
+
+eval_coverage_sentence($Iter, $Output, $Err) :-
+    db_next($Iter, $NextIter),
+    eval_coverage_sentence($NextIter, $Output, $Err).
+
+eval_coverage_main <- [pred].
+eval_coverage_main($Output, $Err) :-
+    db_first('*derivbank*'(_, _), $Iter),
+    eval_coverage_sentence($Iter, $Output, $Err),
+    fail.
+eval_coverage_main(_, _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+init_template_hash <- [pred].
+init_template_hash :-
+    db_findall('*template*'(_, _), $Templates),
+    member('*template*'($Key, $Value), $Templates),
+%printAVM([$Key, $Value]),
+    db_insert('*template_hash*'($Value, $Key)),
+    fail.
+init_template_hash.
+
+eval_coverage_init <- [pred].
+eval_coverage_init($DerivbankFileName, $LexiconFileName, $TempFileName2) :-
+    init_integer_variable('*num_all_sentences*'),
+    init_integer_variable('*num_error_sentences*'),
+    init_integer_variable('*num_too_long_sentences*'),
+    init_integer_variable('*num_uncovered_sentences*'),
+    init_integer_variable('*num_covered_sentences*'),
+
+    init_integer_variable('*num_all_words*'),
+    init_integer_variable('*num_seen*'),
+    init_integer_variable('*num_sw_sc*'),
+    init_integer_variable('*num_sw_uc*'),
+    init_integer_variable('*num_uw_sc*'),
+    init_integer_variable('*num_uw_uc*'),
+
+    %import_lexicon($LexiconFileName, $TempFileName2),
+    import_lexicon($LexiconFileName),
+    import_templates($TempFileName2),
+    db_open('*derivbank*'(key_inthash, array_value)),
+    db_load($DerivbankFileName, '*derivbank*'(_, _)),
+    db_open('*template_hash*'(key_fs, array_value)),
+    init_template_hash.
+
+eval_coverage_term <- [pred].
+eval_coverage_term($Output, _) :-
+    db_close('*template_hash*'(_, _)),
+    db_close('*derivbank*'(_, _)),
+
+    get_variable('*num_all_sentences*', $NumSentences),
+    get_variable('*num_error_sentences*', $NumErrors),
+    $RatioErrors is $NumErrors / $NumSentences * 100,
+    get_variable('*num_too_long_sentences*', $NumTooLong),
+    $RatioTooLong is $NumTooLong / $NumSentences * 100,
+    get_variable('*num_uncovered_sentences*', $NumUncovered),
+    $RatioUncovered is $NumUncovered / $NumSentences * 100,
+    get_variable('*num_covered_sentences*', $NumCovered),
+    $RatioCovered is $NumCovered / $NumSentences * 100,
+    format($Output, "Summary\n"),
+    format($Output, "  Num sentences = ~d\n", [$NumSentences]),
+    format($Output, "  Num too long sentences = ~d (~f %)\n\n", [$NumTooLong, $RatioTooLong]),
+    format($Output, "  Num error sentences = ~d (~f %)\n", [$NumErrors, $RatioErrors]),
+    format($Output, "  Num uncovered sentences = ~d (~f %)\n", [$NumUncovered, $RatioUncovered]),
+    format($Output, "  Num covered sentences = ~d (~f %)\n\n", [$NumCovered, $RatioCovered]),
+
+    get_variable('*num_all_words*', $NumAllWords),
+    get_variable('*num_seen*', $NumSeen),
+    $RatioSeen is $NumSeen / $NumAllWords * 100,
+    get_variable('*num_sw_sc*', $NumSwSc),
+    $RatioSwSc is $NumSwSc / $NumAllWords * 100,
+    get_variable('*num_sw_uc*', $NumSwUc),
+    $RatioSwUc is $NumSwUc / $NumAllWords * 100,
+    get_variable('*num_uw_sc*', $NumUwSc),
+    $RatioUwSc is $NumUwSc / $NumAllWords * 100,
+    get_variable('*num_uw_uc*', $NumUwUc),
+    $RatioUwUc is $NumUwUc / $NumAllWords * 100,
+    format($Output, "Lexical coverage\n"),
+    format($Output, "  Num words = ~d\n", [$NumAllWords]),
+    format($Output, "  Num seen lexicon = ~d (~f %)\n", [$NumSeen, $RatioSeen]),
+    format($Output, "  Num unknown pair = ~d (~f %)\n", [$NumSwSc, $RatioSwSc]),
+    format($Output, "  Num unknown category = ~d (~f %)\n", [$NumSwUc, $RatioSwUc]),
+    format($Output, "  Num unknown word = ~d (~f %)\n", [$NumUwSc, $RatioUwSc]),
+    format($Output, "  Num totally unknown = ~d (~f %)\n", [$NumUwUc, $RatioUwUc]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eval_coverage($DerivbankFile, $LexiconFile, $TemplateFile2) :-
+    stdout_stream($Output),
+    stderr_stream($Err),
+    eval_coverage_init($DerivbankFile, $LexiconFile, $TemplateFile2),
+    eval_coverage_main($Output, $Err),
+    eval_coverage_term($Output, $Err).
+
+eval_coverage($DerivbankFile, $LexiconFile, $TemplateFile2, $OutFile) :-
+    strcat($OutFile, ".err", $ErrFile),
+    open_file_stream($OutFile, "w", $Output),
+    open_file_stream($ErrFile, "w", $Err),
+    eval_coverage_init($DerivbankFile, $LexiconFile, $TemplateFile2),
+    eval_coverage_main($Output, $Err),
+    eval_coverage_term($Output, $Err),
+    close($Err),
+    close($Output).
+

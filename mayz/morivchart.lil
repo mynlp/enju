@@ -1,0 +1,290 @@
+%/**********************************************************************
+  * @module    = mayz:morivchart
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: morivchart.lil,v 1.2 2009-12-17 05:06:52 yusuke Exp $
+  * @version   = Time-stamp: <2009-12-17 14:02:22 yusuke>
+  * @desc      = Chart browser using MoriV
+  **********************************************************************
+%*/
+
+:- module("mayz:morivchart").
+
+:- module_interface.
+
+:- ensure_loaded("moriv").
+
+'*moriv_chart_title*' <- [variable].
+'*moriv_chart_heading*' <- [variable].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("parser").
+:- ensure_loaded("display").
+:- ensure_loaded("tagger").
+
+'*sentence_cache*' <- [variable].
+'*chart_cache*' <- [variable].
+:-
+    set_variable('*moriv_toppage_name*', "chart"),
+    define_string_variable('*moriv_chart_title*'),
+    set_variable('*moriv_chart_title*', "MAYZ GUI - Chart Browser"),
+    define_variable('*moriv_chart_heading*'),
+    set_variable('*moriv_chart_heading*', "MAYZ GUI - Chart Browser"),
+    define_string_variable('*sentence_cache*'),
+    set_variable('*sentence_cache*', ""),
+    define_variable('*chart_cache*'),
+    set_variable('*chart_cache*', []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+display_node_fs <- [pred].
+display_node_fs($ID, $Page) :-
+    $Page = [xhtml_p & XHTML_TEXT\["ID=", $ID],
+	     xhtml_tfstoxml & XHTML_TEXT\$Sign],
+    edge_sign($ID, $Sign).
+
+make_chart_row <- [pred].
+make_chart_row($Left, $Right, $Max, [$Col|$Row]) :-
+    edge_id_list($Left, $Right, $IDList),
+    length($IDList, $NumNodes),
+    inttostr($Left, $LeftStr),
+    inttostr($Right, $RightStr),
+    concatenate_string(["moriv?page=chart&amp;left=", $LeftStr, "&amp;right=", $RightStr], $Query),
+    $Content = xhtml_a & A_HREF\$Query & XHTML_TEXT\$NumNodes,
+    formattostr("highlight_words_on(~d,~d)", [$Left, $Right], $OnScript),
+    formattostr("highlight_words_off(~d,~d)", [$Left, $Right], $OffScript),
+    $Col = (xhtml_td & XHTML_CLASS\"chart" & XHTML_TEXT\$Content &
+	    XHTML_ATTRIBUTES\[XML_ATTR\"onmouseover" & XML_ATTR_VAL\$OnScript,
+			      XML_ATTR\"onmouseout" & XML_ATTR_VAL\$OffScript]),
+    ($Right = $Max ->
+     true ;
+     $NextLeft is $Left + 1,
+     $NextRight is $Right + 1,
+     make_chart_row($NextLeft, $NextRight, $Max, $Row)).
+
+make_chart_row_blank <- [pred].
+make_chart_row_blank($Len, $Len, "") :- !.
+make_chart_row_blank($I, $Length, $Row) :-
+    $Blank is $Length - $I,
+    inttostr($Blank, $BlankStr),
+    $Row = (xhtml_td & XHTML_ATTRIBUTES\[XML_ATTR\"colspan" & XML_ATTR_VAL\$BlankStr] &
+	    XHTML_TEXT\"").
+
+make_chart_table <- [pred].
+make_chart_table($Length, $Length, []) :- !.
+make_chart_table($I, $Length, [$Row|$Table]) :-
+    $NextI is $I + 1,
+    $Right is $Length - $I,
+    make_chart_row(0, $Right, $Length, $RowMain),
+    ($NextI =:= $Length ->
+     $Row = xhtml_tr & XHTML_TEXT\$RowMain
+     ;
+     make_chart_row_blank($NextI, $Length, $RowLeft),
+     $Row = xhtml_tr & XHTML_TEXT\[$RowLeft, $RowMain]),
+    make_chart_table($NextI, $Length, $Table).
+
+%% make_term_list_sub <- [pred].
+%% make_term_list_sub([], _, []).
+%% make_term_list_sub([extent_word & $Extent|$WordList], $ID,
+%% 		   [$Term|$TermList]) :-
+%%     !,
+%%     (extent_label($Extent, $String1) ->
+%%      encode_xml_string($String1, $String) ;
+%%      $String = ""),
+%%     inttostr($ID, $IDStr),
+%%     $Term = (xhtml_td & XHTML_ID\$IDStr & XHTML_CLASS\"chart" & XHTML_TEXT\$String),
+%%     $NextID is $ID + 1,
+%%     make_term_list_sub($WordList, $NextID, $TermList).
+%% make_term_list_sub([_|$WordList], $ID, $TermList) :-
+%%     make_term_list_sub($WordList, $ID, $TermList).
+%% make_term_list <- [pred].
+%% make_term_list($WordLattice, xhtml_tr & XHTML_TEXT\$TermList) :-
+%%     make_term_list_sub($WordLattice, 0, $TermList).
+
+make_terms <- [pred].
+make_terms($Length, xhtml_td & XHTML_ID\$IDStr & XHTML_CLASS\"chart" & XHTML_TEXT\$WordsLabel) :-
+    make_num_list(0, $Length, $NumList),
+    member($Left, $NumList),
+    $Right is $Left + 1,
+    words($Left, $Right, $Words),
+    findall($WordLabel,
+	    (member($Word, $Words),
+	     word_label($Word, $WordLabel)),
+	    $WordLabels),
+    inttostr($Left, $IDStr),
+    join($WordLabels, " ", $WordsLabel).
+
+make_term_list <- [pred].
+make_term_list($Length, xhtml_tr & XHTML_TEXT\$TermList) :-
+    findall($Term,
+	    make_terms($Length, $Term),
+	    $TermList).
+
+display_chart <- [pred].
+display_chart($Sentence, $Page) :-
+    set_variable('*sentence_cache*', $Sentence),
+    (parse($Sentence) -> true ; true),
+    get_sentence_length($Length),
+    $Page = [xhtml_table &
+	     XHTML_CLASS\"chart" & XHTML_TEXT\[$Table, $TermList]],
+    make_chart_table(0, $Length, $Table),
+%%     get_word_lattice($WordLattice),
+%%     make_term_list($WordLattice, $TermList).
+    make_term_list($Length, $TermList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+make_dtr_id <- [pred].
+make_dtr_id(U_DTR\$DtrID, $DtrIDLink) :-
+    !,
+    edge_sign($DtrID, $Sign),
+    sign_label($Sign, $Symbol),
+    (edge_fom($DtrID, $FOM) ->
+     true ;
+     $FOM = 0.0),
+    inttostr($DtrID, $IDStr),
+    strcat("moriv?page=chart:node_sign&amp;node_id=", $IDStr, $Href),
+    $DtrIDLink = (xhtml_li &
+		  XHTML_TEXT\[xhtml_a & A_HREF\$Href & A_TARGET\"_blank" & XHTML_TEXT\[$Symbol, $IDStr], $FOM]).
+make_dtr_id(L_DTR\$LDtrID & R_DTR\$RDtrID,
+	    $DtrIDLink) :-
+    !,
+    edge_position($LDtrID, $LL, $LR),
+    edge_position($RDtrID, $RL, $RR),
+    edge_sign($LDtrID, $LSign),
+    sign_label($LSign, $LSymbol),
+    (edge_fom($LDtrID, $LFOM) ->
+     true ;
+     $LFOM = 0.0),
+    edge_sign($RDtrID, $RSign),
+    sign_label($RSign, $RSymbol),
+    (edge_fom($RDtrID, $RFOM) ->
+     true ;
+     $RFOM = 0.0),
+    inttostr($LDtrID, $LIDStr),
+    inttostr($RDtrID, $RIDStr),
+    strcat("moriv?page=chart:node_sign&amp;node_id=", $LIDStr, $LHref),
+    strcat("moriv?page=chart:node_sign&amp;node_id=", $RIDStr, $RHref),
+    $DtrIDLink = (xhtml_li &
+		  XHTML_TEXT\[xhtml_a & A_HREF\$LHref & A_TARGET\"_blank" & XHTML_TEXT\[$LSymbol, $LIDStr],
+			      "(", $LL, ",", $LR, ") ", $LFOM,
+			      xhtml_a & A_HREF\$RHref & A_TARGET\"_blank" & XHTML_TEXT\[$RSymbol, $RIDStr],
+			      "(", $RL, ",", $RR, ") ", $RFOM]).
+make_dtr_id(LEX_NAME\$LexName,
+	    xhtml_li & XHTML_TEXT\$LexLabel) :-
+    lexname_label($LexName, $LexLabel1),
+    encode_xml_string($LexLabel1, $LexLabel).
+
+make_node_list <- [pred].
+make_node_list([], []).
+make_node_list([$ID|$IDList], [xhtml_li & XHTML_TEXT\$Node|$NodeList]) :-
+    edge_sign($ID, $Sign),
+    (edge_fom($ID, $FOM) ->
+     true ;
+     $FOM = 0.0),
+    sign_label($Sign, $Symbol),
+    inttostr($ID, $IDStr),
+    strcat("moriv?page=chart:node_sign&amp;node_id=", $IDStr, $Href),
+    $Node = [xhtml_a & A_HREF\$Href & A_TARGET\"_blank" & XHTML_TEXT\[$Symbol, $IDStr],
+	     $FOM,
+	     xhtml_ul & XHTML_TEXT\$DtrIDList],
+    edge_link_id_list($ID, $LinkIDList),
+    findall($DtrID,
+	    (member($LinkID, $LinkIDList),
+	     edge_link($LinkID, $EdgeLink),
+	     make_dtr_id($EdgeLink, $DtrID)),
+	    $DtrIDList),
+    make_node_list($IDList, $NodeList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+input_sentence_page <- [pred].
+input_sentence_page($Page) :-
+    get_variable('*moriv_chart_heading*', $Heading),
+    get_variable('*sentence_cache*', $Sentence1),
+    encode_xml_string($Sentence1, $Sentence),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Heading & XHTML_CLASS\"title",
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_ACTION\"moriv" &
+	      XHTML_ATTRIBUTES\[XML_ATTR\"onreset" & XML_ATTR_VAL\"this.word.value=''; return false;"] &
+	      XHTML_TEXT\[(xhtml_span & XHTML_TEXT\"Input sentence: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" & INPUT_VALUE\$Sentence &
+			   INPUT_SIZE\"70" & XHTML_NAME\"sentence"),
+			  (xhtml_input & INPUT_TYPE\"hidden" &
+			   XHTML_NAME\"page" & INPUT_VALUE\"chart"),
+			  (xhtml_input & INPUT_TYPE\"submit" &
+			   XHTML_NAME\"parse" & INPUT_VALUE\"Parse"),
+			  (xhtml_input & INPUT_TYPE\"reset" &
+			   INPUT_VALUE\"Clear"),
+			  (xhtml_input & INPUT_TYPE\"radio" &
+			   XHTML_NAME\"sentence_type" & INPUT_VALUE\"raw" &
+			   XHTML_ATTRIBUTES\[XML_ATTR\"checked" & XML_ATTR_VAL\"true"]),
+			  "raw",
+			  (xhtml_input & INPUT_TYPE\"radio" &
+			   XHTML_NAME\"sentence_type" & INPUT_VALUE\"tagged"),
+			  "tagged"]),
+	     $Menu],
+    get_variable('*moriv_common_menu*', $Menu).
+
+parser_init_dispatch <- [pred].
+parser_init_dispatch("tagged") :-
+    disable_external_tagger.
+parser_init_dispatch("raw") :-
+    enable_external_tagger.
+
+chart_page <- [pred].
+chart_page($Args, $Page) :-
+    $JavaScript = (xml_empty_tag & XML_TAG\"script" &
+		   XML_ATTRIBUTES\[XML_ATTR\"src" & XML_ATTR_VAL\"/mayz/morivchart.js",
+				   XML_ATTR\"type" & XML_ATTR_VAL\"text/javascript"]),
+    $Page = [$JavaScript,
+	     xhtml_h3 & XHTML_TEXT\"Chart" & XHTML_CLASS\"title"|$Result],
+    (assoc("sentence", $Args, $Sentence) ->
+     (assoc("sentence_type", $Args, $SentenceType),
+      parser_init_dispatch($SentenceType) ->
+      true ;
+      parser_init_dispatch("tagged")),
+     display_chart($Sentence, $Result),
+     set_variable('*chart_cache*', $Result)
+     ;
+     get_variable('*chart_cache*', $Result)).
+
+node_list_page <- [pred].
+node_list_page($Args, $Page) :-
+    $Page = [xhtml_h3 & XHTML_TEXT\"Node list" & XHTML_CLASS\"title"|$Result],
+    (assoc("left", $Args, $LeftStr),
+     strtoint($LeftStr, $Left),
+     assoc("right", $Args, $RightStr),
+     strtoint($RightStr, $Right) ->
+     edge_id_list($Left, $Right, $IDList),
+     make_node_list($IDList, $NodeList),
+     $Result = ["Chart cell (", $Left, ",", $Right, ")",
+		xhtml_ul & XHTML_TEXT\$NodeList]
+     ;
+     $Result = []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Chart browser top page
+%%
+
+moriv_page("chart", $Args, $Title, $Page) :-
+    get_variable('*moriv_chart_title*', $Title),
+    chart_page($Args, $ChartPage),
+    node_list_page($Args, $ListPage),
+    input_sentence_page($InputPage),
+    $Page = [xhtml_div & XHTML_ID\"form" & XHTML_TEXT\$InputPage,
+	     xhtml_div & XHTML_ID\"menu" & XHTML_TEXT\$ListPage,
+	     xhtml_div & XHTML_ID\"display" & XHTML_TEXT\$ChartPage].
+
+moriv_page("chart:node_sign", $Args, "Node sign", $Page) :-
+    (assoc("node_id", $Args, $IDStr),
+     strtoint($IDStr, $ID) ->
+     display_node_fs($ID, $Result),
+     $Page = [xhtml_h3 & XHTML_TEXT\["Node sign: ID", $IDStr] & XHTML_CLASS\"title"|$Result] ;
+     $Page = [xhtml_h3 & XHTML_TEXT\["Node sign"]]).
+

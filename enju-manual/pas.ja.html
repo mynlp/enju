@@ -1,0 +1,198 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>述語項構造</title>
+</head>
+
+
+
+<body>
+<h1>述語項構造</h1>
+
+<a href="pas.html">English version</a>
+
+<p>
+Enju では，文の意味は述語項構造(predicate-argument structure)で表されます．
+述語項構造を表すための型，素性は，"enju/types.lil" で定義されています．
+
+<p>
+述語項構造は，sign の中の CONT 素性に入っていて，以下の素性構造で表します．
+
+<p>
+<table border>
+<tr><th>素性名<th>説明
+<tr><td>HOOK<td>句の主な意味を表す構造
+<tr><td>RELS<td>HOOK を修飾する構造のリスト
+</table>
+
+<p>
+たとえば，"a pretty girl" という名詞句では，"girl" の意味を表す構造がHOOK 素性に，
+"pretty" が "girl" を修飾しているという関係が RELS 素性で表されます．
+
+<p>
+HOOK, および RELS の各要素は，'hpsg_relation' 型の subtype で表されます．
+hpsg_relation 型の直接の subtype として，以下の二つの型が定義されています．
+
+<p>
+<table border>
+<tr><th>型名<th>説明
+<tr><td>unknown_relation<td>未知の entity (不定詞の主語など)を表す
+<tr><td>pred_relation<td>文中に現れている単語によって導入される entity を表す．
+対応する単語の lex_entry 型が，PRED 素性に入れられる．
+</table>
+
+<p>
+具体的な単語の述語項構造は，pred_relation 型の subtype で表されます．
+各 subtype は，その述語の項となっている単語の 'hpsg_relation' を，
+以下の素性の値として持ちます．
+
+<p>
+<table border>
+<tr><th>素性名<th>説明
+<tr><td>ARG1<td>動詞の主語や，形容詞，前置詞句の修飾先を表す
+<tr><td>ARG2<td>動詞や前置詞句の目的語を表す
+<tr><td>ARG3<td>動詞などの２番目の目的語を表す
+<tr><td>ARG4<td>動詞などの３番目の目的語を表す
+<tr><td>ARG5<td>動詞などの４番目の目的語を表す
+<tr><td>MODARG<td>ARG1 では表せない修飾先を表す．
+具体的には，分詞構文の修飾先などを表す．
+</table>
+
+<p>
+'pred_relation' 型の subtype として，以下の型が定義されています．
+
+<p>
+<table border>
+<tr><th>型名<th>説明
+<tr><td>noun_arg0_relation<td>名詞句の head
+<tr><td>noun_arg1_relation<td>名詞-名詞修飾(複合名詞)や時制名詞
+<tr><td>noun_arg2_relation<td>文補語をとる名詞
+<tr><td>noun_arg12_relation<td>文補語をとる時制名詞
+<tr><td>it_arg1_relation<td>助辞 it
+<tr><td>there_arg0_relation<td>助辞 there
+<tr><td>quote_arg2_relation<td>左側の引用符
+<tr><td>quote_arg12_relation<td>左側の引用符
+<tr><td>quote_arg23_relation<td>左側の引用符
+<tr><td>quote_arg123_relation<td>左側の引用符
+<tr><td>poss_arg2_relation<td>名詞句の head の 's 
+<tr><td>poss_arg12_relation<td>'s
+<tr><td>aux_arg12_relation<td>助動詞
+<tr><td>aux_mod_arg12_relation<td>修飾句の助動詞 <!-- (to 不定詞) -->
+<tr><td>verb_arg1_relation<td>自動詞
+<tr><td>verb_arg12_relation<td>他動詞や文補語をとる動詞
+<tr><td>verb_arg123_relation<td>二重目的語をとる動詞や，目的語と文補語をとる動詞
+<tr><td>verb_arg1234_relation<td>目的語や文補語を３つとる動詞
+<tr><td>verb_mod_arg1_relation<td>自動詞が修飾先を持つ
+<tr><td>verb_mod_arg12_relation<td>他動詞が修飾先を持つ
+<tr><td>verb_mod_arg123_relation<td>目的語を３つとる動詞が修飾先を持つ
+<tr><td>verb_mod_arg1234_relation<td>目的語を４つとる動詞が修飾先を持つ
+<tr><td>adj_arg1_relation<td>形容詞と副詞
+<tr><td>adj_arg12_relation<td>形容詞や副詞が補語を持つ
+<tr><td>adj_mod_arg1_relation<td>動詞を修飾する叙述形容詞
+<tr><td>adj_mod_arg12_relation<td>動詞を修飾する叙述形容詞が補語を持つ
+<tr><td>conj_arg1_relation<td>単独で現れる接続詞
+<tr><td>conj_arg12_relation<td>従属接続詞など
+<tr><td>conj_arg123_relation<td>従属接続詞などが補語を２つ持つ
+<tr><td>coord_arg12_relation<td>並列接続詞
+<tr><td>det_arg1_relation<td>指定詞(冠詞など)
+<tr><td>prep_arg12_relation<td>前置詞
+<tr><td>prep_arg123_relation<td>叙述前置詞が目的語を２つ持つ
+<tr><td>prep_mod_arg123_relation<td>動詞を修飾する叙述前置詞が目的語を２つ持つ
+<tr><td>lgs_arg2_relation<td>深層の主語を示す by
+<tr><td>dtv_arg2_relation<td>与格を示す to
+<tr><td>punct_arg1_relation<td>句読点
+<tr><td>app_arg12_relation<td>同格を示す句読点
+<tr><td>lparen_arg123_relation<td>開き括弧
+<tr><td>rparen_arg0_relation<td>閉じ括弧
+<tr><td>comp_arg1_relation<td>補分標識 that
+<tr><td>comp_arg12_relation<td>補分標識 for
+<tr><td>comp_mod_arg1_relation<td>補分標識 to
+<tr><td>relative_arg1_relation<td>関係代名詞
+<tr><td>relative_arg12_relation<td>関係代名詞 whose
+</table>
+
+<p>
+Enju の述語項構造は，文中の各単語に対して，必ず一つの pred_relation を
+出力します．つまり，意味を導入しないと思われる単語(be 動詞や関係代名詞
+など)に対しても，対応する pred_relation を出力します．これは，アプリケー
+ションによってはそのような情報を必要とするかもしれないからです．従って，
+アプリケーションで Enju の述語項構造を利用する時には，上述の relation
+の中から，必要なものを抜き出して利用して下さい．
+
+<p>
+以上の素性構造を使うと，"a pretty girl" の述語項構造は，以下のように表
+されます．
+
+<p>
+<table class="fs">
+<tr><td class="lprn" rowspan="3">
+    <td>hpsg_cont
+    <td class="rprn" rowspan="3">
+<tr><td><table class="fs">
+        <tr><td>HOOK <span class="shared_id">1</span>
+            <td class="lprn" rowspan="2">
+            <td><table class="fs">
+                <tr><td>noun_arg0_relation
+                <tr><td>PRED "girl"
+                </table>
+            <td class="rprn" rowspan="2">
+        </table>
+<tr><td><table class="fs">
+        <tr><td>RELS &lt;
+            <td><table class="fs">
+                <tr><td class="lprn" rowspan="3">
+                    <td>det_arg1_relation
+                    <td class="rprn" rowspan="3">
+                <tr><td>PRED "a"
+                <tr><td>ARG1 <span class="shared_id">1</span>
+                </table>
+            <td>,
+            <td><table class="fs">
+                <tr><td class="lprn" rowspan="3">
+                    <td>adj_arg1_relation
+                    <td class="rprn" rowspan="3">
+                <tr><td>PRED "pretty"
+                <tr><td>ARG1 <span class="shared_id">1</span>
+                </table>
+            <td>&gt;
+        </table>
+</table>
+
+<!--
+<p>
+上述の hpsg_relation のうち，
+動詞を表す型（verb_???_relation という名前の型）は，
+動詞の時制と相をそれぞれ表す素性 TENSE と ASPECT を持ちます．
+TENSE の値として 'hpsg_tense' 型が定義され，
+次のような subtype があります．
+<table border>
+<tr><th>型名<th>説明
+<tr><td>hpsg_pres<td>動詞は現在形
+<tr><td>hpsg_past<td>動詞は過去形
+</table>
+
+ASPECT の値としては 'hpsg_aspect' 型が定義され，
+次のような subtype があります．
+<table border>
+<tr><th>型名<th>説明
+<tr><td>hpsg_perf<td>動詞は完了形
+<tr><td>hpsg_prog<td>動詞は進行形
+<tr><td>hpsg_perf_prog<td>完了進行形をあらわし、hpsg_perf と hpsg_prog の subtype
+</table>
+-->
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

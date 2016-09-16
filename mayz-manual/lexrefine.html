@@ -1,0 +1,130 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lexrefine: Tool for refining lexicon</title>
+</head>
+
+
+
+<body>
+<h1>lexrefine: Tool for refining lexicon</h1>
+
+<a href="lexrefine.ja.html">Japanese version</a>
+
+<p>
+This tool is for thresholding infrequent words and lexical entry
+templates, and for expanding lexical entry templates by lexical rules.
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexrefine [options] rule_module orig_lexicon
+    orig_template new_lexicon new_template
+<tr><td>rule_module<td>lilfes program in which lexical rules are implemented
+<tr><td>orig_lexicon<td>input lexicon
+<tr><td>orig_template<td>input template database
+<tr><td>new_lexicon<td>refined lexicon
+<tr><td>new_template<td>refined template
+<tr><td colspan=2>Options
+<tr><td>-wf threshold<td>threshold of word frequency (default: 1)
+<tr><td>-tf threshold<td>threshold of the frequency of lexical entry templates (default: 0)
+<tr><td>-uwf threshold<td>threshold of the frequency of words to be
+    regarded as unknown word (default: 1)
+<tr><td>-utf threshold<td>threshold of the frequency of lexical entry
+    templates to be adopted for unknown words (default: 0)
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+<tr><td>-vvv<td>print many many debug messages
+</table>
+
+<p>
+"<tt>lexrefine</tt>" refines a lexicon and a template database with
+the following operations.
+<ul>
+  <li>Remove lexical entry templates that are less frequent than a threshold.
+  <li>Make derived lexical entry templates by applying lexical rules
+  to lexemes.
+  <li>Make lexicon entries for unknown words by regarding infrequent
+  words in a lexicon as unknown words.
+  <li>Remove words that are less frequent than a threshold from a lexicon.
+  <li>Make lexicon entries for inflected words.
+</ul>
+
+<p>
+First, remove lexical entry templates whose occurrence count is less
+than the threshold (the value specified by "-tf" option).
+
+<p>
+Next, apply lexical rules to remaining templates, and make lexical
+entry templtaes for inflected words.  Write lexical rules with the
+following interfaces defined in "mayz/lexrefine.lil".
+<table border=1>
+<tr><td colspan=2><tt>expand_lexical_template(+$InTemplateName,
++$InTemplate, +$Freq, -$LexRules, -$NewTemplate)</tt>
+<tr><td>$InTemplateName<td>name of an input template
+<tr><td>$InTemplate<td>input lexical entry template
+<tr><td>$Freq<td>occurrence count of the template
+<tr><td>$LexRules<td>history of applied lexical rules
+<tr><td>$NewTemplate<td>derived lexical entry template
+<tr><td colspan=2>Apply lexical rules to a lexical entry template of a
+    lexeme, and make a new lexical entry template.
+</table>
+A new lexical entry template is assigned the name (the pair of a
+lexeme name and a history of lexical rules), and is stored in a
+template database.  The frequency of a new template is regarded as
+the same as the original template (lexeme).
+
+<p>
+To use derived lexical entry templates, implement the following
+interface.
+<table border=1>
+<tr><td colspan=2><tt>expand_lexicon(+$InKey, +$TemplateName, -$NewKey)</tt>
+<tr><td>$InKey<td>a key of an input word
+<tr><td>$TemplateName<td>name of a template ('lex_template' type)
+<tr><td>$NewKey<td>a new key
+<tr><td colspan=2>From a key of a lexicon, $InKey, make a new key,
+    $NewKey, to which the derived template should be assigned.  For
+    example, when a template for passive is made from that for a base
+    verb, we make a new key "loved/VBN" from "love/VB".
+</table>
+
+<p>
+Next, for each entry in a lexicon, if the occurrence count of a word
+(to be more precise, the key given by the third argument of
+"<tt>reduce_lexical_template/5</tt>") is less than the threshold (the
+value specified by "-wf" option), the entry is removed from the
+lexicon.  The other entries remain in the lexicon, while the
+templates deleted in the first step are automatically removed from
+the entries.
+
+<p>
+In addition, a word is regarde as "unknown word" if its occurrence
+count is less than the value of the "-uwf" option.  That is, templates
+assigned to the word are added to the template list for an unknown
+word.  The key of an unknown word is specified with
+"<tt>unknown_word_key/2</tt>" defined in "mayz/lexrefine.lil".
+<table border=1>
+<tr><td colspan=2><tt>unknown_word_key(+$InKey, -$OutKey)</tt>
+<tr><td>$InKey<td>key of an input word
+<tr><td>$OutKey<td>key of an unknown word
+<tr><td colspan=2>Make a key for an unknown word.
+</table>
+For example, if this predicate provides the POS of $InKey, a parser
+will look up an unknown word entry with a POS.  You can additionally
+specify the threshold of the occurrence count of templates to be
+assigned to unknown word entries.
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

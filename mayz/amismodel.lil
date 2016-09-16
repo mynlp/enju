@@ -1,0 +1,116 @@
+%/**
+  * @module    = mayz:amismodel
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2005-06-21 19:38:15 yusuke>
+  * @cvs       = $Id: amismodel.lil,v 1.5 2009-12-03 23:33:25 matuzaki Exp $
+  * @desc      = Interface for FOM models
+%*/
+
+:- module("mayz:amismodel").
+
+:- module_interface.
+
+%/**
+  * @interface = extract_terminal_event(+$ModelName, -$Category, +$LexName, +$Sign, +$SignPlus, -$Event)
+  * @param     = +$ModelName/string: model name
+  * @param     = -$Category/string: category name of an event
+  * @param     = +$LexName/bot: 2nd argument of lexical_entry/2
+  * @param     = +$Sign/bot: sign of a terminal
+  * @param     = +$SignPlus/bot: 3rd argument of reduce_sign/3
+  * @param     = -$Event/list of strings: an event of ME model
+  * @desc      = extract a ME event of a terminal
+%*/
+extract_terminal_event <- [pred].
+'extract_terminal_event/6' <- [extract_terminal_event, 'pred/6'].
+extract_terminal_event_feature_value <- [pred].
+'extract_terminal_event_feature_value/7' <- [extract_terminal_event_feature_value, 'pred/7'].
+
+%/**
+  * @interface = extract_unary_event(+$ModelName, -$Category, +$SchemaName, +$Dtr, +$Mother, +$SignPlus, -$Event)
+  * @param     = +$ModelName/string: model name
+  * @param     = -$Category/string: category name of an event
+  * @param     = +$SchemaName/bot: name of the applied schema
+  * @param     = +$Dtr/bot: sign of the daughter
+  * @param     = +$Mother/bot: sign of the mother
+  * @param     = +$SignPlus/bot: 3rd argument of reduce_sign/3
+  * @param     = -$Event/list of strings: an event of ME model
+  * @desc      = extract a ME event of the application of a unary schema
+%*/
+extract_unary_event <- [pred].
+'extract_unary_event/7' <- [extract_unary_event, 'pred/7'].
+extract_unary_event_feature_value <- [pred].
+'extract_unary_event_feature_value/8' <- [extract_unary_event_feature_value, 'pred/8'].
+
+%/**
+  * @interface = extract_binary_event(+$ModelName, -$Category, +$SchemaName, +$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Event)
+  * @param     = +$ModelName/string: model name
+  * @param     = -$Category/string: category name of an event
+  * @param     = +$SchemaName/bot: name of the applied schema
+  * @param     = +$LeftDtr/bot: sign of the left daughter
+  * @param     = +$RightDtr/bot: sign of the right daughter
+  * @param     = +$Mother/bot: sign of the mother
+  * @param     = +$SignPlus/bot: 3rd argument of reduce_sign/3
+  * @param     = -$Event/list of strings: an event of ME model
+  * @desc      = extract a ME event of the application of a binary schema
+%*/
+extract_binary_event <- [pred].
+'extract_binary_event/8' <- [extract_binary_event, 'pred/8'].
+extract_binary_event_feature_value <- [pred].
+'extract_binary_event_feature_value/9' <- [extract_binary_event_feature_value, 'pred/9'].
+
+%/**
+  * @interface = extract_root_event(+$ModelName, -$Category, +$Sign, -$Event)
+  * @param     = +$ModelName/string: model name
+  * @param     = -$Category/string: category name of an event
+  * @param     = +$Sign/bot: root sign
+  * @param     = -$Event/list of strings: an event of ME model
+  * @desc      = extract a ME event of being the root of the derivation
+%*/
+extract_root_event <- [pred].
+'extract_root_event/4' <- [extract_root_event, 'pred/4'].
+extract_root_event_feature_value <- [pred].
+'extract_root_event_feature_value/5' <- [extract_root_event_feature_value, 'pred/5'].
+
+%/**
+  * @interface = feature_mask(+$ModelName, -$Category, -$Mask)
+  * @param     = +$ModelName/string: model name
+  * @param     = -$Category/string: category name of an event
+  * @param     = -$Mask/list of 0/1: a mask for an event
+  * @desc      = specify a 0/1 mask for the events of the category $Category
+%*/
+feature_mask <- [pred].
+
+%% interface for joint output
+unary_event_condition <- [pred].
+binary_event_condition <- [pred].
+
+%% predicates
+%% init_amis_model <- [pred].
+%% compute_event_weight <- [pred].
+%% compute_log_probability <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% c++ version
+
+%% import_feature_masks <- [pred].
+%% import_feature_masks($ModelName) :-
+%%     feature_mask($ModelName, $Category, $Mask),
+%%     add_feature_mask($ModelName, $Category, $Mask),
+%%     fail.
+%% import_feature_masks(_).
+
+%% init_amis_model($ModelName, $FileName) :-
+%%     new_amis_model($ModelName),
+%%     import_amis_model($ModelName, $FileName),
+%%     import_feature_masks($ModelName).
+
+%% compute_event_weight([], _, _, []).
+%% compute_event_weight([$Event|$EventList], $ModelName, $Category, [$Weight|$WeightList]) :-
+%%     amis_event_weight($ModelName, $Category, $Event, $Weight),
+%%     compute_event_weight($EventList, $ModelName, $Category, $WeightList).
+
+%% compute_log_probability($Category, $EventList, $ModelName, $ProbList) :-
+%%     amis_log_probability($ModelName, $Category, $EventList, $ProbList).
+

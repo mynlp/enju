@@ -1,0 +1,500 @@
+<head>
+  <title>Enju 2.4 Output Specifications</title>
+</head>
+
+<body>
+
+<h1>Enju 2.4 Output Specifications</h1>
+
+<address>Yusuke Miyao (National Institute of Informatics, Japan)</address>
+<div>Last updated: 18/Jun/2010</div>
+
+<h2>Contents</h2>
+<ol>
+  <li><a href="#overview">Overview</a></li>
+  <li><a href="#ps">Phrase structures</a></li>
+  <li><a href="#pas">Predicate argument structures</a></li>
+  <li><a href="#others">HPSG-specific features</a></li>
+  <li><a href="#correspondence">Appendix: Correspondences between Enju
+  and PTB</a></li>
+</ol>
+
+<hr />
+
+<h2><a name="overview">1. Overview</a></h2>
+
+<p>
+Enju outputs <em>phrase structures</em> and <em>predicate argument
+structures</em> in an XML format.  Phrase structures are tree
+structures that express how words are combined to form phrases and
+clauses.  Predicate argument structures are a set of relations that
+describe semantic relations of words/phrases/clauses in a sentence.
+
+<p>
+For example, a phrase structure of the sentence "John has come." is
+described by the following tree structure:
+
+<pre>
+(S (NP John) (VP has (VP come)))
+</pre>
+
+where "S", "NP", and "VP" are syntactic categories of phrases.  In
+phrase structures, internal nodes are syntactic categories, and
+terminal nodes are words.
+
+<p>
+A predicate argument structure of the same sentence is given as the
+following three relations.
+
+<pre>
+&lt; come, arg1, John &gt;
+&lt; has, arg1, John &gt;
+&lt; has, arg2, come &gt;
+</pre>
+
+<p>
+Each tuple represents a labeled relation (a labeled dependency from a
+word to a phrase/clause).  For example, the first tuple means that
+"arg1" (the first argument, i.e., the semantic subject) of "come" is
+"John".  The first element of a tuple expresses a predicate word, the
+second element is a label of the relation, and the third element is an
+argument phrase/clause of the predicate.  Because relations
+represented by predicate argument structures are relations between a
+predicate and its arguments in a predicate logic, they do not
+necessarily correspond to syntactic head/argument.  For example, when
+a prepositional phrase modifies a noun, the preposition is represented as
+a predicate and the noun is denoted as the "arg1" of the preposition,
+while, in syntax, the noun is the head and the prepositional phrase is
+the non-head.
+
+<p>
+Enju represents both structures in XML with three tags as listed below.
+
+<table border="1">
+<tr><th>tag</th><th>attributes</th><th><br /></th></tr>
+<tr><td>sentence</td><td>id parse_status fom</td><td>sentence</td></tr>
+<tr><td>cons</td><td>id cat xcat schema head sem_head</td>
+    <td>syntactic constituents (phrases, clauses, etc.)</td></tr>
+<tr><td>tok</td><td>id cat pos base tense aspect voice aux type lexentry
+pred arg1 arg2 arg3 arg4 mod</td>
+    <td>words, punctuations</td></tr>
+</table>
+
+<p>
+In general, "cons" represents phrase structures.  Unique identifiers
+are assigned to every "cons" tag, and they are denoted by the "id"
+attribute.  Syntactic categories of phrases and clauses, such as "NP"
+and "S", are expressed by the "cat" attribute, and finer
+classifications of categories are represented by the "xcat" attribute.
+Syntactic/semantic head daughters of internal nodes are expressed by
+the "head" and "sem_head" attributes, respectively.  These attributes
+denote the identifier of "cons" of the head daughter.  Terminal nodes
+of phrase structures are "tok" tags, and, like "cons", identifiers and
+syntactic categories are represented by the "id" and "cat" attributes.
+Additionally, Penn Treebank-style POS and a base form of a word are
+described by the "pos" and "base" attributes.
+
+<p>
+Predicate argument structures are expressed by attributes of the "tok"
+tag: "pred" denotes the type of the predicate for a word.
+"arg1", ..., "arg4", and "mod" denote identifiers of "cons", and
+they represent argument or modification phrases/clauses 
+of the predicate.
+For example, when  the value of "pred" is "verb_arg1" and 
+the value of "arg1" is "c1", the first argument
+(i.e., semantic subject) is a phrase or a clause which is assigned
+the identifier "c1".
+
+<p>
+The other tag, "sentence", is used to express additional information
+of parsing results.  A string processed by Enju as a sentence is
+bracketed by "sentence", and is assigned an identifier (the "id"
+attribute).  The "parse_status" attribute represents whether parsing
+has succeeded or not.  This attribute has "success" when parsing
+succeeded, and has a reason of the failure as listed below when
+failed.
+
+<table border="1">
+<tr><th>parse_status</th><th>reason of failure</th></tr>
+<tr><td>empty line</td><td>The input line is an empty string</td></tr>
+<tr><td>fragmental parse</td><td>Although the parser could not produce an analysis 
+that spans the whole sentence, it outputs fragmental parse results</td></tr>
+<tr><td>no successful parse</td><td>The parser could not produce an
+analysis</td></tr>
+<tr><td>POS tagging error</td><td>Tokenization or POS tagging failed or
+returned an ill-formed string</td></tr>
+<tr><td>lexical entry assignment error</td><td>Assignment of lexical
+entries failed (e.g. caused by wrong POS tags)</td></tr>
+<tr><td>sentence length limit exceeded</td><td>The number of words was larger than
+the limit (enlarge the limit of sentence length to parse those sentences)</td></tr>
+<tr><td>edge number limit exceeded</td><td>The number of produced edges
+exceeded the limit (enlarge the limit of edge number to parse those sentences)</td></tr>
+<tr><td>parser setup error</td><td>Set-up of internal data structures
+failed (e.g. failure of memory allocation)</td></tr>
+<tr><td>XML encoding error</td><td>Something wrong happened when encoding
+a parse result into an XML format (contact the developer when you find
+this error)</td></tr>
+<tr><td>unknown error</td><td>Error caused by an unknown reason
+(contact the developer when you find this error)</td></tr>
+<tr><td>fatal error</td><td>An unrecoverable error occurred (contact
+the developer when you find this error)</td></tr>
+</table>
+
+<p>
+The "fom" attribute denotes a figure-of-merit, which is a score of
+goodness of the parsing result.
+
+<p>
+Here is an example XML-style output of the parsing of sentence "John
+has come":
+
+<pre>
+&lt;sentence id="s0" parse_status="success" fom="7.28"&gt;
+  &lt;cons id="c0" cat="S" xcat="" head="c3" sem_head="c3"&gt;
+    &lt;cons id="c1" cat="NP" xcat="" head="c2" sem_head="c2"&gt;
+      &lt;cons id="c2" cat="NX" xcat="" head="t0" sem_head="t0" &gt;
+        &lt;tok id="t0" cat="N" pos="NNP" base="john" pred="noun_arg0"&gt;
+          John
+        &lt;/tok&gt;
+      &lt;/cons&gt;
+    &lt;/cons&gt;
+    &lt;cons id="c3" cat="VP" xcat="" head="c4" sem_head="c5"&gt;
+      &lt;cons id="c4" cat="VX" xcat="" head="t1" sem_head="t1"&gt;
+        &lt;tok id="t1" cat="V" pos="VBZ" base="have" pred="aux_arg12" arg1="c1" arg2="c5"&gt;
+          has
+        &lt;/tok&gt;
+      &lt;cons id="c5" cat="VP" xcat="" head="t2" sem_head="t2"&gt;
+        &lt;tok id="t2" cat="V" pos="VBN" base="come" pred="verb_arg1" arg1="c1"&gt;
+          come
+        &lt;/tok&gt;
+      &lt;/cons&gt;
+    &lt;/cons&gt;
+  &lt;/cons&gt;
+&lt;/sentence&gt;
+</pre>
+
+<p>
+Linguistic meanings of syntactic categories and predicate-argument
+relations will be explained in Section 2 and 3.
+
+<p>
+Other linguistic features, such as applied schema, tense, and aspect,
+ are output as attributes of the "cons" and "tok" tags, although
+they are omitted from the example above.  These are explained in
+Section 4.
+
+<hr />
+
+<h2><a name="ps">2. Phrase structures</a></h2>
+
+<p>
+Phrase structures are represented by two tags, "cons" and "tok":
+"cons" expresses internal nodes, and "tok" denotes terminal nodes of
+tree structures.  In general, "cons" corresponds to phrases and
+clauses, which are called "constituents", while "tok" corresponds to
+words and punctuations, which are called "tokens".  All "cons" and
+"tok" tags are assigned unique identifiers, which will be used to
+express various linguistic relations by identifying targets of the
+relations.  Attributes of these tags represent syntactic information
+of annotated constituents.
+
+<p>
+<table border="1">
+<caption>Attributes of "cons"</caption>
+<tr><td>id</td><td>identifier</td></tr>
+<tr><td>cat</td><td>syntactic category</td></tr>
+<tr><td>xcat</td><td>extra features of syntactic category</tr></tr>
+<tr><td>head</td><td>ID of the syntactic head daughter</td></tr>
+<tr><td>sem_head</td><td>ID of the semantic head daughter</td></tr>
+</table>
+
+<p>
+<table border="1">
+<caption>Attributes of "tok"</caption>
+<tr><td>id</td><td>identifier</td></tr>
+<tr><td>cat</td><td>syntactic category</td></tr>
+<tr><td>pos</td><td>Penn Treebank-style part-of-speech tag</td></tr>
+<tr><td>base</td><td>base form</td></tr>
+</table>
+
+<p>
+A tree of syntactic constituents is expressed by nested "cons" tags.
+In the output of Enju, all trees have only binary or unary branchings;
+that is, each "cons" tag covers at most two "cons" tags in it.
+
+<p>
+Syntactic categories of constituents are expressed by the attribute,
+"cat".  A value of "cat" is a concatenation of a POS (e.g., ADJ) and a
+suffix which indicates whether a constituent is a saturated phrase
+(expressed by "P") or an unsaturated constituent ("X").  A list of
+POSs is given below.
+
+<table border="1">
+<tr><td>ADJ</td><td>Adjective</td></tr>
+<tr><td>ADV</td><td>Adverb</td></tr>
+<tr><td>CONJ</td><td>Coordination conjunction</td></tr>
+<tr><td>C</td><td>Complementizer</td></tr>
+<tr><td>D</td><td>Determiner</td></tr>
+<tr><td>N</td><td>Noun</td></tr>
+<tr><td>P</td><td>Preposition</td></tr>
+<tr><td>SC</td><td>Subordination conjunction</td></tr>
+<tr><td>V</td><td>Verb</td></tr>
+</table>
+
+<p>
+Additional symbols express other types of constituents.  They are used
+as values of "cat" without suffixes.
+
+<table border="1">
+<tr><td>COOD</td><td>Part of coordination</td></tr>
+<tr><td>PN</td><td>Punctuation</td></tr>
+<tr><td>PRT</td><td>Particle</td></tr>
+<tr><td>S</td><td>Sentence</td></tr>
+</table>
+
+<p>
+Syntactic categories of tokens are also specified as values of "cat"
+of "tok" tags.  The values are the same as the above, while, in this
+case, suffixes are not expressed.  Additional attributes, "pos" and
+"base", represent morphological information: a Penn Treebank-style POS
+tag and the base form of the input string.
+
+<p>
+For example, "cat" of "tok" of the word "John" is "N", because this
+word is a noun.  The value of "pos" is "NNP", which means a singular
+proper noun.  It also constitutes a nominal constituent without a
+determiner, and therefore is assigned "NX" as a value of "cons".
+Furthermore, since this constituent can take an empty determiner to
+become a noun phrase, it is also assigned another "cons" tag with "NP"
+as the value of "cat".
+
+<p>
+Since symbols of "cat" are sometimes very coarse, "xcat" expresses
+important linguistic distinctions.  The value of "xcat" is a
+space-separated set of the following values.
+
+<table border="1">
+<tr><td>COOD</td><td>Coordinated phrase/clause</td></tr>
+<tr><td>IMP</td><td>Imperative sentence</td></tr>
+<tr><td>INV</td><td>Subject-verb inversion</td></tr>
+<tr><td>Q</td><td>Interrogative sentence with subject-verb inversion</td></tr>
+<tr><td>REL</td><td>A relativizer included</td></tr>
+<tr><td>FREL</td><td>A free relative included</td></tr>
+<tr><td>TRACE</td><td>A trace included</td></tr>
+<tr><td>WH</td><td>A wh-question word included</td></tr>
+</table>
+
+<p>
+The value of "head" or "sem_head" is an identifier of one of its
+daughters.  They indicate the identifier of the head daughter of the
+phrase.
+
+<p>
+The syntactic head of a constituent is denoted by "head", and is a
+daughter constituent that determines syntactic characteristics of the
+constituent.  Usually, the syntactic head of "X phrase" (X=verb, noun,
+adjective, etc.) is X.  The syntactic head of a sentence is a main
+verb phrase.
+
+<p>
+The semantic head of a phrase is denoted by "sem_head", and is a
+daughter constituent that mainly conveys a semantic content of the
+constituent.  That is, function words are not semantic heads even when
+they are syntactic heads, while content words are syntactic and semantic
+heads.  Actually, in the current implementation of Enju, "head" and
+"sem_head" are different in the following cases.
+<ul>
+  <li>Auxiliary construction (including to-infinitive): "head" is the
+  auxiliary verb, while "sem_head" is the main verb (see the example
+  in Section 1).
+  <li>Complementizer phrase (that, whether, for): "head" is the
+  complementizer, while "sem_head" is the clause.
+  <li>Quotation: "head" is the quotation mark, while "sem_head" is the
+  content of the quotation.
+  <li>Passive "by" phrase: "head" is "by", while "sem_head" is the
+  object of the "by" phrase.
+  <li>Dative "to" phrase: "head" is "to", while "sem_head" is the
+  object of the "to" phrase.
+</ul>
+In other cases, "head" is identical to "sem_head".
+
+<hr />
+
+<h2><a name="pas">3. Predicate argument structures</a></h2>
+
+<p>
+Predicate argument structures are expressed by attributes of "tok":
+"pred", "arg1", ..., "arg4", and "mod".  "pred" denotes the type of
+a predicate.  The others denote identifiers of
+constituents.  For example, when the value of "pred" is "verb_arg1" 
+and the value of "arg1" is "c1", the
+first argument (i.e., semantic subject) is a phrase or a clause
+identified by "c1".
+
+<p>
+A value of "pred" is one of the following values.
+It is a concatenation of a POS (e.g., noun, verb) and
+a symbol (or symbols) which indicates required arguments.
+<table border="1">
+<tr><th>Attribute</th><th>Values</th><th><br /></th></tr>
+<tr><td>pred</td><td>noun_arg0, noun_arg1, noun_arg2, 
+noun_arg12, it_arg1, there_arg0, quote_arg2, quote_arg12,
+quote_arg23, quote_arg123, poss_arg2, poss_arg12, 
+aux_arg12, aux_mod_arg12, 
+verb_arg1, verb_arg12, verb_arg123, verb_arg1234, 
+verb_mod_arg1, verb_mod_arg12, verb_mod_arg123, verb_mod_arg1234, 
+adj_arg1, adj_arg12, adj_mod_arg1, adj_mod_arg12, 
+conj_arg1, conj_arg12, conj_arg123, 
+coord_arg12, det_arg1, 
+prep_arg12, prep_arg123, prep_mod_arg12, prep_mod_arg123, 
+lgs_arg2, dtv_arg2, punct_arg1, app_arg12, 
+lparen_arg123, rparen_arg0, 
+comp_arg1, comp_arg12, comp_mod_arg1, relative_arg1, relative_arg12 
+</td><td>predicate type</td></tr>
+</table>
+
+<p>
+Argument numbers ("X" in "argX") are assigned in the order of surface
+realizations in declarative sentences.  For nouns, verbs, adjectives,
+adverbs, and prepositions, "arg1" is assigned to a left argument, and
+"arg2", ..., "arg4" are assigned to right arguments in a left-to-right
+order.  "mod" is assigned to a modifiee of VP modifiers (e.g. a matrix
+clause of participial construction).  For complementizers and
+determiners, their dependent phrases/clauses will be "arg1".  The
+complement of "'s" (e.g. "John" in "John 's") is expressed as "arg2".
+For punctuations, and particles, their dependent phrases are denoted
+by "arg1".  For subordination/coordination conjunctions, main/left
+conjuncts are represented by "arg1", and the other conjuncts are
+expressed as "arg2".
+
+<p>
+For example, "A beautiful butterfly is coming into my room." has
+following predicate argument relations.
+
+<pre>
+&lt; coming, arg1, A beautiful butterfly &gt;
+&lt; is, arg1, A beautiful butterfly &gt;
+&lt; is, arg2, coming into my room &gt;
+&lt; beautiful, arg1, butterfly &gt;
+&lt; a, arg1, beautiful butterfly &gt;
+&lt; into, arg1, coming &gt;
+&lt; into, arg2, my room &gt;
+&lt; my, arg1, room &gt;
+</pre>
+
+<p>
+In the XML format, each relation is expressed by an attribute of
+"tok".  For example, when we suppose the identifier of the phrase "A
+beautiful butterfly" is "c1", the XML annotation for "coming" will be
+like this:
+
+<pre>
+&lt;tok id="t1" cat="V" pos="VBG" base="come" pred="verb_arg1" arg1="c1" &gt;
+  coming
+&lt;/tok&gt;
+</pre>
+
+<hr />
+
+<h2><a name="others">4. HPSG-specific features</a></h2>
+
+<p>
+Because the grammar of Enju has rich linguistic information, a part of
+it can be output additionally.  The following attributes are added
+to "cons" or "tok" tags.
+
+<p>
+<table border="1">
+<caption>Attributes for "cons"</caption>
+<tr><th>Attribute</th><th>Values</th><th><br /></th></tr>
+<tr><td>schema</td><td>subj_head, head_comp, spec_head, head_mod,
+mod_head, filler_head, head_relative, coord_left, coord_right,
+empty_filler_head, empty_spec_head, free_relative</td><td>applied schema</td></tr>
+</table>
+
+<p>
+<table border="1">
+<caption>Attributes for "tok"</caption>
+<tr><td>tense</td><td>untensed, past, present</td><td>tense of a verb</td></tr>
+<tr><td>aspect</td><td>none, perfect, progressive,
+perfect-progressive</td><td>aspect of a verb</td></tr>
+<tr><td>voice</td><td>active, passive</td><td>voice of a verb</td></tr>
+<tr><td>aux</td><td>minus, modal, have, be, do,
+copular</td><td>auxiliary verb or not</tr>
+<tr><td>type</td><td>pred, noun_mod, verb_mod, adj_mod, prep_mod,
+    other_mod, pred_mod</td><td>syntactic type</td></tr>
+<tr><td>lexentry</td><td>(see below)</td><td>assigned lexical entry</td></tr>
+</table>
+
+<p>
+All "cons" tags except preterminals (i.e., "cons" tags immediately
+above "tok") have non-empty values for "schema".  All verbs have "aux"
+attributes, while principal verbs (i.e., aux="minus" or aux="copular")
+have "tense", "aspect", and "voice", whose values are non-empty
+strings.  The "type" attribute expresses the syntactic type of a word:
+"pred" means predicative, "noun_mod", "verb_mod", "adj_mod",
+"prep_mod", and "other_mod" mean modifiers to
+nouns/verbs/adjectives/prepositions/other words, respectively, and
+"pred_mod" means a predicative modifier.  If no "type" is assigned, it
+indicates that the word is an argument or the head of the sentence.
+
+<p>
+All "tok" tags have "lexentry".  A value of "lexentry" is a lexeme
+name and applied lexical rules concatenated by hyphens.  For example,
+when the value of "lexentry" is
+"[NP.nom&lt;V.bse&gt;NP.acc]_lxm-singular3rd_verb_rule" the lexical
+entry is obtained from the lexeme "[NP.nom&lt;V.bse&gt;NP.acc]_lxm" by
+applying the rule "singular3rd_verb_rule".
+
+<hr />
+
+<h2><a name="correspondence">5. Appendix: Correspondences between Enju and PTB</a></h2>
+
+<p>
+Here is a rough sketch of correspondences of syntactic categories of
+Enju and Penn Treebank (PTB).  It should be noted that this table does
+not necessarily mean that outputs of Enju can be formally translated
+into PTB-style outputs.  Because the output of Enju is based on HPSG
+and it is different from the annotation policy of PTB, tree structures
+and/or syntactic categories are often different from those given by
+the PTB-style annotation.  However, these mappings provide a clear
+image of what Enju expresses.
+
+<p>
+<table border="1">
+<tr><th colspan="2">Enju</th><th rowspan="2">PTB</th></tr>
+<tr><th>cat</th><th>xcat</th></tr>
+<tr><td>ADJP</td><td><br /></td><td>ADJP, QP (number expression)</td></tr>
+<tr><td>ADJP</td><td>REL</td><td>WHADJP (relativizer)</td></tr>
+<tr><td>ADJP</td><td>FREL</td><td>WHADJP (free relative)</td></tr>
+<tr><td>ADJP</td><td>WH</td><td>WHADJP (wh-phrase)</td></tr>
+<tr><td>ADVP</td><td><br /></td><td>ADVP</td></tr>
+<tr><td>ADVP</td><td>REL</td><td>WHADVP (relativizer)</td></tr>
+<tr><td>ADVP</td><td>FREL</td><td>WHADVP (free relative)</td></tr>
+<tr><td>ADVP</td><td>WH</td><td>WHADVP (wh-phrase)</td></tr>
+<tr><td>CONJP</td><td><br /></td><td>CONJP</td></tr>
+<tr><td>CP</td><td><br /></td><td>SBAR (complementizer phrase)</td></tr>
+<tr><td>DP</td><td><br /></td><td>NP (possessive), QP (quantifier)</td></tr>
+<tr><td>NP</td><td><br /></td><td>NP</td></tr>
+<tr><td>NX</td><td><br /></td><td>NX, NAC</td></tr>
+<tr><td>NP</td><td>REL</td><td>WHNP (relativizer)</td></tr>
+<tr><td>NP</td><td>FREL</td><td>WHNP (free relative)</td></tr>
+<tr><td>NP</td><td>WH</td><td>WHNP (wh-phrase)</td></tr>
+<tr><td>PP</td><td><br /></td><td>PP</td></tr>
+<tr><td>PP</td><td>REL</td><td>WHPP (relativizer)</td></tr>
+<tr><td>PP</td><td>WH</td><td>WHPP (wh-phrase)</td></tr>
+<tr><td>PRT</td><td><br /></td><td>PRT</td></tr>
+<tr><td>S</td><td><br /></td><td>S</td></tr>
+<tr><td>S</td><td>INV</td><td>SINV</td></tr>
+<tr><td>S</td><td>Q</td><td>SQ</td></tr>
+<tr><td>S</td><td>REL</td><td>SBAR (relative clause)</td></tr>
+<tr><td>S</td><td>FREL</td><td>SBAR (free relative clause)</td></tr>
+<tr><td>S</td><td>WH</td><td>SBARQ</td></tr>
+<tr><td>SCP</td><td><br /></td><td>SBAR (subordinate clause)</td></tr>
+<tr><td>VP</td><td><br /></td><td>VP, RRC</td></tr>
+<tr><td><br /></td><td><br /></td><td>PRN, INTJ, LST, X</td></tr>
+</table>
+</p>
+
+</body>
+

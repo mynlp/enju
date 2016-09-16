@@ -1,0 +1,296 @@
+%/**********************************************************************
+  * @module    = mayz:markhead
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @desc      = Marking heads in a parse tree
+  **********************************************************************
+%*/
+
+:- module("mayz:markhead").
+
+:- module_interface.
+
+%% interface
+modifier_tag <- [pred].
+argument_tag <- [pred].
+head_tag <- [pred].
+nonhead_tag <- [pred].
+head_argument_table <- [pred].
+argument_table <- [pred].
+left_argument_table <- [pred].
+right_argument_table <- [pred].
+head_table <- [pred].
+mark_exceptional <- [pred].
+
+%/**
+  * @predicate = mark_head(+$ParseTree)
+  * @param     = +$ParseTree/tree_node : A parse tree
+  * @desc      = Marks heads in a parse tree
+  * This predicate marks syntactic heads in a parse tree according
+  * to the head-percolation table.
+%*/
+init_mark_head <- [pred].
+mark_head <- [pred].
+
+%/**
+  * @predicate = mark_modifier(+$ParseTree)
+  * @param     = +$ParseTree/tree_node : A parse tree
+  * @desc      = Marks modifiers in a parse tree
+  * This predicate marks modifiers in a parse tree according.
+%*/
+mark_modifier <- [pred].
+
+%/**********************************************************************
+  * @predicate =  mark_empty(+$ParseTree)
+  * @param     =  +$ParseTree/tree_node : A parse tree
+  * @desc      =  Marks empty categories
+  * This predicate marks empty categories and internal nodes only with
+  * empty categories in a parse tree.
+  **********************************************************************
+%*/
+mark_empty <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("treetypes").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+'*head_argument_table*' <- [pred].
+'*argument_table*' <- [pred].
+'*left_argument_table*' <- [pred].
+'*right_argument_table*' <- [pred].
+'*head_direction*' <- [pred].
+'*head_table*' <- [pred].
+
+:-
+    declare_array('*head_argument_table*'(key_string, key_string, array_value_integer)),
+    declare_array('*argument_table*'(key_string, key_string, array_value_integer)),
+    declare_array('*left_argument_table*'(key_string, key_string, array_value_integer)),
+    declare_array('*right_argument_table*'(key_string, key_string, array_value_integer)),
+    declare_array('*head_direction*'(key_string, array_value_integer)),
+    declare_array('*head_table*'(key_string, array_value)).
+
+init_head_argument_table <- [pred].
+init_head_argument_table :-
+    head_argument_table($Sym1, $SymList),
+    member($Sym2, $SymList),
+    set_array('*head_argument_table*'($Sym1, $Sym2, 1)),
+    fail.
+init_head_argument_table.
+
+init_argument_table <- [pred].
+init_argument_table :-
+    argument_table($Sym1, $SymList),
+    member($Sym2, $SymList),
+    set_array('*argument_table*'($Sym1, $Sym2, 1)),
+    fail.
+init_argument_table :-
+    left_argument_table($Sym1, $SymList),
+    member($Sym2, $SymList),
+    set_array('*left_argument_table*'($Sym1, $Sym2, 1)),
+    fail.
+init_argument_table :-
+    right_argument_table($Sym1, $SymList),
+    member($Sym2, $SymList),
+    set_array('*right_argument_table*'($Sym1, $Sym2, 1)),
+    fail.
+init_argument_table.
+
+init_head_table <- [pred].
+init_head_table :-
+    head_table($NTS, $DirStr, $Dtrs),
+    ($DirStr = "right" ->
+     set_array('*head_direction*'($NTS, 0)) ;
+     ($DirStr = "left" ->
+      set_array('*head_direction*'($NTS, 1)) ;
+      printAVM(["Invalid direction", $DirStr]),
+      fail)),
+    set_array('*head_table*'($NTS, $Dtrs)),
+    fail.
+init_head_table.
+
+init_mark_head :-
+    init_head_table,
+    init_argument_table,
+    init_head_argument_table.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+modifier_tag_member <- [pred].
+modifier_tag_member($MODs) :-
+    member($MOD, $MODs),
+    modifier_tag($MOD),
+    !.
+argument_tag_member <- [pred].
+argument_tag_member($MODs) :-
+    member($MOD, $MODs),
+    argument_tag($MOD),
+    !.
+head_tag_member <- [pred].
+head_tag_member($MODs) :-
+    member($MOD, $MODs),
+    head_tag($MOD),
+    !.
+nonhead_tag_member <- [pred].
+nonhead_tag_member($MODs) :-
+    member($MOD, $MODs),
+    nonhead_tag($MOD),
+    !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+is_head <- [pred].
+is_head(TREE_NODE\HEAD_MARK\$Mark) :-
+    type_equal(head, $Mark).
+
+find_head_symbol <- [pred].
+find_head_symbol([$Tree & TREE_NODE\SYM\$Sym|_], $Sym) :-
+    is_head($Tree),
+    !.
+find_head_symbol([_|$Trees], $Sym) :-
+    find_head_symbol($Trees, $Sym).
+
+search_head_loop <- [pred].
+search_head_loop($Dtrs, $DtrNTSList) :-
+    member($DtrNTSs, $DtrNTSList),
+    member($Dtr, $Dtrs),
+    $Dtr = TREE_NODE\FUNC\$Mod,
+    (head_tag_member($Mod),
+     ! ;
+     (is_string($DtrNTSs) ->
+      $DtrNTS = $DtrNTSs ;
+      member($DtrNTS, $DtrNTSs)),
+     $Dtr = TREE_NODE\SYM\$DtrNTS,
+     \+ nonhead_tag_member($Mod)),
+    $Dtr = TREE_NODE\HEAD_MARK\head,
+    !.
+search_head_main <- [pred].
+search_head_main($Dtrs, $NTS) :-
+    (get_array('*head_table*'($NTS, $DtrNTSs)) ->
+     true ;
+     error_message("'head_table/2' is not defined for ""~s"".\n", [$NTS]),
+     fail),
+    (get_array('*head_direction*'($NTS, 1)) ->
+     search_head_loop($Dtrs, $DtrNTSs) ;
+     reverse($Dtrs, $RDtrs),
+     search_head_loop($RDtrs, $DtrNTSs)).
+search_head <- [pred].
+search_head($Dtrs, _) :-
+    find_head_symbol($Dtrs, _),
+    !.
+search_head($Dtrs, $NTS) :-
+    search_head_main($Dtrs, $NTS),
+    !.
+search_head($Dtrs, $NTS) :-
+    (get_array('*head_direction*'($NTS, 1)) ->
+     $List = $Dtrs ;
+     reverse($Dtrs, $List)),
+    member(TREE_NODE\(HEAD_MARK\head & FUNC\$Mod), $List),
+    \+ nonhead_tag_member($Mod),
+    !.
+search_head($Dtrs, $NTS) :-
+    (get_array('*head_direction*'($NTS, 1)) ->
+     $List = $Dtrs ;
+     reverse($Dtrs, $List)),
+    member(TREE_NODE\HEAD_MARK\head, $List),
+    !.
+search_head(_, _).
+mark_nonheads <- [pred].
+mark_nonheads([]).
+mark_nonheads([TREE_NODE\HEAD_MARK\$HeadMark|$Dtrs]) :-
+    ($HeadMark = non_head ->
+     true ;
+     true),
+    mark_nonheads($Dtrs).
+mark_head_sub <- [pred].
+mark_head_loop <- [pred].
+mark_head_loop([]).
+mark_head_loop([$Tree|$Dtrs]) :-
+    mark_head_sub($Tree),
+    mark_head_loop($Dtrs).
+mark_head_sub(tree_term).
+mark_head_sub(tree_empty).
+mark_head_sub(tree_nts & $Tree & TREE_DTRS\$Dtrs) :-
+    mark_exceptional($Tree),
+    !,
+    mark_nonheads($Dtrs),
+    mark_head_loop($Dtrs).
+mark_head_sub(tree_nts & TREE_NODE\SYM\$NTS & TREE_DTRS\$Dtrs) :-
+    search_head($Dtrs, $NTS),
+    mark_nonheads($Dtrs),
+    mark_head_loop($Dtrs).
+
+mark_head($Tree & TREE_NODE\HEAD_MARK\head) :-
+    mark_head_sub($Tree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mark_modifiers_sub <- [pred].
+mark_modifiers_sub(TREE_NODE\(FUNC\$Mod & HEAD_MARK\argument), _, _, _) :-
+    argument_tag_member($Mod),
+    !.
+mark_modifiers_sub(TREE_NODE\(FUNC\$Mod & HEAD_MARK\modifier), _, _, _) :-
+    modifier_tag_member($Mod),
+    !.
+mark_modifiers_sub(TREE_NODE\(SYM\$Sym & HEAD_MARK\argument), _, $Head, _) :-
+    get_array('*head_argument_table*'($Head, $Sym, 1)),
+    !.
+mark_modifiers_sub(TREE_NODE\(SYM\$Sym & HEAD_MARK\argument), $Mother, _, _) :-
+    get_array('*argument_table*'($Mother, $Sym, 1)),
+    !.
+mark_modifiers_sub(TREE_NODE\(SYM\$Sym & HEAD_MARK\argument), $Mother, _, 0) :-
+    get_array('*left_argument_table*'($Mother, $Sym, 1)),
+    !.
+mark_modifiers_sub(TREE_NODE\(SYM\$Sym & HEAD_MARK\argument), $Mother, _, 1) :-
+    get_array('*right_argument_table*'($Mother, $Sym, 1)),
+    !.
+mark_modifiers_sub(TREE_NODE\HEAD_MARK\modifier, _, _, _) :-
+    !.
+mark_modifiers_sub(_, _, _, _).
+
+mark_modifiers <- [pred].
+mark_modifiers([], _, _, _).
+mark_modifiers([$Tree|$Trees], $Mother, $Head, $IsLeft) :-
+    mark_modifiers_sub($Tree, $Mother, $Head, $IsLeft),
+    (is_head($Tree) ->
+     mark_modifiers($Trees, $Mother, $Head, 1) ;
+     mark_modifiers($Trees, $Mother, $Head, $IsLeft)).
+
+mark_modifier_dtrs <- [pred].
+mark_modifier_dtrs([]).
+mark_modifier_dtrs([$Dtr|$Dtrs]) :-
+    mark_modifier($Dtr),
+    mark_modifier_dtrs($Dtrs).
+
+mark_modifier(tree_term).
+mark_modifier(tree_empty).
+mark_modifier(tree_nts & TREE_NODE\SYM\$NTS & TREE_DTRS\$Dtrs) :-
+    (find_head_symbol($Dtrs, $Head) ->
+     mark_modifiers($Dtrs, $NTS, $Head, 0) ;
+     true),
+    mark_modifier_dtrs($Dtrs).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+is_empty_daughter <- [pred].
+is_empty_daughter([]).
+is_empty_daughter([TREE_NODE\HEAD_MARK\empty|$Dtrs]) :-
+    is_empty_daughter($Dtrs).
+mark_empty_daughters <- [pred].
+mark_empty_daughters([]).
+mark_empty_daughters([$Dtr|$Dtrs]) :-
+    mark_empty($Dtr),
+    mark_empty_daughters($Dtrs).
+mark_empty(tree_term & TREE_NODE\HEAD_MARK\non_empty).
+mark_empty(tree_empty & TREE_NODE\HEAD_MARK\empty).
+mark_empty(tree_nts & TREE_NODE\HEAD_MARK\$Mark & TREE_DTRS\$Dtrs) :-
+    mark_empty_daughters($Dtrs),
+    (is_empty_daughter($Dtrs) ->
+     $Mark = empty ;
+     $Mark = non_empty).
+

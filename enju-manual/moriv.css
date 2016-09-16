@@ -1,0 +1,85 @@
+/**
+  *   Copyright (c) 2001-2004, MIYAO Yusuke
+  *   You may distribute this file under the terms of the Artistic License.
+  *
+  *   Name: moriv.css
+  *   Author: MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  *   Stylesheet for moriv
+  *
+  */
+
+@import "fs.css";
+
+/* General */
+html {
+  color: black;
+  background-color: #c0c0ff;
+}
+body {
+  color: black;
+  background-color: #c0c0ff;
+}
+h1 {
+  font: bold 200% helvetica;
+  color: black;
+  border-width: 5pt;
+  border-style: groove;
+  padding: 10pt 10pt 10pt 10pt;
+}
+table {
+  border-collapse: collapse;
+  background-color: #d0d0ff;
+  text-align: center;
+  vertical-align: middle;
+}
+caption {
+  caption-side: left;
+  background-color: #d0d0ff;
+  font-style: italic;
+}
+
+/* Classes */
+.title {
+  background-color: #b0b0ff;
+  font-style: italic;
+  text-align: center;
+}
+.input {
+  color: blue;
+  font-style: italic;
+}
+.menu {
+  text-align: right;
+  font-style: italic;
+}
+
+.result {
+  border: 1px solid grey;
+}
+
+.result tr {
+  border: 1px solid grey;
+  border-collapse: collapse;
+}
+
+.result td {
+  border: 1px solid grey;
+  border-collapse: collapse;
+}
+
+.number {
+  text-align: right;
+}
+
+.chart {
+  font-style: italic;
+  border: none;
+  border-collapse: collapse;
+  empty-cells: show;
+}
+
+.chart td.chart {
+  border: 1px solid #000000;
+  text-align: center;
+}
+

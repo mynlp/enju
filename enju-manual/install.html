@@ -1,0 +1,73 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Installation</title>
+</head>
+
+
+
+<body>
+<h1>Installation</h1>
+
+<a href="install.ja.html">Japanese version</a>
+
+<h2>Installation of a binary package</h2>
+
+<ol>
+  <li>Download the latest package for your particular platform (enju-X.Y-PLATFORM.tar.gz).
+  <li>Untar the archive into a directory where you would like to install Enju ($DIR indicates the directory in what follows).
+  <pre>% cd $DIR; tar xvzf enju-X.Y-PLATFORM.tar.gz</pre>
+</ol>
+"enju" will be installed in "$DIR/enju-X.Y/". 
+
+<h2>Installation of a source package</h2>
+
+<p>
+<em>The compilation of Enju requires the following software.</em>
+<ul>
+  <li>g++ version 3.2 or higher
+  <li>zlib
+  <li>regex library
+</ul>
+
+<ol>
+  <li>Download the package of Enju, "enju-X.Y.Z.tar.gz", (X.Y.Z is a
+    version number), and untar it.
+    <pre>% tar xvzf enju-X.Y.Z.tar.gz</pre>
+  <li>Run "configure".
+    <pre>% ./configure</pre>
+    By default, Enju will be installed in "/usr/local/".  If you want
+    to install it in a different directory (e.g. in $INSTALL_DIR),
+    specify "prefix" as follows.
+    <pre>% ./configure --prefix=$INSTALL_DIR</pre>
+  <li>Install Enju.
+    <pre>% make install</pre>
+</ol>
+
+<hr>
+
+<h3>For those who took the package from CVS</h3>
+
+<em>flex and yacc are necessary.</em>
+<p>
+First, run the following commands to make "configure"
+script.
+<pre>% libtoolize --force --automake; aclocal; autoheader; automake --add-missing --foreign; autoconf
+% cd ll; libtoolize --force --automake; aclocal; autoheader; automake --add-missing --foreign; autoconf</pre>
+Then, follow the same procedure as "Installation of a source package."
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

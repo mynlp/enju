@@ -1,0 +1,103 @@
+%/**********************************************************************
+  * @module    = mayz:lexextract
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: lexextract.lil,v 1.6 2010-01-20 02:00:22 yusuke Exp $
+  * @version   = Time-stamp: <2010-01-20 10:59:23 yusuke>
+  * @desc      = Parameters for lexextract
+  **********************************************************************
+%*/
+
+:- module("mayz:lexextract").
+
+:- module_interface.
+
+:- ensure_loaded("lexentry").
+:- ensure_loaded("init").
+
+%%% parameters
+
+%/**
+  * @interface = lexical_entry_template(+$Word, +$Sign, -$Template)
+  * @param     = +$Word/word: a word
+  * @param     = +$Sign/bot: terminal sign of derivation tree
+  * @param     = -$Template/bot: template corresponding to $Word
+  * @desc      = Create a lexical entry template from a terminal sign of a derivation tree
+%*/
+lexical_entry_template <- [pred].
+
+%/**
+  * @interface = reduce_lexical_template(+$Word, +$Template, -$LexKey, -$LexTemplateName, -$LexemeKey, -$LexemeTemplateName, -$LexemeTemplateSign)
+  * @param     = +$Word/word: a word
+  * @param     = +$Template/bot: sign of lexical entry template corresponding to $Word
+  * @param     = -$LexKey/string: key to lookup lexicon
+  * @param     = -$LexTemplateName/string: name of lexical entry template
+  * @param     = -$LexemeKey/string: key to lookup lexicon for the lexeme
+  * @param     = -$LexemeTemplateName/string: name of template of lexeme
+  * @param     = -$LexemeTemplateSign/bot: template sign of lexeme
+  * @desc      = Reduce a lexical template into a lexeme template by applying inverse lexical rules
+%*/
+reduce_lexical_template <- [pred].
+
+%% OBSOLETE
+%word_count_key <- [pred].
+
+%%% predicate
+extract_lexical_entries <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("derivtypes").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/strings").
+
+word_to_string <- [pred].
+word_to_string(INPUT\$Str1 & INPUT_POS\$Str2, $String) :-
+    concatenate_string([$Str1, "/", $Str2], $String).
+
+extract_lexical_entries_dtrs <- [pred].
+extract_lexical_entries_dtrs([], []).
+extract_lexical_entries_dtrs([$Deriv|$DerivList], $LexList) :-
+    extract_lexical_entries($Deriv, $LexList1),
+    append($LexList1, $LexList2, $LexList),
+    extract_lexical_entries_dtrs($DerivList, $LexList2).
+extract_lexical_entries(derivation_internal &
+			DERIV_DTRS\$Dtrs,
+			$LexList) :-
+    extract_lexical_entries_dtrs($Dtrs, $LexList).
+extract_lexical_entries($Term & derivation_terminal &
+			TERM_WORD\$Word &
+			DERIV_SIGN\$Sign &
+%% 			TERM_TEMPLATE\(LEXEME_NAME\$LexemeName &
+%% 				       LEXICAL_RULES\$LexRules) &
+			LEXICON_KEY\$LexKey &
+			LEXTEMPLATE_NAME\$LexTempName &
+			LEXTEMPLATE_SIGN\$LexTempSign &
+			LEXEME_KEY\$LexemeKey &
+			LEXEME_NAME\$LexemeName &
+			LEXEME_SIGN\$LexemeSign,
+			[($LexemeKey, $Term)]) :-
+    copy($Sign, $Sign1),
+    (lexical_entry_template($Word, $Sign1, $LexTemp1) ->
+     true ;
+     is_debug_mode("mayz:lexextract"),
+     word_to_string($Word, $String),
+     debug_message("mayz:lexextract", "'lexical_entry_template/3' failed for ""~s""\n", [$String]),
+     fail),
+    canonical_copy($LexTemp1, $LexTempSign),
+    (reduce_lexical_template($Word, $LexTemp1, $LexKey, $LexTempName, $LexemeKey, $LexemeName, $LexemeSign1) ->
+     true ;
+     is_debug_mode("mayz:lexextract"),
+     word_to_string($Word, $String),
+     debug_message("mayz:lexextract", "'reduce_lexical_template/6' failed for ""~s""\n", [$String]),
+     fail),
+    canonical_copy($LexemeSign1, $LexemeSign).
+%%     canonical_copy($LexemeEntry1, $LexemeSign).
+%%     (lexeme_name($Word, $LexemeEntry1, 0, $LexemeName) ->
+%%      true ;
+%%      is_debug_mode("mayz:lexextract"),
+%%      word_to_string($Word, $String),
+%%      debug_message("mayz:lexextract", "'lexeme_name/4' failed for ""~s""\n", [$String]),
+%%      fail).
+

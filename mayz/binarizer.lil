@@ -1,0 +1,139 @@
+%/**********************************************************************
+  * @module    = mayz:binarizer
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2006-11-14 20:40:53 yusuke>
+  * @desc      = Convert a tree into a binary tree
+  * @jdesc     = 木構造を２分木に変換
+  * This module provides a converter from a tree into a binary tree in the
+  * following way:
+  * assuming c is the head,
+  * |       a            a
+  * |      /|\          / \
+  * |     / | \   -->  b   a'
+  * |    b  c  d          / \
+  * |                    c   d
+  * @japanese  =
+  * このモジュールでは，木構造を２分木に変換する述語を提供する
+  * @end_japanese
+  **********************************************************************
+%*/
+
+:- module("mayz:binarizer").
+
+:- module_interface.
+
+%/**
+  * @interface = binarizer_preprocess(+$InTree, -$OutTree)
+  * @param     = +$InTree/tree_nts  : an input tree
+  * @param     = -$OutTree/tree_nts : an output tree
+  * @jparam    = +$InTree/tree_nts  : 入力の構文木
+  * @jparam    = -$OutTree/tree_nts : 出力の構文木
+  * @see       = base
+  * @desc      = preprocess a tree before binarizing
+  * @jdesc     = 二分木化する前に前処理する
+  * preprocess a tree before binarizing
+  * @japanese  =
+  * 二分木化する前に前処理する
+  * @end_japanese
+%*/
+binarizer_preprocess <- [pred].
+
+%/**
+  * @predicate = tree_binarize(+$Tree, -$BinTree)
+  * @param     = +$Tree/tree_nts    : a tree
+  * @param     = -$BinTree/tree_nts : a binary tree
+  * @jparam    = +$Tree/tree_nts    : 構文木
+  * @jparam    = -$BinTree/tree_nts : ２分木
+  * @see       = base
+  * @desc      = convert a tree into a binary tree
+  * @jdesc     = 構文木を２分木に変換
+  * Convert a tree into a binary tree
+  * @japanese  =
+  * 構文木を２分木に変換する
+  * @end_japanese
+%*/
+tree_binarize <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("treetypes").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/fs").
+
+copy_tree_node <- [pred].
+copy_tree_node(SYM\$Sym1, SYM\$Sym2) :-
+    copy($Sym1, $Sym2).
+
+tree_binarize_right <- [pred].
+tree_binarize_right([$Tree1, $Tree2], TREE_NODE\$Node1, _,
+		    TREE_NODE\$Node & TREE_DTRS\[$Tree2, $Tree1]) :-
+    !,
+    copy_tree_node($Node1, $Node).
+tree_binarize_right([$Tree|$Trees], TREE_NODE\$Node1, $Orig2, $Binary) :-
+    $Tree = TREE_NODE\HEAD_MARK\argument,
+    !,
+    copy_tree_node($Node1, $Node),
+    $Binary = TREE_NODE\$Node & TREE_DTRS\[$Dtr & TREE_NODE\(FUNC\[] & ID\[] & PROP_LIST\[] & HEAD_MARK\head), $Tree],
+    tree_binarize_right($Trees, $Orig2, $Orig2, $Dtr).
+tree_binarize_right([$Tree|$Trees], $Orig1 & TREE_NODE\$Node1, $Orig2, $Binary) :-
+    copy_tree_node($Node1, $Node),
+    $Binary = TREE_NODE\$Node & TREE_DTRS\[$Dtr & TREE_NODE\(FUNC\[] & ID\[] & PROP_LIST\[] & HEAD_MARK\head), $Tree],
+    tree_binarize_right($Trees, $Orig1, $Orig2, $Dtr).
+
+tree_binarize_left <- [pred].
+tree_binarize_left([$Tree1, $Tree2], TREE_NODE\$Node1, _,
+		   TREE_NODE\$Node & TREE_DTRS\[$Tree1, $Tree2]) :-
+    !,
+    copy_tree_node($Node1, $Node).
+tree_binarize_left([$Tree|$Trees], $Orig1, $Orig2, $Binary) :-
+    $Tree = TREE_NODE\HEAD_MARK\head,
+    !,
+    reverse([$Tree|$Trees], $RTrees),
+    tree_binarize_right($RTrees, $Orig1, $Orig2, $Binary).
+tree_binarize_left([$Tree|$Trees], TREE_NODE\$Node1, $Orig2, $Binary) :-
+    $Tree = TREE_NODE\HEAD_MARK\argument,
+    !,
+    copy_tree_node($Node1, $Node),
+    $Binary = TREE_NODE\$Node & TREE_DTRS\[$Tree, $Dtr & TREE_NODE\(FUNC\[] & ID\[] & PROP_LIST\[] & HEAD_MARK\head)],
+    tree_binarize_left($Trees, $Orig2, $Orig2, $Dtr).
+tree_binarize_left([$Tree|$Trees], $Orig1 & TREE_NODE\$Node1, $Orig2, $Binary) :-
+    copy_tree_node($Node1, $Node),
+    $Binary = TREE_NODE\$Node & TREE_DTRS\[$Tree, $Dtr & TREE_NODE\(FUNC\[] & ID\[] & PROP_LIST\[] & HEAD_MARK\head)],
+    tree_binarize_left($Trees, $Orig1, $Orig2, $Dtr).
+
+find_head <- [pred].
+find_head([$Head & TREE_NODE\HEAD_MARK\head|_], $Head) :-
+    !,
+    $Head = tree_nts.
+find_head([_|$Dtrs], $Head) :-
+    find_head($Dtrs, $Head).
+
+tree_binarize_main <- [pred].
+tree_binarize_main($Dtrs, $OrigTree, $BinTree) :-
+    (find_head($Dtrs, $Head) ->
+     true ;
+     $Head = $OrigTree),
+    tree_binarize_left($Dtrs, $OrigTree, $Head, $BinTree).
+
+tree_binarize_loop <- [pred].
+tree_binarize_loop([], []).
+tree_binarize_loop([$OrigTree|$OrigTrees], [$BinTree|$BinTrees]) :-
+    tree_binarize($OrigTree, $BinTree),
+    tree_binarize_loop($OrigTrees, $BinTrees).
+tree_binarize($Tree & tree_term, $Tree).
+tree_binarize($Tree & tree_empty, $Tree).
+tree_binarize($InTree, $BinTree) :-
+    (binarizer_preprocess($InTree, $OrigTree) ->
+     true ;
+     $InTree = $OrigTree),
+    $OrigTree = (tree_nts &
+		 TREE_NODE\$OrigNode &
+		 TREE_DTRS\$OrigDtrs),
+    tree_binarize_loop($OrigDtrs, $Dtrs),
+    length($Dtrs, $Len),
+    ($Len > 2 ->
+     $BinTree = TREE_NODE\$OrigNode,
+     tree_binarize_main($Dtrs, $OrigTree, $BinTree) ;
+     $BinTree = TREE_NODE\$OrigNode & TREE_DTRS\$Dtrs).
+

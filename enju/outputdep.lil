@@ -1,0 +1,348 @@
+%/**********************************************************************
+  * @module    =  enju:outputdep
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  To output predicate-argument relations
+  **********************************************************************
+%*/
+
+:- module("enju:outputdep").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+:- ensure_loaded("types").
+:- ensure_loaded("display").
+:- ensure_loaded("partial").
+
+semantic_dependencies <- [pred].
+output_semantic_dependencies <- [pred].
+
+output_dependency <- [pred].
+'output_dependency/1' <- ['pred/1', output_dependency].
+'output_dependency/2' <- ['pred/2', 'output_dependency/1'].
+
+output_dependency_file <- [pred].
+'output_dependency_file/0' <- ['pred/0', output_dependency_file].
+'output_dependency_file/1' <- ['pred/1', 'output_dependency_file/0'].
+'output_dependency_file/2' <- ['pred/2', 'output_dependency_file/1'].
+
+conll_dependencies <- [pred].
+output_conll_dependencies <- [pred].
+
+output_conll <- [pred].
+'output_conll/1' <- ['pred/1', output_conll].
+'output_conll/2' <- ['pred/2', 'output_conll/1'].
+
+output_conll_file <- [pred].
+'output_conll_file/0' <- ['pred/0', output_conll_file].
+'output_conll_file/1' <- ['pred/1', 'output_conll_file/0'].
+'output_conll_file/2' <- ['pred/2', 'output_conll_file/1'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+%% parser_init :-
+%%     set_limit_sentence_length(100),
+%%     set_limit_edge_number(50000).
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/tools").
+
+%% Collect predicate-argument relations
+
+unknown_name <- [pred].
+unknown_name(LEX_WORD\(INPUT\"UNKNOWN" & SURFACE\"UNKNOWN" & BASE\"UNKNOWN" &
+		       INPUT_POS\"UNKNOWN" & POS\"UNKNOWN" & BASE_POS\"UNKNOWN" &
+		       POSITION\-1) &
+	     % LEX_TEMPLATE\(LEXEME_NAME\"UNKNOWN" & LEXICAL_RULES\[])).
+	     LEX_TEMPLATE\"UNKNOWN"). %% is this ok? (matuzaki 2009-11-30)
+main_name <- [pred].
+main_name(LEX_WORD\(INPUT\"ROOT" & SURFACE\"ROOT" & BASE\"ROOT" &
+		    INPUT_POS\"ROOT" & POS\"ROOT" & BASE_POS\"ROOT" &
+		    POSITION\-1) &
+	  % LEX_TEMPLATE\(LEXEME_NAME\"ROOT" & LEXICAL_RULES\[])).
+	  LEX_TEMPLATE\"UNKNOWN"). %% is this ok? (matuzaki 2009-11-30)
+
+argument_head <- [pred].
+%% argument_head($Sem & PRED\$Name, $Name) :-
+%%     type_directsubtypes($Sem, []),
+%%     !.
+%% argument_head(_, $Name) :-
+%%     unknown_name($Name).
+
+argument_head(unknown_relation, $Name) :-
+    unknown_name($Name),
+    !.
+argument_head(PRED\($Name & LEX_WORD\SURFACE\$Surface), $Name) :-
+    is_string($Surface),
+    !.
+
+pred_arg_dependency <- [pred].
+pred_arg_dependency(PRED\$Pred & MODARG\$Arg, $Pred, "MOD", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+pred_arg_dependency(PRED\$Pred & ARG1\$Arg, $Pred, "ARG1", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+pred_arg_dependency(PRED\$Pred & ARG2\$Arg, $Pred, "ARG2", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+pred_arg_dependency(PRED\$Pred & ARG3\$Arg, $Pred, "ARG3", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+pred_arg_dependency(PRED\$Pred & ARG4\$Arg, $Pred, "ARG4", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+pred_arg_dependency(PRED\$Pred & ARG5\$Arg, $Pred, "ARG5", $ArgHead) :-
+    argument_head($Arg, $ArgHead).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Output dependencies
+
+semantic_dependencies(SYNSEM\LOCAL\CONT\($Sem & HOOK\$Root), $Deps) :-
+    argument_head($Root, $RootName),
+    main_name($MainName),
+    $RootDep = [$MainName, "ROOT", "ROOT", $RootName],
+    subnodelist($Sem, $SubNodeList),
+%%    $SubNodeList = [$Hook|$Rels],
+    findall([$P, $T, $L, $A],
+	    (member($Node, $SubNodeList),
+	     type_subsume(pred_relation, $Node),
+	     relation_label($Node, $T),
+	     pred_arg_dependency($Node, $P, $L, $A)),
+	    $DepList),
+    $Deps = [$RootDep|$DepList].
+
+output_semantic_dependencies($Deps, $Output) :-
+    member([$Pred, $PredType, $ArgLabel, $Arg], $Deps),
+    $Pred = LEX_WORD\(INPUT\$PredInput & BASE\$PredBase & INPUT_POS\$PredInputPOS & BASE_POS\$PredBasePOS & POSITION\$PredPos),
+    $Arg = LEX_WORD\(INPUT\$ArgInput & BASE\$ArgBase & INPUT_POS\$ArgInputPOS & BASE_POS\$ArgBasePOS & POSITION\$ArgPos),
+    format($Output, "~s\t~s\t~s\t~s\t~d\t~s\t~s\t~s\t~s\t~s\t~s\t~d\n",
+	   [$PredInput, $PredBase, $PredInputPOS, $PredBasePOS, $PredPos,
+	    $PredType, $ArgLabel,
+	    $ArgInput, $ArgBase, $ArgInputPOS, $ArgBasePOS, $ArgPos]),
+    fail.
+output_semantic_dependencies(_, _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+output_dependency_partial <- [pred].
+output_dependency_partial([], _).
+output_dependency_partial([$ID|$IDList], $Output) :-
+    (get_parse_tree($ID, EDGE_SIGN\$Sign),
+     semantic_dependencies($Sign, $Deps),
+     output_semantic_dependencies($Deps, $Output) ->
+     true ; true),
+    output_dependency_partial($IDList, $Output).
+
+output_dependency($Empty, $Output) :-
+    regex_match("^[[:space:]]*$", $Empty),
+    !,
+    writeln_string($Output, "Empty line").
+output_dependency($Sentence, $Output) :-
+%%    format(1, "~s\n", [$Sentence]),
+    (parse($Sentence),
+     best_fom_sign(_, $Sign, _) ->
+     start_prof("output_dep"),
+     semantic_dependencies($Sign, $Deps),
+     output_semantic_dependencies($Deps, $Output),
+     stop_prof("output_dep")
+     ;
+     start_prof("output_dep"),
+     get_parse_status($Status),
+     (partial_parse_status($Status),
+      collect_partial_parse($IDList, _) ->
+%%      printAVMtostr($IDList, $IDListStr),
+%%      format(1, "~s", [$IDListStr]),
+      output_dependency_partial($IDList, $Output)
+      ;
+      error_type_string($Status, $ErrorStr),
+      format($Output, "Parsing failure: ~s\n", [$ErrorStr])),
+     stop_prof("output_dep")).
+%%    format(1, "done\n"),
+output_dependency($Sentence) :-
+    stdout_stream($StdOut),
+    output_dependency($Sentence, $StdOut).
+
+output_dependency_loop <- [pred].
+output_dependency_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_dependency_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    (output_dependency($Sentence, $Output) ->
+     true ;
+     true),
+    writeln_string($Output, ""),
+    fail.
+output_dependency_loop($Input, $Output) :-
+    output_dependency_loop($Input, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+output_dependency_file($InputFile, $OutputFile) :-
+    %initialize_parser,
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    output_dependency_loop($Input, $Output),
+    close($Output),
+    close($Input),
+    %terminate_parser.
+    true.
+
+output_dependency_file($InputFile) :-
+    %initialize_parser,
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    output_dependency_loop($Input, $StdOut),
+    close($Input),
+    %terminate_parser.
+    true.
+
+output_dependency_file :-
+    %initialize_parser,
+    stdin_stream($Input),
+    stdout_stream($Output),
+    output_dependency_loop($Input, $Output),
+    %terminate_parser.
+    true.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Output dependencies in CoNLL-like format
+
+collect_args <- [pred].
+collect_args($Node, $Args) :-
+    findall([$ArgLabel, $Arg],
+	    pred_arg_dependency($Node, _, $ArgLabel, $Arg),
+	    $Args).
+
+cmp_word_order <- [pred].
+cmp_word_order([LEX_WORD\POSITION\$Pos1|_], [LEX_WORD\POSITION\$Pos2|_]) :-
+    $Pos1 <= $Pos2.
+
+conll_dependencies($SignList, $Deps) :-
+    findall(["ROOT", $RootName],
+	    (member(SYNSEM\LOCAL\CONT\HOOK\$Root, $SignList),
+	     argument_head($Root, $RootName)),
+	    $RootArgs),
+    main_name($MainName),
+    $RootDep = [$MainName, "ROOT", $RootArgs],
+    findall([$Pred, $T, $Args],
+	    (member(SYNSEM\LOCAL\CONT\$Sem, $SignList),
+	     subnodelist($Sem, $SubNodeList),
+	     member($Node, $SubNodeList),
+	     type_subsume(pred_relation, $Node),
+	     $Node = PRED\$Pred,
+	     relation_label($Node, $T),
+	     collect_args($Node, $Args)),
+	    $DepList),
+    qsort([$RootDep|$DepList], cmp_word_order(_, _), $Deps).
+
+output_conll_dependencies_sub <- [pred].
+output_conll_dependencies_sub([], _).
+output_conll_dependencies_sub([[$ArgLabel, $Arg]|$Args], $Output) :-
+    $Arg = LEX_WORD\POSITION\$ArgPos,
+    ($ArgPos =:= -1 ->
+     $ArgPos1 is $ArgPos ;
+     $ArgPos1 is $ArgPos + 1),
+    format($Output, "\t~s:~d", [$ArgLabel, $ArgPos1]),
+    output_conll_dependencies_sub($Args, $Output).
+
+output_conll_dependencies($Deps, $Output) :-
+    member([$Pred, $PredType, $Args], $Deps),
+    $Pred = LEX_WORD\(INPUT\$PredInput & BASE\$PredBase & INPUT_POS\$PredInputPOS & BASE_POS\$PredBasePOS & POSITION\$PredPos),
+    $PredPos1 is $PredPos + 1,
+    format($Output, "~d\t~s\t~s\t~s\t~s\t~s",
+	   [$PredPos1, $PredInput, $PredBase, $PredInputPOS, $PredBasePOS, $PredType]),
+    output_conll_dependencies_sub($Args, $Output),
+    format($Output, "\n"),
+    fail.
+output_conll_dependencies(_, _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+collect_partial_signs <- [pred].
+collect_partial_signs([], []).
+collect_partial_signs([$ID|$IDList], $Signs) :-
+    (get_parse_tree($ID, EDGE_SIGN\$Sign) ->
+     $Signs = [$Sign|$NextSigns] ;
+     $Signs = $NextSigns),
+    collect_partial_signs($IDList, $NextSigns).
+
+output_conll($Empty, $Output) :-
+    regex_match("^[[:space:]]*$", $Empty),
+    !,
+    writeln_string($Output, "Empty line").
+output_conll($Sentence, $Output) :-
+%%    format(1, "~s\n", [$Sentence]),
+    (parse($Sentence),
+     best_fom_sign(_, $Sign, _) ->
+     start_prof("output_dep"),
+     conll_dependencies([$Sign], $Deps),
+     output_conll_dependencies($Deps, $Output),
+     stop_prof("output_dep")
+     ;
+     start_prof("output_dep"),
+     get_parse_status($Status),
+     (partial_parse_status($Status),
+      collect_partial_parse($IDList, _) ->
+%%      printAVMtostr($IDList, $IDListStr),
+%%      format(1, "~s", [$IDListStr]),
+      collect_partial_signs($IDList, $Signs),
+      conll_dependencies($Signs, $Deps),
+      output_conll_dependencies($Deps, $Output)
+      ;
+      error_type_string($Status, $ErrorStr),
+      format($Output, "Parsing failure: ~s\n", [$ErrorStr])),
+     stop_prof("output_dep")).
+%%    format(1, "done\n"),
+output_conll($Sentence) :-
+    stdout_stream($StdOut),
+    output_conll($Sentence, $StdOut).
+
+output_conll_loop <- [pred].
+output_conll_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_conll_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    (output_conll($Sentence, $Output) ->
+     true ;
+     true),
+    writeln_string($Output, ""),
+    fail.
+output_conll_loop($Input, $Output) :-
+    output_conll_loop($Input, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+output_conll_file($InputFile, $OutputFile) :-
+    %initialize_parser,
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    output_conll_loop($Input, $Output),
+    close($Output),
+    close($Input),
+    %terminate_parser.
+    true.
+
+output_conll_file($InputFile) :-
+    %initialize_parser,
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    output_conll_loop($Input, $StdOut),
+    close($Input),
+    %terminate_parser.
+    true.
+
+output_conll_file :-
+    %initialize_parser,
+    stdin_stream($Input),
+    stdout_stream($Output),
+    output_conll_loop($Input, $Output),
+    %terminate_parser.
+    true.
+

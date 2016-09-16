@@ -1,0 +1,94 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>辞書とテンプレートデータベース</title>
+</head>
+
+
+
+<body>
+<h1>辞書とテンプレートデータベース</h1>
+
+<a href="lexicon.html">English version</a>
+
+<p>
+ここでは，Enju が word lattice 内の単語情報をもとに各単語に語彙項目を割り当てる過程について説明します．
+この節に出てくる述語の実装は "enju/schema.lil" を参照してください．
+</p>
+
+<p>
+語彙項目は辞書とテンプレートデータベースを使って割り当てられ，up に伝えられます．
+具体的には，まず word lattice 内の単語の文字列や品詞をもとにして辞書から単語に割り当てるべき語彙項目の ID が引かれます．次に ID によってテンプレートデータベースから語彙項目の sign が引かれ up に渡されることになります．
+この辞書とテンプレートデータベースはMAYZ ツールキットを使った文法開発手法によって作られたものです．
+MAYZ ツールキットを使って辞書とテンプレートを得る過程については，<a href="lexextract.ja.html">辞書の抽出の節</a>を見て下さい．
+</p>
+
+<h2><a name="lexicon">辞書引き</a></h2>
+
+<p>
+単語に割り当てる語彙項目の sign を up に渡すため，まず単語の情報によって語彙項目辞書が引き，単語に割り当てるべき語彙項目の ID を調べます．
+</p>
+
+<p>
+語彙項目辞書には，単語とその単語に対応する語彙項目 ID が，キーの文字列 (単語の品詞や基本形を表す文字列) から語彙項目の ID 文字列への関係として格納されています．
+Enju の場合，辞書は "Enju.lexicon.tbl" というテキストファイルに格納されています．
+辞書を引くには，word lattice 内の単語情報から語彙項目辞書のキーをつくる方法を述語 <tt>word_to_lookup_keys/2</tt> によって指定する必要があります．
+単語情報は 'word' 型 (単語の 'extent' 型の word 素性の値) として渡されるので，語彙項目辞書のキーとなる文字列を返すように述語を定義してください．
+</p>
+
+<p>
+Enju の場合，述語 <tt>word_to_lookup_keys/2</tt> は与えられた 'word' 型から単語の品詞 (POS 素性) と基本形 (BASE 素性) を取り出し，"基本計/品詞" という文字列をキーとして返します．
+また単語が未知のものである場合に備えて、"@UNK@/品詞"，"@UNK@/NN" という文字列もキーの候補として加えて返します．
+</p>
+
+<p>
+up は述語 <tt>word_to_lookup_keys/2</tt> が返したキーを使って語彙項目辞書を順番に引いていき，辞書内にエントリがある最初のキーの語彙項目 ID を採用します．
+</p>
+
+<p>
+ここで使われる語彙項目辞書は，文法開発によって作られた辞書を内容を変えずに加工したものです．
+元の辞書 "Enju.lexicon" には，LiLFeS データベースの形式で 'word' 型 から 'lex_template' 型への対応が格納されています．
+辞書引きの段階で使われる語彙項目辞書は，元の辞書の 'word' 型を表す文字列をキーにして，元の辞書の 'lex_template' 型を表す文字列を引くものになっています．
+</p>
+
+
+<h2><a name="template">語彙項目テンプレートの取得</a></h2>
+
+<p>
+単語に割り当てる語彙項目の sign を up に渡すための次の段階では，先ほど得られた語彙項目 ID からテンプレートデータベースを引いて語彙項目の sign を生成します．
+その処理は述語 <tt>lexical_entry_sign/2</tt> を使って指定しています．
+</p>
+
+<p>
+Enju の場合，述語 <tt>lexical_entry_sign/2</tt> はまずテンプレートデータベースを引くために MAYZ で提供されている述語 <tt>lookup_template/2</tt> を使います．
+次にデータベースから引いてきた素性構造に単語固有の情報などを足して sign を作り，up に渡しています．
+</p>
+
+<p>
+述語 <tt>lexical_entry_sign/2</tt> には入力として 'lex_entry' 型で表わされた語彙項目 ID が渡されます．この 'lex_entry' 型の LEX_TEMPLATE 素性は，先ほど求めた文字列の語彙項目 ID を述語 <tt>string_to_lex_template/2</tt> で 'lex_template' 型の素性構造に変換したものになっています．
+テンプレートデータベースは，'lex_template' 型で表わされた語彙項目 ID と語彙項目 sign の対応表であり，LiLFeS データベースファイル "Enju.templates" に格納されています．
+つまり，Enju の述語 <tt>lexical_entry_sign/2</tt> では入力の LEX_TEMPLATE 素性の値を <tt>lookup_template/2</tt> に渡してデータベースを引いています．
+</p>
+
+<p>
+上記のようにしてテンプレートデータベースから引いてきた素性構造は，sign から単語固有となる情報を除いたものになっています．
+よってEnju の述語 <tt>lexical_entry_sign/2</tt> では，素性構造にPHON 素性の値や，確率モデルで使う情報を加えて sign を完成させ up に返しています．
+ここで使われる単語固有の情報は，入力として与えられる 'lex_entry' 型の LEX_WORD 素性に格納された単語の 'word' 型を利用して取り出しています．
+</p>
+
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

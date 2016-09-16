@@ -1,0 +1,38 @@
+Enju: 英語 HPSG パーザ
+
+Copyright (c) 2005-2010, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+
+----------------------------------------------------------------------
+ライセンスについては，"COPYING" を参照してください．
+Enju の使い方については，enju-manual/index.ja.html (バイナリパッケージの場合は lib/enju-manual/index.ja.html) を参照して下さい．
+----------------------------------------------------------------------
+
+Enju は英語の構文解析器です．文法は Head-driven Phrase Structure
+Grammar (HPSG) という言語理論を基礎にしています．CFG に基づくパーザよ
+りも詳細な文構造を計算するため，従来は得られなかった文の詳細な構造や，
+述語項構造を出力することができます．
+
+例えば，
+
+It's falling like a stone, said Danny Linger, a pit trader who was
+standing outside the London International Financial Futures Exchange.
+
+という文を解析すると，"said" の主語は "Danny Linger" であり，補語が 
+"it's falling like a stone" であるということや，"standing outside..." 
+の主語が "pit trader" であることなどが計算できます．
+
+インストール方法は，INSTALL またはマニュアル
+(enju-manual/index.ja.html)を見てください．
+
+----------------------------------------------------------------------
+
+Enju の実行方法:
+
+1. "enju" コマンドを実行します．
+2. 文を一行で入力してください．各行が解析され，単語間の述語-項関係が出
+   力されます．
+
+より詳細な出力形式 (XML 形式，stand-off 形式) については，マニュアル 
+(enju-manual/index.ja.html) を参照してください．
+

@@ -1,0 +1,66 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-terms.css">
+<title>MAYZ 用語集</title>
+</head>
+
+
+
+<body>
+<h1>MAYZ 用語集</h1>
+
+<a href="terms.html">English version</a>
+
+<p>
+MAYZ ツールキットに関係する用語を集めました．MAYZ の中でだけ使われてい
+る特殊な用語には注がつけてあります．
+
+<dl>
+  <dt><a name="parse_tree">構文木</a> (MAYZ 特有の使い方です)
+  <dd>MAYZ ツールキットでは，入力の <a href="#treebank">treebank</a>
+  における木構造を「構文木(<a href="#parse_tree2">parse tree</a>)」と
+  呼びます．ターゲットの文法理論における句構造を表した木構造は，<a
+  href="#derivation">derivation</a> と呼びます．
+  <dt><a name="me_model">最大エントロピー(ME)モデル</a>
+  <dd>確率モデルの一つ．詳しくは，<a
+  href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis ホームページ
+  </a>を見て下さい．
+  <dt><a name="derivation">derivation</a> (MAYZ 特有の使い方です)
+  <dd>ターゲットの文法理論における句構造を表した木構造．句の情報に加え
+  て，その句が生成された時の情報(例えばスキーマ名)も含みます．例えば，
+  HPSG では娘の構造も含めた sign, CCG では derivation tree を指します．
+  LTAG では，substitution/adjunction のラベルがついた derived tree に
+  相当します(LTAG の derivation tree は句構造ではない)．
+  <dt><a name="derivbank">derivbank</a> (MAYZ 特有の用語です)
+  <dd><a href="#derivation">derivation</a> の集合です．MAYZ システムで
+  は，<a href="#treebank">treebank</a> を変換することによって半自動的
+  に作ります．
+  <dt><a name="lexbank">lexbank</a> (MAYZ 特有の用語です)
+  <dd><a href="#derivation">derivation</a>の末端部だけを集めたデータ．
+  各単語の情報が集められているため，語彙的な情報を集めるのに使えます．
+  <dt><a name="me_model2">maximum entropy (ME) model</a>
+  <dd><a href="#me_model">最大エントロピーモデル</a>
+  <dt><a name="parse_tree2">parse tree</a>
+  <dd><a href="#parse_tree">構文木</a>
+  <dt><a name="treebank">treebank</a>
+  <dd>CFG スタイルの句構造がたくさんの文に注釈付けされているデータ．
+  Penn Treebank など，各言語で様々な treebank が作成されています．
+  MAYZ ツールキットは，そのような treebank を入力として，<a
+  href="derivbank">derivbank</a> を作成することを目的とします．
+</dl>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

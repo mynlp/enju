@@ -1,0 +1,109 @@
+%/**********************************************************************
+  * @module    =  enju:cgi
+  * @copyright =  Copyright (c) 2007, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: cgi.lil,v 1.4 2007-05-21 06:15:02 yusuke Exp $
+  * @version   =  Time-stamp: <2007-05-21 15:13:46 yusuke>
+  * @desc      =  CGI for Enju XML output
+  **********************************************************************
+%*/
+
+:- module("enju:cgi").
+
+:- module_interface.
+
+:- ensure_loaded("lillib/http_server").
+:- ensure_loaded("lillib/cgi").
+:- ensure_loaded("lillib/xml").
+:- ensure_loaded("outputdep").
+:- ensure_loaded("outputxml").
+
+start_enju_cgi <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/dattypes").
+
+read_all_lines <- [pred].
+read_all_lines($Stream, []) :-
+    eof_stream($Stream),
+    !.
+read_all_lines($Stream, [$Line|$Lines]) :-
+    readln_string($Stream, $Line1),
+    formattostr("~s\r\n", [$Line1], $Line),
+    read_all_lines($Stream, $Lines).
+
+output_dispatch <- [pred].
+output_dispatch("dep", $Sentence, $Answer) :-
+    !,
+    open_string_stream($Stream),
+    output_dependency($Sentence, $Stream),
+    read_all_lines($Stream, $Lines),
+    close($Stream),
+    formattostr("Content-Type: text/plain\r\n\r\n", $Header),
+    concatenate_string([$Header|$Lines], $Answer).
+output_dispatch("conll", $Sentence, $Answer) :-
+    !,
+    open_string_stream($Stream),
+    output_conll($Sentence, $Stream),
+    read_all_lines($Stream, $Lines),
+    close($Stream),
+    formattostr("Content-Type: text/plain\r\n\r\n", $Header),
+    concatenate_string([$Header|$Lines], $Answer).
+output_dispatch("so", $Sentence, $Answer) :-
+    !,
+    open_string_stream($Stream),
+    output_so(0, $Sentence, $Stream),
+    read_all_lines($Stream, $Lines),
+    close($Stream),
+    formattostr("Content-Type: text/plain\r\n\r\n", $Header),
+    concatenate_string([$Header|$Lines], $Answer).
+output_dispatch(_, $Sentence, $Answer) :-
+    open_string_stream($Stream),
+    output_xml($Sentence, $Stream),
+    readln_string($Stream, $XML),
+    close($Stream),
+    formattostr("Content-Type: application/xml\r\n\r\n~s\r\n", [$XML], $Answer).
+
+enju_cgi_main <- [pred].
+enju_cgi_main([], $Answer) :-
+    !,
+    debug_message("enju_cgi", "Show CGI sample page\n"),
+    $XHTML = (xhtml_document &
+%%	      XHTML_VERSION\xhtml_1_1 &
+	      XHTML_VERSION\html_4_01 &
+	      XHTML_TITLE\"Enju CGI" &
+	      XHTML_XSL\[] &
+	      XHTML_CSS\["/fs.css"] &
+	      XHTML_BODY\[SCRIPT_SRC\"/enju/cgi.js" & SCRIPT_TYPE\"text/javascript",
+			  xhtml_h1 & XHTML_TEXT\"Enju CGI",
+			  xhtml_form & FORM_METHOD\"get" & FORM_ACTION\"enju" & XHTML_ID\"sentence_input_form" &
+			  XHTML_ATTRIBUTES\[XML_ATTR\"onreset" & XML_ATTR_VAL\"this.sentence.value=''; return false;",
+					    XML_ATTR\"onsubmit" & XML_ATTR_VAL\"parseSentence(); return false;"] &
+			  XHTML_TEXT\["Enter a sentence:",
+				      xhtml_input & INPUT_TYPE\"text" & INPUT_SIZE\"70" & XHTML_NAME\"sentence",
+				      xhtml_input & INPUT_TYPE\"submit" & XHTML_NAME\"parse" & INPUT_VALUE\"Parse",
+				      xhtml_input & INPUT_TYPE\"reset" & INPUT_VALUE\"Clear"],
+			  xhtml_div & XHTML_ID\"display_result"]),
+    stringize_xhtml_cgi($XHTML, $Answer),
+    debug_message("enju_cgi", "Send:\n~s\n", [$Answer]).
+enju_cgi_main($Assoc, $Answer) :-
+    assoc("sentence", $Assoc, $Sentence),
+    !,
+    (assoc("format", $Assoc, $Format) -> true; $Format = "xml"),
+    debug_message("enju_cgi", "Parse sentence: ~s\n", [$Sentence]),
+    output_dispatch($Format, $Sentence, $Answer),
+    debug_message("enju_cgi", "Result: ~s\n", [$Answer]).
+
+cgi_lilfes("enju", $QueryString, _, $Answer) :-
+    debug_message("enju_cgi", "CGI query: ~s\n", [$QueryString]),
+    decode_query_string($QueryString, $Assoc),
+    enju_cgi_main($Assoc, $Answer).
+
+start_enju_cgi($Port) :-
+    debug_message("enju_cgi", "Start Enju CGI server: port=~d\n", [$Port]),
+    http_server($Port).
+

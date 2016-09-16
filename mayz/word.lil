@@ -1,0 +1,20 @@
+%/**********************************************************************
+  * @module    = mayz:word
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: word.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   = Time-stamp: <2005-06-21 19:36:05 yusuke>
+  * @desc      = Type definition of word
+  **********************************************************************
+%*/
+
+:- module("mayz:word").
+
+:- module_interface.
+
+word <- [bot] + [INPUT\string(0), SURFACE\string(1), BASE\string(2),
+		 INPUT_POS\string(5), POS\string(6), BASE_POS\string(7),
+		 POSITION\integer(10)] ./ extendable.
+
+:- module_implementation.
+

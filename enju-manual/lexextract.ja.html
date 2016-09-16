@@ -1,0 +1,381 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>辞書の抽出</title>
+</head>
+
+
+
+<body>
+<h1>辞書の抽出</h1>
+
+<a href="lexextract.html">English version</a>
+
+<p>
+この段階では，変形した構文木から辞書 (lexicon) とテンプレートデータベースを抽出します．
+辞書というのは，
+単語情報 ('word' 型) から語彙項目テンプレートの名前 ('lex_entry' 型)
+へのマッピングを集めたものです．
+テンプレートデータベースというのは，
+語彙項目テンプレートの名前から語彙項目テンプレートの素性構造 ('hpsg_word' 型)
+へのマッピングを集めたものです．
+
+<p>
+抽出処理は，2段階に分かれています．
+<a href="#lexextract">前半</a>では，
+変形された構文木から HPSG などの文法に沿った導出木を作り，
+導出木の葉ノードの素性構造から辞書とテンプレートデータベースをつくります．
+<a href="#lexrefine">後半</a>では，
+抽出した辞書とテンプレートデータベースに，
+頻度の低い項目を消したり，未知語の項目を作ったりといった精製処理を行い，
+最終的な辞書とテンプレートデータベースをつくります．
+これらの処理において，
+導出木は "mayz/derivtypes.lil" で定義された型で表現されています．
+
+
+<h2><a name="lexextract">辞書とテンプレートデータベースの抽出</a></h2>
+
+<p>
+ここでは，変形した構文木から目的の文法による導出木を作り，
+辞書とテンプレートデータベースを抽出する過程について説明します．
+この過程は，mayz の lexextract ツールを利用し、下記のコマンドによって行われます．
+（lexextract ツールについて詳しくは，
+<a href="../mayz-manual/lexextract.ja.html">mayz のマニュアル</a>も参照してください．）
+
+<table border=1>
+<tr><td colspan=2>lexextract  文法獲得モジュール treebank derivbank 辞書 テンプレートデータベース lexbank
+<tr><td>文法獲得モジュール<td>逆方向のスキーマと語彙規則（後述）などが定義された lilfes ファイル
+<tr><td>treebank<td>入力の構文木データベース (lildb 形式)
+<tr><td>derivbank<td>導出木を出力するデータベース (lildb 形式)
+<tr><td>辞書<td>辞書を出力するデータベース (lildb 形式)
+<tr><td>テンプレートデータベース<td>語彙項目テンプレートを出力するデータベース (lildb 形式)
+<tr><td>lexbank<td>導出木の葉ノードを出力するデータベース (lildb 形式)
+</table>
+
+<p>
+Enju の文法開の場合，
+文法獲得モジュールは "enju-devel/lexextract.lil" です．
+入力 treebank の構文木は，
+前段階の<a href="transrules.ja.html">コーパスの変形</a>で得られたもの（<a href="transformed.xhtml">例</a>）になります．
+それらの構文木から HPSG による導出木(<a href="derivation.xhtml">例</a>)が作られ，
+辞書の抽出に使われます．
+
+
+<h3>構文木から導出木への変換</h3>
+
+<P>
+lexextract ツールはまず，
+入力された構文木をもとにして目的文法による導出木を作ります．
+具体的には，はじめに導出木の根ノードをつくり，
+もとの構文木の形に合わせて逆方向のスキーマを適用して，親ノードから娘ノードを作っていきます．
+最後に，葉ノードに導出木の葉ノードとして満たすべき制約をかけ，
+導出木の完成となります．
+導出木の根ノードや葉ノードの制約はインターフェース述語 <tt>root_constraints/1</tt>，
+<tt>lexical_constraints/2</tt> でそれぞれ指定できます．
+逆方向のスキーマは，
+インターフェース述語 <tt>inverse_schema_binary/4</tt>，
+<tt>inverse_schema_unary/3</tt> で指定します．
+まとめると，導出木は以下の手順で作られます．
+
+<ol>
+  <li>導出木の根ノードの sign に述語 <tt>root_constraints/1</tt> で定められた制約をかける．
+  <li>導出木の他のノードをつくる．
+もとの構文木で単項木の場合は述語 <tt>inverse_schema_unary/3</tt>，
+二分木の場合は述語 <tt>inverse_schema_binary/4</tt> によって逆方向スキーマを適用し，
+親ノードの sign から娘ノードの sign をつくる．
+  <li>導出木の葉ノードに述語 <tt>lexical_constraints/2</tt> で定められた制約をかける．
+対応する単語情報 ('word' 型)に応じて制約を変えることができる．
+</ol>
+
+<p>
+Enju 文法の場合，導出木のノードや逆方向スキーマに次のような制約を指定しています．
+
+<ul>
+   <li>導出木の根ノードでは，
+VAL 素性の下の SUBJ，COMPS，SPR，SPEC，CONJ 素性の値は全て空リストでなければいけない．
+   
+   <li>逆方向の Head-Subject schema を使うと親ノードから2つの娘ノードが作られ，
+右の娘の sign の VAL\SUBJ 素性と左の娘の sign が単一化される．
+   <li>導出木の葉ノードで単語文字列として "be"，"was" などを持つものは，
+sign の HEAD\AUX 素性が 'copula_be' でなければならない．
+</ul>
+
+これらはインターフェース述語を使って，次のように指定されます．
+詳しい実装は "enju-devel/invschema.lil" を見てください．
+<small>
+<blockquote>
+<pre>
+root_constraints($Sign) :-
+    $Sign = (SYNSEM\(LOCAL\CAT\(HEAD\MOD\[] &
+				VAL\(SUBJ\[] & COMPS\[] &
+				SPR\hpsg_synsem_exp_nil &
+				SPEC\[] & CONJ\[])))).
+
+inverse_schema_binary(subj_head_schema,
+		      $Mother, $Left, $Right) :-
+    $Left = (SYNSEM\($LeftSynsem &
+		     LOCAL\CAT\(HEAD\MOD\[] &
+				VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[])))),
+    $Subj = $LeftSynsem,
+    $Right = (SYNSEM\(LOCAL\CAT\(HEAD\$Head &
+				 VAL\(SUBJ\[$Subj] &
+				      COMPS\[] &
+				      SPR\[] &
+				      SPEC\$Spec &
+				      CONJ\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\(HEAD\$Head &
+				  VAL\(SUBJ\[] &
+				       COMPS\[] &
+				       SPR\[] &
+				       SPEC\$Spec &
+				       CONJ\[])))).
+
+lexical_constraints(SURFACE\$Surface, 
+                    SYNSEM\LOCAL\CAT\HEAD\AUX\hpsg_copula_be) :-
+    auxiliary_be($Surface).
+</pre>
+</blockquote>
+</small>
+
+
+<h3>辞書項目と語彙項目テンプレートの抽出</h3>
+
+<p>
+lexextract ツールは次に，
+導出木の葉ノードから，辞書とテンプレートデータベースを作ります．
+葉ノードの単語情報からは辞書のキーが，葉ノードの sign からは語彙項目テンプレートが得られます．
+ここでは，
+語彙項目テンプレートをそのまま登録するのではなく，
+語彙項目テンプレートの元となる「語彙素テンプレート」という素性構造を作って登録することもできます．
+語彙項目テンプレートから語彙素テンプレートを作る方法，
+つまり逆方向の<a href="lexrules.ja.html">語彙規則</a>はインターフェース述語
+<tt>reduce_lexical_template/5</tt> で指定します．
+他にも辞書のキーの作り方などを，インターフェース述語
+<tt>lexeme_name/4</tt>，<tt>lexical_entry_template/3</tt>，
+<tt>lexicon_key/2</tt> で指定できます．
+これらの述語を用いて，以下のように抽出作業が行われます．
+
+<ol>
+  <li>導出木の葉ノードに述語 <tt>lexical_entry_template/3</tt> を適用して，語彙項目テンプレートを作る．
+  <li>得られた語彙項目テンプレートに述語 <tt>reduce_lexical_template/5</tt> で定義した逆方向の語彙規則を適用し，語彙素テンプレートを作る．このとき，この語彙素テンプレートのための辞書のキーも計算する．
+  <li>語彙素テンプレートの名前を述語　<tt>lexeme_name/4</tt> により計算しデータベースに登録する．(語彙素テンプレートが初出のものの場合)
+  <li>辞書に 2. で計算したキーから語彙素テンプレートの名前へのマッピングを登録する．
+      また 2. のキーの出現回数をインクリメントする．
+  <li>1. で得た語彙項目テンプレートのための辞書のキーを述語 <tt>lexicon_key/2</tt> を使って計算する．辞書にそのキーから語彙項目テンプレートの名前へのマッピングを登録し，キーの出現回数をインクリメントする．
+</ol>
+
+<p>
+Enju の文法開発では，上記インターフェース述語で
+次のような指定をしています．
+<ul>
+    <li>語彙項目テンプレートを作るとき，sign の CAT，NONLOCAL 素性の値は葉ノードの sign の CAT，NONLOCAL 素性の制約を緩めたものにする．これはいくつかの素性の値を最も一般的な型にすることで行われる．
+    <li>語彙素テンプレートは，
+    語彙項目テンプレートに<a href="lexrules.ja.html">語彙規則</a>を逆適用してつくる．
+    <li>語彙素の名前は，CAT 素性の値を表す文字列と VAL\SUBJ 素性等の値を表す文字列を組み合わせて作る．例えば名詞句の主語と目的語をとる他動詞のテンプレートの場合名前は，[NP.nom&lt;V.bse&gt;NP.acc]_lxm 等となる．
+</ul>
+
+<p>
+これらの制約はたとえば次のように指定されます．
+正確な実装は "enju-devel/lextemplate.lil"，"enju-devel/invlexrule.lil" を見てください．
+<small>
+<blockquote>
+<pre>
+lexical_entry_template($WordInfo, $Sign, $Template) :-
+    make_semantics($WordInfo, $Sign, $LexName1, $Cont1),
+    ...
+    abstract_lexical_template($Template).
+
+abstract_lexical_template($Template):-
+    $Template = (SYNSEM\(LOCAL\CAT\(HEAD\($Head & MOD\$Mod) &
+				    VAL\(SUBJ\$Subj &
+					 COMPS\$Comps &
+					 SPR\$Spr &
+					 SPEC\$Spec &
+					 CONJ\$Conj)) &
+			 NONLOCAL\INHER\(REL\$Rel &
+					 SLASH\$Slash &
+					 F_REL\$FRel))),
+    abstract_mod($Mod, $Head),
+    abstract_subj_list($Subj, $Template),
+    abstract_comp_list($Comps, $Template),
+    ...
+    abstract_head($Head).
+
+abstract_subj($Synsem, SYNSEM\LOCAL\CAT\HEAD\$Head) :-
+    restriction($Synsem, [NONLOCAL\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, POSTHEAD\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, AGR\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, AUX\]),
+    ...
+    generalize_subj_head($Synsem, $Head).
+</pre>
+</blockquote>
+</small>
+
+<small>
+<blockquote>
+<pre>
+reduce_lexical_template($WordInfo, $LexEntry, $Key, $Lexeme, $Rules) :-
+    get_sign($LexEntry, $Sign),
+    get_lexeme($WordInfo, $LexEntry, $BaseWordInfo, $Lexeme1, [], $Rules1),
+    canonical_copy($Lexeme1, $Lexeme),
+    $Rules = $Rules1,
+    $BaseWordInfo = (BASE\$Base & POS\$POS),
+    $Key = (BASE\$Base & POS\$POS).
+
+get_lexeme($WordInfo, $InTemplate, $NewWordInfo, $NewTemplate,
+	   $InRules, $NewRules) :-
+    ($InRules = [$Rule1|_] ->
+     upper_rule($Rule1, $Rule); true),
+    inverse_rule_lex($Rule, $WordInfo, $InTemplate, $WordInfo1, $Template1),
+    get_lexeme($WordInfo1, $Template1, $NewWordInfo, $NewTemplate,
+	       [$Rule|$InRules], $NewRules).
+</pre>
+</blockquote>
+</small>
+
+<a name="lexrefine"><h2>辞書とテンプレートデータベースの精製</h2></a>
+
+<p>
+ここでは，抽出された辞書とテンプレートデータベースを精製する過程について説明します．
+この過程は，mayz の lexrefine ツールを利用し、下記のコマンドによって行われます．
+（lexrefine ツールについて詳しくは，
+<a href="../mayz-manual/lexrefine.ja.html">mayz のマニュアル</a>も参照してください．）
+<table border=1>
+<tr><td colspan=2>lexrefine ルールモジュール 元辞書 元テンプレートデータベース 新辞書 新テンプレートデータベース
+<tr><td>ルールモジュール<td>語彙規則が定義されたモジュール
+<tr><td>元辞書<td>入力の辞書
+<tr><td>元テンプレートデータベース<td>入力のテンプレートデータベース
+<tr><td>新辞書<td>精製された出力辞書
+<tr><td>新テンプレートデータベース<td>精製された出力テンプレートデータベース
+</table>
+
+<p>
+lexrefine ツールでは，
+まず出現回数の少ないテンプレートを削除したりしてテンプレートベータベースを精製します．
+次にテンプレートデータベースの精製による変化に辞書を追随させます．
+また未知語に対応するため，未知語エントリを辞書に作ります．
+Enju の文法開発の場合，
+ルールモジュールは "enju-devel/lexrule.lil" を使っています．
+
+<h3>テンプレートデータベースの精製</h3>
+lexrefine ツールでは，まず入力のテンプレートデータベースが精製されます．
+具体的には，頻度の小さいテンプレートを削除した後，
+残ったテンプレートに<a href="lexrules.ja.html">語彙規則</a>が適用され
+派生語のテンプレートが作られます．
+語彙規則はインターフェース述語 <tt>expand_lexical_template/5</tt>
+によって指定してください．
+具体的な精製作業は次のようになります．
+<ol>
+  <li>入力テンプレートデータベース中の，出現回数が閾値 (-tf オプションで指定)より大きいテンプレートを出力テンプレートデータベースに格納する．
+  <li>出力データベースの中のテンプレートに述語 <tt>expand_lexical_template/5</tt> によって語彙規則を適用し，派生語のテンプレートを作る．派生語のテンプレートも出力データベースに格納し，その出現回数として元テンプレートの出現回数を与える．
+</ol>
+
+<p>
+Enju の場合の語彙規則については，
+<a href="lexrules.ja.html">語彙規則のページ</a>を参照してください．
+語彙規則の指定はたとえば次のようになります．
+正確な実装については，"enju-devel/lexrule.lil" を参照してください．
+<small>
+<blockquote>
+<pre>
+expand_lexical_template($InTempName, $InTemplate, $Count, $LexRules, $NewTemplate) :-
+     get_variable('*template_expand_threshold*', $Thres),
+     ($Count > $Thres ->
+      ordered_lexical_rules($LexRules),
+      apply_ordered_lexical_rules(_, $InTemplate, $LexRules, _, $Template1),
+      get_sign($Template1, $NewTemplate);
+      $LexRules = [], 
+      get_sign($InTemplate, $NewTemplate)).
+</pre>
+</blockquote>
+</small>
+
+
+<h3>辞書の精製</h3>
+
+ここでは，テンプレートデータベースの精製によって生じた変化に
+辞書の追随させる過程を説明します．
+つまり，
+テンプレートデータベースで削除されたテンプレートのためのエントリを辞書から消したり，
+追加されたテンプレートのエントリを辞書に追加したりして，
+新しい辞書を作ります．
+また未知語のためのエントリを追加します．
+追加されたテンプレートのために辞書のキーを作る方法は，
+インターフェース述語  <tt>expand_lexicon/3</tt> によって指定してください．
+新しい辞書は，元の辞書の各エントリに次のような処理をして作られます．
+
+<ol>
+  <li>エントリのテンプレートが新テンプレートデータベースに残っていたらそのエントリを新辞書に加える．
+  <li>そのエントリのテンプレートから作られた派生語テンプレートがあるなら，述語 <tt>expand_lexicon/3</tt> によって新しい辞書キーを作り派生語テンプレートのためのエントリを新辞書に登録する．新しいキーの出現回数として，元のテンプレートのためのキーの頻度を与える．
+</ol>
+
+<p>
+Enju の場合，辞書のキーは BASE 素性と POS 素性が特定されている 'word' 型です．
+インターフェース述語 <tt>expand_lexicon/3</tt> で作る語彙項目のキーは
+元テンプレートのキーの POS 素性の値を変えた 'word' 型になります．
+新しいキーの POS 素性は，新しいテンプレートを作った語彙規則で決められます．
+例えば，
+動詞の語彙素テンプレートから3人称現在単数形のテンプレートを作るルールが適用された場合，
+語彙項目のキーの POS 素性は "VBZ" となります．
+
+<small>
+<blockquote>
+<pre>
+expand_lexicon($InKey, $NewTempName, $NewKey) :-
+    $InKey = BASE\$Base & POS\$BasePOS,
+    $NewTempName = LEXICAL_RULES\$Rules,
+    rules_to_inflection($BasePOS, $Rules, $POSList),
+    member($NewPOS, $POSList),
+    $NewKey = BASE\$Base & POS\$NewPOS.
+</pre>
+</blockquote>
+</small>
+
+<h3>未知語の辞書項目の追加</h3>
+
+<p>
+lexrefine は次に，未知語のためのエントリを辞書に追加します．
+つまり，頻度が閾値以下の単語を未知語とみなして新たなエントリを作ります．
+新たなエントリのキーを作る方法は，
+インターフェース述語 <tt>unknown_word_key/2</tt> で指定します．
+具体的な処理は次のようになります．
+<ol>
+  <li>新辞書のエントリがキーの頻度が閾値 (-uwf オプションで指定) 以下なら，<tt>unknown_word_key/2</tt> によってそのキーから未知語エントリのためのキーを作る．
+  <li>元のキーに割り当てられているテンプレートのうち，出現頻度が閾値(-utf オプションで指定) より大きいものと未知語キーのエントリを新辞書に追加する．
+  <li>元のキーの頻度が閾値 (-wf オプションで指定) 以下の場合は，元のキーのエントリを削除する．
+</ol>
+
+<p>
+Enju の場合，未知語のキーは POS 素性のみ特定されている 'word' 型です．
+インターフェース述語 <tt>unknown_word_key/2</tt> では，
+未知語のキーとして元のキーの POS 素性と同じ値をもつ 'word' 型を返します．
+
+<small>
+<blockquote>
+<pre>
+unknown_word_key(POS\$POS, POS\$POS).
+</pre>
+</blockquote>
+</small>
+
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,432 @@
+%/**********************************************************************
+  * @module    = mayz:evalparse
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: evalparse.lil,v 1.2 2009-12-11 08:33:57 yusuke Exp $
+  * @desc      = Tool for measuring parsing accuracy
+  **********************************************************************
+%*/
+
+:- module("mayz:evalparse").
+
+:- module_interface.
+
+:- ensure_loaded("parser").
+:- ensure_loaded("derivtypes").
+%:- ensure_loaded("grammar").
+:- ensure_loaded("lillib/dattypes").
+
+%% interface
+derivation_to_parse_tree <- [pred].
+eval_parse <- [pred].
+
+%% parameters
+%'*include_uncovered_sentences*' <- [variable].
+'*include_parse_failure_sentences*' <- [variable].
+'*limit_num_sentences*' <- [variable].
+'*limit_num_evaluated_sentences*' <- [variable].
+'*limit_sentence_length*' <- [variable].
+'*use_external_tagger*' <- [variable].
+
+%% predicates
+eval_parse_file <- [pred].
+'eval_parse_file/1' <- ['pred/1', eval_parse_file].
+'eval_parse_file/2' <- ['pred/2', 'eval_parse_file/1'].
+'eval_parse_file/3' <- ['pred/3', 'eval_parse_file/2'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("tagger").
+
+'*derivation_table*' <- [pred].
+
+:-
+%    init_integer_variable('*include_uncovered_sentences*'),
+%    set_variable('*include_uncovered_sentences*', 1),
+    init_integer_variable('*include_parse_failure_sentences*'),
+    set_variable('*include_parse_failure_sentences*', 1),
+    init_integer_variable('*limit_num_sentences*'),
+    set_variable('*limit_num_sentences*', 0),
+    init_integer_variable('*limit_num_evaluated_sentences*'),
+    set_variable('*limit_num_evaluated_sentences*', 0),
+    init_integer_variable('*limit_sentence_length*'),
+    set_variable('*limit_sentence_length*', 40),
+    init_integer_variable('*use_external_tagger*'),
+    set_variable('*use_external_tagger*', 0).
+
+'*num_all_sentences*' <- [variable].
+'*num_sentences*' <- [variable].
+'*num_error_sentences*' <- [variable].
+'*num_too_long_sentences*' <- [variable].
+%'*num_uncovered_sentences*' <- [variable].
+'*num_parse_failure_sentences*' <- [variable].
+'*num_eval_failure_sentences*' <- [variable].
+
+'*num_evaluated_sentences*' <- [variable].
+'*num_words*' <- [variable].
+'*num_answers*' <- [variable].
+'*num_outputs*' <- [variable].
+'*num_corrects*' <- [variable].
+'*num_partials*' <- [variable].
+'*num_correct_sentences*' <- [variable].
+'*sum_parse_time*' <- [variable].
+
+%% '*num_evaluated_sentences_covered*' <- [variable].
+%% '*num_words_covered*' <- [variable].
+%% '*num_answers_covered*' <- [variable].
+%% '*num_outputs_covered*' <- [variable].
+%% '*num_corrects_covered*' <- [variable].
+%% '*num_partials_covered*' <- [variable].
+%% '*num_correct_sentences_covered*' <- [variable].
+%% '*sum_parse_time_covered*' <- [variable].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+derivation_to_termlist <- [pred].
+derivation_to_termlist_dtrs <- [pred].
+derivation_to_termlist_dtrs([], []).
+derivation_to_termlist_dtrs([$Dtr|$Dtrs], $TermList) :-
+    derivation_to_termlist($Dtr, $TermList1),
+    append($TermList1, $TermList2, $TermList),
+    derivation_to_termlist_dtrs($Dtrs, $TermList2).
+derivation_to_termlist(derivation_internal & DERIV_DTRS\$DerivDtrs, $TermList) :-
+    derivation_to_termlist_dtrs($DerivDtrs, $TermList).
+derivation_to_termlist(derivation_terminal & $Term, [$Term]).
+
+termlist_to_wordlist <- [pred].
+termlist_to_wordlist([], []).
+termlist_to_wordlist([TERM_WORD\(INPUT\$Input & INPUT_POS\$POS)|$TermList], [$Word|$WordList]) :-
+    concatenate_string([$Input, "/", $POS], $Word),
+    termlist_to_wordlist($TermList, $WordList).
+
+termlist_to_wordlist_raw <- [pred].
+termlist_to_wordlist_raw([], []).
+termlist_to_wordlist_raw([TERM_WORD\(INPUT\$Input)|$TermList], [$Word|$WordList]) :-
+    $Word = $Input,
+    termlist_to_wordlist_raw($TermList, $WordList).
+
+derivation_to_sentence <- [pred].
+derivation_to_sentence($Derivation, $TermList, $Sentence) :-
+    derivation_to_termlist($Derivation, $TermList),
+    (get_variable('*use_external_tagger*', 1) ->
+     termlist_to_wordlist_raw($TermList, $WordList) ;
+     termlist_to_wordlist($TermList, $WordList)),
+    join($WordList, " ", $Sentence).
+
+%% check_strong_coverage_sub <- [pred].
+%% check_strong_coverage_sub(TERM_WORD\$Word & LEXENTRY_SIGN\$LexEntry) :-
+%%     lookup_lexicon($Word, $TempList),
+%%     member($TempName, $TempList),
+%%     lookup_template($TempName, $LexEntry1),
+%%     equivalent($LexEntry, $LexEntry1),
+%%     !.
+%% check_strong_coverage <- [pred].
+%% check_strong_coverage([]).
+%% check_strong_coverage([$Lex|$LexList]) :-
+%%     check_strong_coverage_sub($Lex),
+%%     check_strong_coverage($LexList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+output_oneline_summary <- [pred].
+output_oneline_summary($Output) :-
+    get_variable('*num_evaluated_sentences*', $NumEvaluated),
+    get_variable('*num_answers*', $NumAnswers),
+    get_variable('*num_outputs*', $NumOutputs),
+    get_variable('*num_corrects*', $NumCorrect),
+    get_variable('*num_partials*', $NumPartial),
+    get_variable('*num_correct_sentences*', $NumCorrectSent),
+    get_variable('*sum_parse_time*', $SumParseTime),
+    $CorrectRecall is $NumCorrect / $NumAnswers * 100,
+    $CorrectPrec is $NumCorrect / $NumOutputs * 100,
+    $PartialRecall is $NumPartial / $NumAnswers * 100,
+    $PartialPrec is $NumPartial / $NumOutputs * 100,
+    $CorrectSentRatio is $NumCorrectSent / $NumEvaluated * 100,
+    $MeanParseTime is $SumParseTime // $NumEvaluated,
+    format($Output, "  Answers=~d, Outputs=~d, Correct=~d, Partial=~d  Time: ~d msec.\n",
+	   [$NumAnswers, $NumOutputs, $NumCorrect, $NumPartial, $MeanParseTime]),
+    format($Output, "  LP/LR = ~f/~f, UP/UR = ~f/~f, Exact = ~d/~d (~f)\n",
+	   [$CorrectPrec, $CorrectRecall, $PartialPrec, $PartialRecall, $NumCorrectSent, $NumEvaluated, $CorrectSentRatio]).
+
+output_summary <- [pred].
+output_summary($Output, $NumEvaluated, $NumWords, $NumAnswers, $NumOutputs, $NumCorrect, $NumPartial, $NumCorrectSent, $SumParseTime) :-
+    $MeanNumWords is $NumWords / $NumEvaluated,
+    $MeanNumAnswers is $NumAnswers / $NumEvaluated,
+    $MeanNumOutputs is $NumOutputs / $NumEvaluated,
+    $CorrectRecall is $NumCorrect / $NumAnswers * 100,
+    $CorrectPrec is $NumCorrect / $NumOutputs * 100,
+    $PartialRecall is $NumPartial / $NumAnswers * 100,
+    $PartialPrec is $NumPartial / $NumOutputs * 100,
+    $CorrectSentRatio is $NumCorrectSent / $NumEvaluated * 100,
+    $MeanParseTime is $SumParseTime // $NumEvaluated,
+    format($Output, "  Mean num words = ~f\n", [$MeanNumWords]),
+    format($Output, "  Num answers = ~d (~f / sentence)\n", [$NumAnswers, $MeanNumAnswers]),
+    format($Output, "  Num outputs = ~d (~f / sentence)\n", [$NumOutputs, $MeanNumOutputs]),
+    format($Output, "  Num correct outputs (LP/LR) = ~d (~f % / ~f %)\n", [$NumCorrect, $CorrectPrec, $CorrectRecall]),
+    format($Output, "  Num partially correct outputs (UP/UR) = ~d (~f % / ~f %)\n", [$NumPartial, $PartialPrec, $PartialRecall]),
+    format($Output, "  Num exactly correct sentences = ~d (~f %)\n", [$NumCorrectSent, $CorrectSentRatio]),
+    format($Output, "  Mean parse time = ~d\n", [$MeanParseTime]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eval_parse_file_main <- [pred].
+eval_parse_file_main($DerivFileName, $Output, $Err) :-
+    get_parser_name($ParserName),
+    get_parser_version($ParserVersion),
+    get_grammar_name($GrammarName),
+    get_grammar_version($GrammarVersion),
+%    get_variable('*include_uncovered_sentences*', $IncludeUncoveredSentences),
+    get_variable('*include_parse_failure_sentences*', $IncludeParseFailures),
+    get_variable('*limit_num_sentences*', $LimitNumSentences),
+    get_variable('*limit_num_evaluated_sentences*', $LimitNumEvaluatedSentences),
+    get_variable('*limit_sentence_length*', $LimitSentenceLength),
+    get_variable('*use_external_tagger*', $UseExternalTagger),
+    format($Output, "Evaluation of parsing accuracy\n"),
+    format($Output, "  Parser: ~s ~s\n", [$ParserName, $ParserVersion]),
+    format($Output, "  Grammar: ~s ~s\n", [$GrammarName, $GrammarVersion]),
+    format($Output, "  Derivation file: ~s\n", [$DerivFileName]),
+%    format($Output, "  Include uncovered sentences: "),
+%%     ($IncludeUncoveredSentences =:= 1 ->
+%%      format($Output, "yes\n") ;
+%%      format($Output, "no\n")),
+    format($Output, "  Include parse failures: "),
+    ($IncludeParseFailures =:= 1 ->
+     format($Output, "yes\n") ;
+     format($Output, "no\n")),
+    format($Output, "  Limit number of sentences: ~d\n", [$LimitNumSentences]),
+    format($Output, "  Limit number of evaluated sentences: ~d\n", [$LimitNumEvaluatedSentences]),
+    format($Output, "  Sentence length: < ~d\n", [$LimitSentenceLength]),
+    format($Output, "  Use external tagger: "),
+    ($UseExternalTagger =:= 1 ->
+     format($Output, "yes\n") ;
+     format($Output, "no\n")),
+    flush_output($Output),
+
+    init_integer_variable('*num_all_sentences*'),
+    init_integer_variable('*num_sentences*'),
+    init_integer_variable('*num_error_sentences*'),
+    init_integer_variable('*num_too_long_sentences*'),
+%    init_integer_variable('*num_uncovered_sentences*'),
+    init_integer_variable('*num_parse_failure_sentences*'),
+    init_integer_variable('*num_eval_failure_sentences*'),
+
+    init_integer_variable('*num_evaluated_sentences*'),
+    init_integer_variable('*num_words*'),
+    init_integer_variable('*num_answers*'),
+    init_integer_variable('*num_outputs*'),
+    init_integer_variable('*num_corrects*'),
+    init_integer_variable('*num_partials*'),
+    init_integer_variable('*num_correct_sentences*'),
+    init_integer_variable('*sum_parse_time*'),
+
+%%     init_integer_variable('*num_evaluated_sentences_covered*'),
+%%     init_integer_variable('*num_words_covered*'),
+%%     init_integer_variable('*num_answers_covered*'),
+%%     init_integer_variable('*num_outputs_covered*'),
+%%     init_integer_variable('*num_corrects_covered*'),
+%%     init_integer_variable('*num_partials_covered*'),
+%%     init_integer_variable('*num_correct_sentences_covered*'),
+%%     init_integer_variable('*sum_parse_time_covered*'),
+
+    %% Initialization
+    ($UseExternalTagger =:= 1 ->
+     enable_external_tagger ;
+     disable_external_tagger),
+
+    %% Load derivations
+    db_open('*derivation_table*'(key_inthash, array_value)),
+    db_load($DerivFileName, '*derivation_table*'(_, _)),
+
+    %% For each derivation...
+    db_findall('*derivation_table*'(_, _), $DerivList),
+    member('*derivation_table*'($DerivID, $Derivation), $DerivList),
+
+    %% Check limit of the number of sentences
+    ($LimitNumSentences > 0 ->
+     get_variable('*num_sentences*', $NumSentences),
+     $NumSentences < $LimitNumSentences ;
+     true),
+    ($LimitNumEvaluatedSentences > 0 ->
+     get_variable('*num_evaluated_sentences*', $NumEvaluatedSentences),
+     $NumEvaluatedSentences < $LimitNumEvaluatedSentences ;
+     true),
+    inc_variable('*num_all_sentences*'),
+
+    %% sentence_to_lattice/2
+    (derivation_to_sentence($Derivation, $TermList, $Sentence) ->
+     true ;
+     format($Output, "No. ~d: ERROR: derivation_to_sentence/3 failed\n", [$DerivID]),
+     inc_variable('*num_error_sentences*'),
+     fail),
+    start_prof("preproc_time"),
+    (sentence_to_lattice($Sentence, $WordLattice) ->
+     stop_prof("preproc_time") ;
+     stop_prof("preproc_time"),
+     format($Output, "No. ~d: ERROR: sentence_to_word_lattice/2 failed\n", [$DerivID]),
+     inc_variable('*num_error_sentences*'),
+     fail),
+
+    %% Check sentence length
+    ($LimitSentenceLength > 0 ->
+     length($TermList, $SentenceLength),
+     ($SentenceLength < $LimitSentenceLength ->
+      true ;
+      format($Output, "No. ~d: too long sentence (~d words)\n", [$DerivID, $SentenceLength]),
+      inc_variable('*num_too_long_sentences*'),
+      fail) ;
+     fail),
+
+    %% Check strong coverage
+%%     (check_strong_coverage($TermList) ->
+%%      $IsCoveredSentence = 1 ;
+%%      format($Output, "No. ~d: sentence is not strictly covered by the grammar\n", [$DerivID]),
+%%      $IsCoveredSentence = 0,
+%%      inc_variable('*num_uncovered_sentences*'),
+%%      $IncludeUncoveredSentences =:= 1),
+
+    %% convert derivation to parse tree
+    (derivation_to_parse_tree($Derivation, $CorrectParse) ->
+     true ;
+     format($Output, "No. ~d: ERROR: derivation cannot be converted to a parse tree\n", [$DerivID]),
+     inc_variable('*num_error_sentences*'),
+     fail),
+    inc_variable('*num_sentences*'),
+
+    %% Start parsing
+    start_prof("parse_time"),
+    (parse_word_lattice($WordLattice) ->
+     (best_fom_parse_tree($BestParse, _) ->
+      stop_prof("parse_time", $ParseTime)
+      ;
+      stop_prof("parse_time", $ParseTime),
+      format($Output, "No. ~d: best_fom_parse_tree/2 failed\n", [$DerivID]),
+      $BestParse = fail)
+     ;
+     stop_prof("parse_time", $ParseTime),
+     format($Output, "No. ~d: parse/1 failed\n", [$DerivID]),
+     $BestParse = fail),
+    ($BestParse = fail ->
+     inc_variable('*num_parse_failure_sentences*'),
+     $IncludeParseFailures =:= 1 ;
+     true),
+
+    %% Evaluation by users
+    (eval_parse($BestParse, $CorrectParse, $TermList, $NumAnswers, $NumOutputs, $NumCorrects, $NumPartials, $Errors) ->
+     true ;
+     format($Output, "No. ~d: eval_parse/8 failed\n", [$DerivID]),
+     inc_variable('*num_eval_failure_sentences*'),
+     fail),
+
+    %% Statistics for covered sentences
+%%     ($IsCoveredSentence = 0 ->
+%%      true ;
+%%      inc_variable('*num_evaluated_sentences_covered*'),
+%%      add_variable('*num_words_covered*', $SentenceLength),
+%%      add_variable('*sum_parse_time_covered*', $ParseTime),
+%%      add_variable('*num_answers_covered*', $NumAnswers),
+%%      add_variable('*num_outputs_covered*', $NumOutputs),
+%%      add_variable('*num_corrects_covered*', $NumCorrects),
+%%      add_variable('*num_partials_covered*', $NumPartials)),
+
+    %% Statistics for all sentences
+    inc_variable('*num_evaluated_sentences*'),
+    add_variable('*num_words*', $SentenceLength),
+    add_variable('*sum_parse_time*', $ParseTime),
+    add_variable('*num_answers*', $NumAnswers),
+    add_variable('*num_outputs*', $NumOutputs),
+    add_variable('*num_corrects*', $NumCorrects),
+    add_variable('*num_partials*', $NumPartials),
+
+    %% Sentence accuracy
+    ($NumAnswers =:= $NumCorrects ->
+     inc_variable('*num_correct_sentences*') ;
+%%      ($IsCoveredSentence = 1 ->
+%%       inc_variable('*num_correct_sentences_covered*') ;
+%%       true)
+     true),
+    formattostr("No. ~d  Words=~d, Answers=~d, Outputs=~d, Correct=~d, Partial=~d  Sentence: ""~s""",
+		[$DerivID, $SentenceLength, $NumAnswers, $NumOutputs, $NumCorrects, $NumPartials, $Sentence], $Result),
+    writeln_string($Output, $Result),
+    format($Output, "  Time: ~d msec.\n", [$ParseTime]),
+    output_oneline_summary($Output),
+    flush_output($Output),
+    writeln_string($Err, $Result),
+    member($Error, $Errors),
+    writeln_string($Err, $Error),
+    flush_output($Err),
+    fail.
+eval_parse_file_main(_, $Output, _) :-
+    db_close('*derivation_table*'(_, _)),
+    %terminate_parser,
+
+    %% Summary of evaluation
+    get_variable('*num_all_sentences*', $NumAllSentences),
+    get_variable('*num_sentences*', $NumSentences),
+    $NumSentencesEliminated is $NumAllSentences - $NumSentences,
+    get_variable('*num_error_sentences*', $NumErrors),
+    get_variable('*num_too_long_sentences*', $NumTooLong),
+    format($Output, "\nSummary\n", []),
+    format($Output, "  Num all sentences = ~d\n", [$NumAllSentences]),
+    format($Output, "  Num sentences considered = ~d\n", [$NumSentences]),
+    format($Output, "  Num sentences eliminated = ~d\n", [$NumSentencesEliminated]),
+    format($Output, "    Errors = ~d\n", [$NumErrors]),
+    format($Output, "    Too long sentences = ~d\n", [$NumTooLong]),
+    format($Output, "\n"),
+    get_variable('*num_evaluated_sentences*', $NumEvaluated),
+    $EvaluatedRatio is $NumEvaluated / $NumSentences * 100,
+%    get_variable('*num_evaluated_sentences_covered*', $NumEvaluatedCovered),
+%    $EvaluatedCoveredRatio is $NumEvaluatedCovered / $NumSentences * 100,
+%    get_variable('*num_uncovered_sentences*', $NumUncovered),
+    get_variable('*num_parse_failure_sentences*', $NumParseFailure),
+    get_variable('*num_eval_failure_sentences*', $NumEvalFailure),
+    format($Output, "  Num evaluated sentences = ~d (~f %)\n", [$NumEvaluated, $EvaluatedRatio]),
+%    format($Output, "  Num evaluated sentences (covered) = ~d (~f %)\n", [$NumEvaluatedCovered, $EvaluatedCoveredRatio]),
+%    format($Output, "    Uncovered sentences = ~d\n", [$NumUncovered]),
+    format($Output, "    Parse failures = ~d\n", [$NumParseFailure]),
+    format($Output, "    Evaluation failures = ~d\n", [$NumEvalFailure]),
+    format($Output, "\n"),
+
+    %% Summary of accuracy
+    get_variable('*num_words*', $NumWords),
+    get_variable('*num_answers*', $NumAnswers),
+    get_variable('*num_outputs*', $NumOutputs),
+    get_variable('*num_corrects*', $NumCorrect),
+    get_variable('*num_partials*', $NumPartial),
+    get_variable('*num_correct_sentences*', $NumCorrectSent),
+    get_variable('*sum_parse_time*', $SumParseTime),
+    format($Output, "Accuracy (~d sentences)\n", [$NumEvaluated]),
+    output_summary($Output, $NumEvaluated, $NumWords, $NumAnswers, $NumOutputs, $NumCorrect, $NumPartial, $NumCorrectSent, $SumParseTime).
+%%     get_variable('*num_words_covered*', $NumWordsCovered),
+%%     get_variable('*num_answers_covered*', $NumAnswersCovered),
+%%     get_variable('*num_outputs_covered*', $NumOutputsCovered),
+%%     get_variable('*num_corrects_covered*', $NumCorrectCovered),
+%%     get_variable('*num_partials_covered*', $NumPartialCovered),
+%%     get_variable('*num_correct_sentences_covered*', $NumCorrectSentCovered),
+%%     get_variable('*sum_parse_time_covered*', $SumParseTimeCovered),
+%%     format($Output, "Accuracy (covered ~d sentences)\n", [$NumEvaluatedCovered]),
+%%     output_summary($Output, $NumEvaluatedCovered, $NumWordsCovered, $NumAnswersCovered, $NumOutputsCovered, $NumCorrectCovered, $NumPartialCovered, $NumCorrectSentCovered, $SumParseTimeCovered).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eval_parse_file($DerivFile) :-
+    stdout_stream($Output),
+    stderr_stream($Err),
+    eval_parse_file_main($DerivFile, $Output, $Err).
+
+eval_parse_file($DerivFile, $OutFile) :-
+    concatenate_string([$OutFile, ".err"], $ErrFile),
+    eval_parse_file($DerivFile, $OutFile, $ErrFile).
+
+eval_parse_file($DerivFile, $OutFile, $ErrFile) :-
+    open_file_stream($OutFile, "w", $Output),
+    open_file_stream($ErrFile, "w", $Err),
+    eval_parse_file_main($DerivFile, $Output, $Err),
+    close($Err),
+    close($Output).
+

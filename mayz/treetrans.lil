@@ -1,0 +1,307 @@
+%/**********************************************************************
+  * @module    = mayz:treetrans
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: treetrans.lil,v 1.2 2009-07-09 02:30:53 yusuke Exp $
+  * @version   = Time-stamp: <2009-07-04 13:56:21 yusuke>
+  * @desc      = Interface for treetrans
+  **********************************************************************
+%*/
+
+:- module("mayz:treetrans").
+
+:- module_interface.
+
+:- ensure_loaded("treetypes").
+:- ensure_loaded("treematch").
+:- ensure_loaded("init").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  treebank input
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% interface for reading parse trees from a text file
+input_parse_tree <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  tree transformation
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% interface for tree transformation
+tree_transform_class <- [pred].
+
+tree_ignore <- [pred].
+tree_transform_rule <- [pred].
+tree_unify <- [pred].
+
+%% obsoleted
+%tree_subst_pattern <- [pred].
+%tree_match_pattern <- [pred].
+
+% interface for preprocessing
+delete_tree <- [pred].
+nonterminal_mapping <- [pred].
+preterminal_mapping <- [pred].
+preterminal_projection <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Predicates used by the MAYZ system
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% main predicate
+transform_tree <- [pred].
+'transform_tree/2' <- [transform_tree, 'pred/2'].
+'transform_tree/5' <- ['transform_tree/2', 'pred/5'].
+
+preprocess_parse_tree <- [pred].
+postprocess_parse_tree <- [pred].
+
+% variable
+'*is_transform_rule_applied*' <- [pred].  %% whether the rule was applied or not
+:-
+    declare_array('*is_transform_rule_applied*'(array_value_integer)).
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/lists").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% before applying transformation rules
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% assign position numbers
+
+number_parse_tree_terminals_sub <- [pred].
+number_parse_tree_terminals_loop <- [pred].
+number_parse_tree_terminals_loop([], $Position, $Position).
+number_parse_tree_terminals_loop([$Dtr|$Dtrs], $Position, $NextPosition) :-
+    number_parse_tree_terminals_sub($Dtr, $Position, $Position1),
+    number_parse_tree_terminals_loop($Dtrs, $Position1, $NextPosition).
+number_parse_tree_terminals_sub(tree_empty, $Position, $Position).
+number_parse_tree_terminals_sub(tree_term & TREE_NODE\WORD\POSITION\$Position,
+				$Position, $NextPosition) :-
+    $NextPosition is $Position + 1.
+number_parse_tree_terminals_sub(tree_nts & TREE_DTRS\$Daughters,
+				$Position, $NextPosition) :-
+    number_parse_tree_terminals_loop($Daughters, $Position, $NextPosition).
+number_parse_tree_terminals <- [pred].
+number_parse_tree_terminals($ParseTree) :-
+    number_parse_tree_terminals_sub($ParseTree, 0, _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+preprocess_parse_tree_main <- [pred].
+preprocess_parse_tree_dtrs <- [pred].
+preprocess_parse_tree_dtrs([], []).
+preprocess_parse_tree_dtrs([$Tree|$Trees], $NewTrees) :-
+    (preprocess_parse_tree_main($Tree, $NewTree) ->
+     $NewTrees = [$NewTree|$NextTrees] ;
+     $NewTrees = $NextTrees),
+    preprocess_parse_tree_dtrs($Trees, $NextTrees).
+
+preprocess_dispatch <- [pred].
+preprocess_dispatch($Tree, _) :-
+    delete_tree($Tree),
+    !,
+    fail.
+preprocess_dispatch($Tree & TREE_NODE\($Node & SYM\$Sym), $Tree) :-
+    nonterminal_mapping($Sym, $OutSym),
+    overwrite($Node, SYM\, $OutSym),
+    !.
+preprocess_dispatch($Tree & TREE_NODE\($Node & SYM\$InPOS &
+					   WORD\SURFACE\$InSurface),
+			$Tree) :-
+    preterminal_mapping($InSurface, $InPOS, $OutSurface, $OutPOS),
+    overwrite($Node, SYM\, $OutPOS),
+    overwrite($Node, [WORD\, SURFACE\], $OutSurface),
+    !.
+preprocess_dispatch(($Dtr & tree_term &
+			 TREE_NODE\SYM\$Sym),
+			$Tree) :-
+    preterminal_projection($Sym, $NewSym),
+    !,
+    $Tree = (TREE_NODE\(SYM\$NewSym & FUNC\[] & ID\[]) &
+	     TREE_DTRS\[$Dtr]).
+preprocess_dispatch($Tree, $Tree).
+
+preprocess_parse_tree_main($InTree, $OutTree) :-
+    preprocess_dispatch($InTree, $Tree),
+    ($Tree = TREE_NODE\$Node & TREE_DTRS\$Dtrs ->
+     preprocess_parse_tree_dtrs($Dtrs, $NewDtrs & cons),
+     $OutTree = TREE_NODE\$Node & TREE_DTRS\$NewDtrs ;
+     $OutTree = $Tree).
+
+preprocess_parse_tree($InTree, $OutTree) :-
+    preprocess_parse_tree_main($InTree, $OutTree),
+    number_parse_tree_terminals($OutTree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% after applying transformation
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+postprocess_parse_tree($Tree, $Tree).  %% do nothing
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% tree transformation
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ignored_tree <- [bot].  %% special marker for ignored trees
+
+transform_parse_tree_node_sub <- [pred].
+transform_parse_tree_node_sub($Class, _, $InTree, ignored_tree) :-
+    tree_ignore($Class, $InTree),
+    !.
+transform_parse_tree_node_sub($Class, _, $InTree, $OutTree) :-
+    tree_transform_rule($Class, $InTree, $OutTree),
+    !.
+%% transform_parse_tree_node_sub($Class, _, $InTree, $OutTree) :-
+%%     tree_subst_pattern($Class, $InPattern, $OutPattern),
+%% %printAVM($InPattern),
+%% %printAVM($InTree),
+%%     tree_subst($InPattern, $OutPattern, $InTree, $OutTree),
+%% %printAVM($OutTree),
+%%     !.
+transform_parse_tree_node_sub($Class, _, $Tree, $Tree) :-
+    tree_unify($Class, $Tree),
+    !.
+%% transform_parse_tree_node_sub($Class, _, $Tree, $Tree) :-
+%%     tree_match_pattern($Class, $Pattern),
+%%     tree_match($Pattern, $Tree),
+%%     !.
+
+transform_parse_tree_node <- [pred].
+transform_parse_tree_node($Class, $IsStrict, $InTree, $OutTree) :-
+    (transform_parse_tree_node_sub($Class, $IsStrict, $InTree, $NextTree) ->
+     set_array('*is_transform_rule_applied*'(1)),
+     ($IsStrict =:= "exhaustive" ->
+      transform_parse_tree_node($Class, $IsStrict, $NextTree, $OutTree) ;
+      $OutTree = $NextTree)
+     ;
+     ($IsStrict =:= "strict" ->
+      tree_span_string($InTree, $SpanString),
+      error_message("Rule '~s' failed at ""~s""\n", [$Class, $SpanString]),
+      fail
+      ;
+      $InTree = $OutTree)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% bottom-up
+
+transform_parse_tree_bottomup <- [pred].
+transform_parse_tree_bottomup_dtrs <- [pred].
+transform_parse_tree_bottomup_dtrs([], _, _, []).
+transform_parse_tree_bottomup_dtrs([$Dtr|$Dtrs], $Class, $IsStrict, $OutDtrs) :-
+    transform_parse_tree_bottomup($Class, $IsStrict, $Dtr, $OutDtr),
+%printAVM([$Dtr, $OutDtr]),
+    ($OutDtr = ignored_tree ->
+     $OutDtrs = $NextDtrs ;
+     $OutDtrs = [$OutDtr|$NextDtrs]),
+    transform_parse_tree_bottomup_dtrs($Dtrs, $Class, $IsStrict, $NextDtrs).
+
+transform_parse_tree_bottomup($Class, $IsStrict, $InTree, $OutTree) :-
+    ($InTree = (TREE_NODE\$Node & TREE_DTRS\$Dtrs) ->
+     transform_parse_tree_bottomup_dtrs($Dtrs, $Class, $IsStrict, $OutDtrs),
+     ($OutDtrs = [] ->
+      $OutTree = ignored_tree ;
+      transform_parse_tree_node($Class, $IsStrict, TREE_NODE\$Node & TREE_DTRS\$OutDtrs, $OutTree))
+     ;
+     transform_parse_tree_node($Class, $IsStrict, $InTree, $OutTree)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% top-down
+
+transform_parse_tree_topdown <- [pred].
+transform_parse_tree_topdown_dtrs <- [pred].
+transform_parse_tree_topdown_dtrs([], _, _, []).
+transform_parse_tree_topdown_dtrs([$Dtr|$Dtrs], $Class, $IsStrict, $OutDtrs) :-
+    transform_parse_tree_topdown($Class, $IsStrict, $Dtr, $OutDtr),
+    ($OutDtr = ignored_tree ->
+     $OutDtrs = $NextDtrs ;
+     $OutDtrs = [$OutDtr|$NextDtrs]),
+    transform_parse_tree_topdown_dtrs($Dtrs, $Class, $IsStrict, $NextDtrs).
+
+transform_parse_tree_topdown($Class, $IsStrict, $InTree, $OutTree) :-
+    transform_parse_tree_node($Class, $IsStrict, $InTree, $NextTree),
+    ($NextTree = (TREE_NODE\$Node & TREE_DTRS\$Dtrs) ->
+     transform_parse_tree_topdown_dtrs($Dtrs, $Class, $IsStrict, $OutDtrs),
+     ($OutDtrs = [] ->
+      $OutTree = ignored_tree ;
+      $OutTree = TREE_NODE\$Node & TREE_DTRS\$OutDtrs)
+     ;
+     $OutTree = $NextTree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% root-only
+transform_parse_tree_rootonly <- [pred].
+transform_parse_tree_rootonly($Class, $IsStrict, $InTree, $OutTree) :-
+    transform_parse_tree_node($Class, $IsStrict, $InTree, $OutTree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Tree transformation main
+
+transform_parse_tree_dispatch <- [pred].
+transform_parse_tree_dispatch("topdown", $Class, $IsStrict, $InTree, $OutTree) :-
+    !,
+    transform_parse_tree_topdown($Class, $IsStrict, $InTree, $OutTree).
+transform_parse_tree_dispatch("bottomup", $Class, $IsStrict, $InTree, $OutTree) :-
+    !,
+    transform_parse_tree_bottomup($Class, $IsStrict, $InTree, $OutTree).
+transform_parse_tree_dispatch("rootonly", $Class, $IsStrict, $InTree, $OutTree) :-
+    !,
+    transform_parse_tree_rootonly($Class, $IsStrict, $InTree, $OutTree).
+transform_parse_tree_dispatch($Order, $Class, _, _, _) :-
+    error_message("Unknown transformation order for ~s: ~s\n", [$Class, $Order]),
+    fail.
+
+transform_tree($Class, $Order, $IsStrict, $InTree, $OutTree) :-
+%printAVM($InTree),
+    set_array('*is_transform_rule_applied*'(0)),
+    transform_parse_tree_dispatch($Order, $Class, $IsStrict, $InTree, $OutTree),
+%printAVM($OutTree),
+    $OutTree \= ignored_tree.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Main routine
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+apply_transform_rules <- [pred].
+apply_transform_rules([], $Tree, $Tree).
+apply_transform_rules([($Class, $Order, $IsStrict)|$ClassList], $InTree, $OutTree) :-
+    %printAVM($Class),
+    debug_message("tree transformation", "applying rule: ~s\n", [$Class]),
+    start_prof($Class),
+    (transform_tree($Class, $Order, $IsStrict, $InTree, $NextTree) ->
+     stop_prof($Class) ;
+     stop_prof($Class),
+     error_message("Tree transformation failed: ~s\n", [$Class]),
+     fail),
+    apply_transform_rules($ClassList, $NextTree, $OutTree).
+
+transform_tree($InTree, $OutTree) :-
+    preprocess_parse_tree($InTree, $NextTree),
+    findall(($Class, $Order, $IsStrict),
+	    tree_transform_class($Class, $Order, $IsStrict),
+	    $ClassList),
+    apply_transform_rules($ClassList, $NextTree, $NextTree2),
+    postprocess_parse_tree($NextTree2, $OutTree).
+

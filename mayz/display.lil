@@ -1,0 +1,93 @@
+%/**********************************************************************
+  * @module    = mayz:display
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: display.lil,v 1.2 2009-12-17 05:06:52 yusuke Exp $
+  * @version   = Time-stamp: <2009-12-17 12:24:58 yusuke>
+  * @desc      = Interface for pretty printing
+  **********************************************************************
+%*/
+
+:- module("mayz:display").
+
+:- module_interface.
+
+%% Interface to display word and lexical entry template
+
+%/**
+  * @interface = lex_template_label(+$LexTemplate, -$Label)
+  * @param     = +$LexTemplate/lex_template: name of lexical entry template
+  * @param     = -$Label/string: string to express lexical entry template
+  * @desc      = display a name of a lexical entry template in a string
+%*/
+%% OBSOLETE
+%%lex_template_label <- [pred].
+
+%/**
+  * @interface = word_label(+$Word, -$Label)
+  * @param     = +$Word/word: feature structure representing word
+  * @param     = -$Label/string: string to express word
+  * @desc      = display a word in a string
+%*/
+word_label <- [pred].
+
+%/**
+  * @interface = lexicon_key_label(+$LexKey, -$Label)
+  * @param     = +$LexKey/bot: key to lookup lexicon
+  * @param     = -$Label/string: string to express lexicon key
+  * @desc      = display a lexicon key in a string
+%*/
+%% OBSOLETE
+%%lexicon_key_label <- [pred].
+
+%% Interface to display parse results
+
+%/**
+  * @interface = schema_edge_label_unary(+$SchemaName, -$Label)
+  * @param     = +$SchemaName/bot: name of schema
+  * @param     = -$Label/string: string representing unary relation
+  * @desc      = display a relation of the mother and its daughter in a string
+%*/
+schema_edge_label_unary <- [pred].
+
+%/**
+  * @interface = schema_edge_label_binary(+$SchemaName, -$LeftLabel, -$RightLabel)
+  * @param     = +$SchemaName/bot: name of schema
+  * @param     = -$LeftLabel/string: string representing relation to left daughter
+  * @param     = -$RightLabel/string: string representing relation to right daughter
+  * @desc      = display a relation of the mother and its daughters in a string
+%*/
+schema_edge_label_binary <- [pred].
+
+%/**
+  * @interface = schema_label(+$SchemaName, -$Label)
+  * @param     = +$SchemaName/bot: name of schema
+  * @param     = -$Label/string: string expression of schema name
+  * @desc      = display a schema name in a string
+%*/
+schema_label <- [pred].
+
+%/**
+  * @interface = sign_label(+$Sign, -$Label)
+  * @param     = +$Sign/bot: sign
+  * @param     = -$Label/string: string expression of sign
+  * @desc      = display a sign in a string
+%*/
+sign_label <- [pred].
+
+%/**
+  * @interface = lexname_label(+$LexName, -$Label)
+  * @param     = +$LexName/bot: value of LEX_NAME feature
+  * @param     = -$Label/string: string expression of LEX_NAME
+  * @desc      = display LEX_NAME in a string
+%*/
+lexname_label <- [pred].
+
+%/**
+  * @interface = extent_label(+$Extent, -$Label)
+  * @param     = +$Extent/extent: extent_word or extent_bracket
+  * @param     = -$Label/string: string expression of extent
+  * @desc      = display an extent (an element of a word lattice) in a string
+%*/
+extent_label <- [pred].
+

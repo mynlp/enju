@@ -1,0 +1,216 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Corpus transformation</title>
+</head>
+
+
+
+<body>
+<h1>Corpus transformation</h1>
+
+<a href="transrules.ja.html">Japanese version</a>
+
+<p>
+The grammr of ENJU is developed by tranforming phrase structure trees of Penn Treebank into HPSG-style phrase structure trees. This transformation is done with the treetrans tool of mayz. For more details on treetrans, please refer to the manual of <a href="../../manual/treetrans.ja.html">mayz</a>.
+
+<table border=1>
+<tr><td colspan=2>treetrans rule module input file output database
+<tr><td>rule module<td>lilfes file that contains the rules for transforming phrase structure trees
+<tr><td>input file<td>treebank in(text format)
+<tr><td>output database<td>treebank out(lildb format)
+</table>
+
+<p>
+In the case of ENJU grammar, all lines are filled by text files which contain the phrase structure tree of Penn Treebank. The input file line would be as follows: 
+
+<small>
+<blockquote>
+<pre>
+(S (NP-SBJ Ms./NNP Haag/NNP) (VP plays/VBZ (NP Elianti/NNP)) ./.)
+</pre>
+</blockquote>
+</small>
+
+
+treetrans would read the above text. The generated phrase structure tree would be represented by feature structures defined in the file  "treetypes.lil" that comes with mayz. Next, the feature structures would be further transformed by pattern rules in the rule module and supplemented with additional information. 
+
+<p>
+The processing of phrase structure trees is actually broken down into the following steps:
+
+<ol>
+  <li>Supply a Phrase Structure Tree as Input
+  <li>Pre-processing
+  <li>Transformating by Pattern Rules
+</ol>
+
+<h2>Supply a Phrase Structure Tree as Input</h2>
+<p>A phrase structure tree represented as  a feature structure is constructed out of a phrase structure tree supplied in text format. To do this, call the predicate <tt>input_parse_tree/2</tt>. Supply it with the line bearing the heading "input file". 
+
+<p>
+In the case of ENJU, the treebank used as input is the Penn Treebank, which can be handled by the <tt>input_ptb_parse_tree/2</tt> predicate comes with mayz. The  <tt>input_ptb_parse_tree/2</tt> predicate is called as a sub-clause of the <tt>input_parse_tree/2</tt>  of ENJU. 
+
+<p>
+The <tt>input_ptb_parse_tree/2</tt> predicate only converts the input tree to feature structures without doing any real change to the phrase structure of the tree. Leaf nodes can be changed with the following predicates: 語<tt>ptb_empty_category/1</tt>，<tt>ptb_preprocess_pos/2</tt>，<tt>ptb_delete_pos/1</tt>，<tt>ptb_preprocess_word/2</tt>. What these predicates do is given as follows:
+
+<ol>
+<li>POS tags specified by <tt>ptb_empty_category/1</tt> would be considered as empty cateogories and assigned the 'tree_empty' type. 
+<li>Pre-processing of POS tags is done by the <tt>ptb_preprocess_pos/2</tt> predicate
+<li>Pre-processed POS tags  specified by the <tt>ptb_delete_pos/1</tt> predicate would be ignored. No feature structure would be generated for tree nodes bearing such tags. 
+<li>Nodes that are not marked as ignored are pre-processed by the <tt>ptb_preprocess_word/2</tt> predicate. 
+</ol>
+
+<p>
+In the case of ENJU, the following is specified for a phrase structure tree supplied as the input
+<ul>
+  <li>The POS tag "-NONE-" corresponds to the empty category. 
+    <li>Make the preprocessing of tags during grammar extraction the same as the preprocessing of tags during parsing. (e.g. Changing the POS tag  "." to "-PERIOD-")
+<li>Making the tags ignored during grammar extraction the same as the tags ignored during parsing. (e.g. Ignoring the "-PERIOD-" tag)
+<li>Making the preprocessing of the input string the same as the preprocessing of the input string. (e.g. Assigning "-YEAR-" to any 4-digit number)
+
+<h2>Preprocessing</h2>
+
+<p>
+During preprocessing, phrase structure trees are reshaped before applying pattern rules. 
+
+
+<p>
+Following a breath first approach, it does the following with each node of a phrase structure tree:
+
+<ol>
+<li>If there is any partial tree (of the type 'tree') below the node of the feature structures specified by the <tt>delete_tree/t</tt> predicate and such tree(s) is/are unifiable withe feature structure of the node,  all the partial trees are deleted. Deleted subtrees will not undergo the following processes:
+
+<li>If the label of a non-terminal node is specified by the <tt>nonterminal_mapping/2</tt> predicate, the label would be converted to something else.
+<li>In the case of leaves</li>
+<ol type="a">
+<li>If conversion of the input string and the assigned peterminal symbol is specified by the <tt>preterminalmapping/4</tt> predicate, proceed with conversion.</li>
+
+<li>If conversion has not been done by the <tt>preterminal_mapping</tt> predicate and the preterminal symbol of the current node corresponds to nonterminal symbols specified by  the <preterminal_projection/2</tt> predicate, the specified nonterminal symbols are added to the above of the current node.</li>
+
+</ol>
+</ol>
+
+ <tt>delete_tree/1</tt>，
+<tt>nonterminal_mapping/2</tt>，<tt>preterminal_mapping/4</tt>，
+<tt>preterminal_mapping/4</tt>  are interface predicates.
+
+
+<p>
+They specify the following things:
+
+<ul>
+<li>which tree to be protected from being deleted
+<li>conversion of nonterminal symbls (e.g. from "NAC" to "NP")
+<li>conversion of preterminal symbols (e.g. from "%/NN" to "%/%")
+<li>
+
+</ul>
+
+These are done in the following manner
+
+<small>
+<blockquote>
+<pre>
+nonterminal_mapping("NAC", "NP").
+preterminal_mapping("%", "NN", "%", "%").
+</pre>
+</blockquote>
+</small>
+
+These interfaces are called by the  "devel/transmain.lil" predicate. 
+
+<h2><a name="transform">Transformation by Pattern Rules</a></h2>
+
+<p>Pattern  rules are applied to preprocessed phrase structure trees. Transformed trees are stored in the output database.
+
+<p>The objective is to construct HPSG-style phrase structure trees from the transformed phrase structure trees. Codess like the following are included as one of the pattern rules: 
+
+<ul>
+   <li>Fixing Erros in the Penn Treebank:
+   For example, changing (PP ***/RP XXX) to (PP ***/IN XXX)
+   <li>Specifying the Structure of the "than"-construction:
+That is, changing (... than/IN XXX) to (... (PP than/IN XXX:argument))
+   <li>Determining the Head of all Non-terminal Nodes
+   <li>Converting to Binary Trees Based on Headed Structures.
+   <li>Applying Syntactic Rules to Nodes:
+For example, applying the Head-Subject schema to (X Y:arg Z:head).
+</ul>
+<p>Pattern rules used for transformation are defined by  the following interface predicates: <tt>tree_transform_class/3</tt>，<tt>tree_ignore/2</tt>，
+<tt>tree_transform_rule/3</tt>，<tt>tree_subst_pattern/3</tt>，
+<tt>tree_unify/2</tt>，<tt>tree_match_pattern/2</tt>. The first thing to do is the declaration of pattern rules.  The name of the relevant rule, the order of rule application and the operation after rule application  are specified by the <tt>tree_transform_class/3</tt> predicate.  Patterns rules are applied in the order they are declareded. 
+
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_class(+$Name, +$Direction, +$Strict)</tt>
+<tr><td><tt>+$Name</tt><td>Name of a Pattern Rule
+<tr><td><tt>+$Direction</tt><td>The Order of Rule Application
+        <ul>
+	  <li>"topdown": From a node at the top to a node at the bottom
+	  <li>"bottomup": From a node at the bottom to a node at the top
+	  <li>"rootonly": Only to the root node
+<tr><td><tt>+$Strict</tt><td>Operation after Rule Application
+        <ul>
+          <li>"strict": If application fails, fail the transformation 
+          <li>"weak": If application fails, carry on with the next rule
+          <li>"exhaustive": If application succeed, reapply the rule until it fails
+	</ul>
+</table>
+
+
+<p>
+The kind of processing done by a pattern rule is specified by the following predicates' <tt>tree_ignore/2</tt>，
+<tt>tree_transform_rule/3</tt>，<tt>tree_subst_pattern/3</tt>，
+<tt>tree_unify/2</tt>, <tt>tree_match_pattern/2</tt>. The processing of a rule by these predicates is as follows:
+
+<ol>
+<li>If the tree under processing is unifiable with the partial tree specified by the <tt>tree_ignore/2</tt> predicate, delete the tree under processing.
+<li>If the tree under processing satisfies the contraints given by  the <tt>tree_transform_rule/3</tt> predicate, substitute with the partial tree returned by the <tt>tree_transform_rule/3</tt>. 
+ <li>If the tree under processing matches the pattern  given by  the <tt>tree_subst_pattern/3</tt> predicate, substitute with the pattern returned by the <tt>tree_subst_pattern/3</tt>. 
+<li>Unify the tree under processing with the partial tree given by  the <tt>tree_unify/2</tt> predicate. 
+<li>Match the tree under processing with the pattern given by  the <tt>tree_match_pattern/2</tt> predicate. 
+</ol>
+
+If a predicate given above succeeds once, ENJU regards the application of the corresponding rule as successful. If 1. succeeds, 2. would not be executed. If the last clause fails, the application of the corresponding pattern rule is regarded as failed.
+
+<p>
+ENJU defines pattern rules in the following manner. This rule specifies the structure of a "than" phrase. It is a pattern rule that transform  bracketing information given as (... than/IN XXX)  to  (... (PP than/IN XXX:argument)).
+
+<p>
+After completion of tranformation, check whether the correct value is assigned to the TREENODE\SCHEMANAME\ feature of each node in the relevant phrase structure tree. This feature gives the name of the schema applied to the daughter of the current node. This information would be extracted in the next step.
+
+<small>
+<blockquote>
+<pre>
+tree_transform_class("than", "topdown", "weak").
+tree_subst_pattern("than",
+		   TREE_NODE\$Node & TREE_DTRS\$Dtrs,
+		   TREE_NODE\$Node & TREE_DTRS\$NewDtrs) :-
+    $Dtrs = [$Left & tree_any & ANY_TREES\[_|_],
+	     $Than & tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+	     $Right & tree & TREE_NODE\HEAD_MARK\argument],
+    $NewDtrs = [$Left,
+		TREE_NODE\(SYM\"PP" & FUNC\[] & ID\[] & HEAD_MARK\modifier_non_empty) &
+		TREE_DTRS\[$Than, $Right]].
+</pre>
+</blockquote>
+</small>
+
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

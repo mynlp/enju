@@ -1,0 +1,107 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>mayzup: MAYZ 文法用パーザ</title>
+</head>
+
+
+
+<body>
+<h1>mayzup: MAYZ 文法用パーザ</h1>
+
+<a href="mayzup.html">English version</a>
+
+<p>
+MAYZ ツールキットで作成した文法および確率モデルを使って，構文解析を行
+なうためのプログラムです．
+
+<table border=1>
+<tr><td colspan=2>mayzup [オプション] [-a 引数]
+<tr><td colspan=2>-a 以降の引数は LiLFeS プログラムに渡されます．
+<tr><td colspan=2>オプション
+<tr><td>-L ディレクトリ<td>LiLFeS モジュールのサーチパス
+<tr><td>-W 数<td>単語数の上限
+<tr><td>-E 数<td>エッジ数の上限
+<tr><td>-l ファイル名<td>LiLFeS プログラムをロードする
+<tr><td>-e コマンド<td>LiLFeS コマンドを実行する
+<tr><td>-i<td>インタラクティブモード (LiLFeS プロンプトを表示する)
+<tr><td>-n<td>インタラクティブモードにしない
+<tr><td>-iter<td>Iterative beam thresholding を用いて曖昧性解消を行う
+<tr><td>-fom<td>曖昧性解消を行う
+<tr><td>-nofom<td>曖昧性解消を行わない
+</table>
+
+<p>
+-l で指定されたモジュールを読みこみ，パーザを起動します．LiLFeS コマン
+ドが指定されている場合は，それを実行します．インタラクティブモードが指
+定されている場合は，コマンド終了後，LiLFeS のコマンドプロンプトを表示
+します．
+
+<p>
+このツールは，LiLFeS モジュールを読みこみ，<a href="up.ja.html">up</a> 
+のインタフェースを使えるようにするだけです．Lexicon などの読み込みや，
+FOM モデルの初期化などは行ないません．これらは，UP のインタフェース 
+<tt>parser_init</tt>を利用してください．
+
+<p>
+<tt>mayzup</tt> では，<a href="up.ja.html">up</a> で提供される機能に加
+えて，以下の組み込み述語が提供されています．以下の述語を利用すると，
+MAYZ ツールキットで作成した確率モデルを使った構文解析を簡単に実現する
+ことが出来ます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>init_amis_model(+$ModelName, +$ModelFile)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$ModelFile<td>パラメタファイルの名前
+<tr><td colspan=2>新しい amis モデルを作り，$ModelFile からパラメタを
+読みこみ，さらに feature_mask を読みこんで初期化します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>delete_amis_model(+$ModelName)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td colspan=2>init_amis_model/2 で作ったモデルを消します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_event_weight(+$ModelName, +$Category,
++$Event, -$FOM)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$Event<td>イベント(文字列のリスト)
+<tr><td>$FOM<td>イベントの FOM (log probability)
+<tr><td colspan=2>文字列リストで表されたイベントに，$Category の
+feature mask をかけて得られた素性の重みの和を FOM として返す．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_log_probability(+$ModelName, +$Category,
++$EventList, -$FOMList)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$EventList<td>イベントのリスト(文字列リストのリスト)
+<tr><td>$FOMList<td>イベントの FOM (log probability) のリスト
+<tr><td colspan=2>各イベントの重みを amis_event_weight で計算し，それ
+を正規化して FOM のリストとして返す．
+</table>
+
+<p>
+これ以外の機能は up と同じなので，<a href="up.ja.html">up のマニュアル
+</a>を参照してください．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

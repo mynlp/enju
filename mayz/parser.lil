@@ -1,0 +1,830 @@
+%/**
+  * @module    = mayz:parser
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2005-06-21 19:36:47 yusuke>
+  * @cvs       = $Id: parser.lil,v 1.6 2009-12-03 23:33:26 matuzaki Exp $
+  * @desc      = Common interface for HPSG parsers on LiLFeS
+  *
+  * <em>The common interface for HPSG parsers</em> defines the interface
+  * for grammars, parsers, and other applications.
+  * The interface presupposes binary and unary rules and
+  * no empty categories.
+  * The interface consists of the following:
+  * <dl>
+  * <dt>Grammar Interface
+  * <dd>This defines the interface between a grammar and a parser.
+  *     Grammar writers must write the following interface to
+  *     give necessary data to parsers.
+  *     <ul>
+  *       <li><code><a href="#sentence_to_lattice/2">sentence_to_lattice/2</a></code>
+  *       <li><code><a href="#word_to_lookup_keys/2">word_to_lookup_keys/2</a></code>
+  *       <li><code><a href="#lexical_entry_sign/2">lexical_entry_sign/2</a></code>
+  *       <li><code><a href="#id_schema_binary/5">id_schema_binary/5</a></code>
+  *       <li><code><a href="#id_schema_unary/4">id_schema_unary/4</a></code>
+  *       <li><code><a href="#reduce_sign/3">reduce_sign/3</a></code>
+  *       <li><code><a href="#root_sign/1">root_sign/1</a></code>
+  *       <li><code><a href="#fom_root/2">fom_root/2</a></code>
+  *       <li><code><a href="#fom_binary/6">fom_binary/6</a></code>
+  *       <li><code><a href="#fom_unary/5">fom_unary/5</a></code>
+  *       <li><code><a href="#fom_terminal/4">fom_terminal/4</a></code>
+  *       <li><code><a href="#word_to_strlist/2">word_to_strlist/2</a></code>
+  *       <li><code><a href="#strlist_to_word/4">strlist_to_word/4</a></code>
+  *     </ul>
+  * <dt>Parser Control
+  * <dd>This defines the interface to control the parser.
+  *     <ul>
+  *       <li><code><a href="#parser_init/0">parser_init/0</a></code>
+  *       <li><code><a href="#parser_term/0">parser_term/0</a></code>
+  *       <li><code><a href="#set_grammar_name/1">set_grammar_name/1</a></code>
+  *       <li><code><a href="#get_grammar_name/1">get_grammar_name/1</a></code>
+  *       <li><code><a href="#set_grammar_version/1">set_grammar_version/1</a></code>
+  *       <li><code><a href="#get_grammar_version/1">get_grammar_version/1</a></code>
+  *       <li><code><a href="#set_limit_sentence_length/1">set_limit_sentence_length/1</a></code>
+  *       <li><code><a href="#get_limit_sentence_length/1">get_limit_sentence_length/1</a></code>
+  *       <li><code><a href="#set_limit_edge_number/1">set_limit_edge_number/1</a></code>
+  *       <li><code><a href="#get_limit_edge_number/1">get_limit_edge_number/1</a></code>
+  *       <li><code><a href="#set_limit_parse_time/1">set_limit_parse_time/1</a></code>
+  *       <li><code><a href="#get_limit_parse_time/1">get_limit_parse_time/1</a></code>
+  *       <li><code><a href="#set_parser_mode/2">set_parser_mode/2</a></code>
+  *       <li><code><a href="#get_parser_mode/2">get_parser_mode/2</a></code>
+  *     </ul>
+  * <dt>Parser Input
+  * <dd>This defines an interface for inputs of parsers.  Users of a parser
+  *     uses the following predicates to give a sentence to a parser.
+  *     <ul>
+  *       <li><code><a href="#parse/1">parse/1</a></code>
+  *     </ul>
+  * <dt>Parser Output
+  * <dd>This defines accessors for parse results.
+  *     Parsers are assumed to store the parsing results in the following
+  *     chart table-like data structure:
+  *     <pre>
+  *                 (0,n)
+  *            ..............
+  *        (0,2) (1,3) ... (n-2,n)
+  *     (0,1) (1,2) (2,3) ... (n-1,n)
+  *      w_0   w_1   w_2  ... w_{n-1}
+  *     </pre>
+  *     Each pair (i,j) corresponds to the cell in the chart table which
+  *     covers the i-th word to j-th word.
+  *     Edges are stored in each cell, where they are indexed by an integer
+  *     (an edge ID).
+  *     You can get an edge by specifying this ID.
+  *     Users use the following
+  *     predicates to browse the parse results.
+  *     <ul>
+  *       <li><code><a href="#get_parse_status">get_parse_status/1</a></code>
+  *       <li><code><a href="#edge_id_list/3">edge_id_list/3</a></code>
+  *       <li><code><a href="#top_edge_id_list/1">top_edge_id_list/1</a></code>
+  *       <li><code><a href="#root_edge_id_list/1">root_edge_id_list/1</a></code>
+  *       <li><code><a href="#edge_sign/2">edge_sign/2</a></code>
+  *       <li><code><a href="#edge_position/3">edge_position/3</a></code>
+  *       <li><code><a href="#edge_link_id_list/2">edge_link_id_list/2</a></code>
+  *       <li><code><a href="#edge_link/2">edge_link/2</a></code>
+  *       <li><code><a href="#get_parse_tree/2">get_parse_tree/2</a></code>
+  *       <li><code><a href="#edge_fom/2">edge_fom/2</a></code>
+  *       <li><code><a href="#edge_link_fom/2">edge_fom/2</a></code>
+  *       <li><code><a href="#best_fom_sign/3">best_fom_sign/3</a></code>
+  *       <li><code><a href="#best_fom_parse_tree/2">best_fom_parse_tree/2</a></code>
+  *       <li><code><a href="#get_word_lattice/1">get_word_lattice/1</a></code>
+  *       <li><code><a href="#get_sentence_length/1">get_sentence_length/1</a></code>
+  *       <li><code><a href="#get_edge_number/1">get_edge_number/1</a></code>
+  *       <li><code><a href="#get_analyze_word_time/1">get_analyze_word_time/1</a></code>
+  *       <li><code><a href="#get_analyze_lexent_time/1">get_analyze_lexent_time/1</a></code>
+  *       <li><code><a href="#get_analyze_parse_time/1">get_analyze_parse_time/1</a></code>
+  *       <li><code><a href="#get_total_time/1">get_total_time/1</a></code>
+  *       <li><code><a href="#get_parser_name/1">get_parser_name/1</a></code>
+  *       <li><code><a href="#get_parser_version/1">get_parser_version/1</a></code>
+  *     </ul>
+  * </dl>
+%*/
+
+:- module("mayz:parser").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lexentry").
+
+:- module_extendable.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Grammar Interface
+%%%
+
+%/**
+  * @interface = sentence_to_lattice(+$SENTENCE, -$ExtentList)
+  * @param     = +$SENTENCE/string : input sentence
+  * @param     = -$ExtentList/list : list of extents
+  * @desc      = translate a sentence into extents
+  * This lets $ExtentList be the list of extents of the sentence, $SENTENCE.
+  * An extent is represented with the following feature structures.
+  * <pre>
+  * extent <- [bot] +
+  *           [BEGIN_POSITION\integer, %% Begin lattice node of the extent
+  *            END_POSITION\integer].  %% End lattice node of the extent
+  * extent_bracket <- [extent].           %% Inhibit constituents crossing the bracket
+  * extent_lexents <- [extent] +
+  *                   [LEXENT_LIST\lexent_list]. %% List of lexent_fom
+  * </pre>
+  * 'lexent_fom' type is defined as follows:
+  * <pre>
+  * lexent_fom <- [bot] + [LEXENT\lex_entry, LEXENT_FOM\float].
+  * </pre>
+%*/
+sentence_to_lattice <- [pred].
+'sentence_to_lattice/2' <- [sentence_to_lattice, 'pred/2'].
+
+sentence_to_lattice(_, _) :- fail.
+
+lexent_fom <- [bot] + [LEXENT\lex_entry(0), LEXENT_FOM\float(1)].
+
+lexent_list <- [list].
+lexent_cons <- [cons, lexent_list] + [hd\lexent_fom, tl\lexent_list].
+lexent_nil  <- [nil, lexent_list].
+
+extent <- [bot] +
+          [BEGIN_POSITION\integer(0),   %% Begin position of the extent
+           END_POSITION\integer(1)].    %% End position of the extent
+extent_bracket <- [extent].             %% Inhibit constituents crossing the bracket
+extent_lexents <- [extent] +
+                  [LEXENT_LIST\lexent_list(2)]. %% List of lexical entries and their scores
+
+%% extent_sign_constraint <- [extent] +
+%%  [SIGN_CONSTRAINT\bot(5)].    %% Constrain signs in the cell
+
+%/**
+  * @interface = words(+$Begin, +$End, -$WordList)
+  * @param     = +$Begin/bot     : begin position of an extent : integer
+  * @param     = +$End/bot       : end position of an extent : integer
+  * @param     = -$WordList/list : list of words in the specified extent
+  * @desc      = get words in an extent
+  * This predicate lets $WordList be a list of words in an extent [$Begin, $End)
+%*/
+words <- [pred].
+'words/3' <- [words, 'pred/3'].
+
+%/**
+  * @interface = lexical_entry_sign(+$LEX_NAME, -$SIGN)
+  * @param     = +$LEX_NAME/bot : a lexical entry ID
+  * @param     = -$SIGN/bot : a lexical entry
+  * @desc      = look up a lexical entry sign
+  * This predicate lets $SIGN be a lexical entry sign for an ID $LEX_NAME.
+  * $LEX_NAME is stored in the 'LEX_NAME\' feature of edge_link.
+  * $LEX_NAME must correspond to a unique sign.
+%*/
+lexical_entry_sign <- [pred].
+'lexical_entry_sign/2' <- [lexical_entry_sign, 'pred/2'].
+
+:- multifile('lexical_entry_sign/2').
+
+%/**
+  * @interface = id_schema_binary(+$NAME, +$LEFT, +$RIGHT, -$MOTHER, +$DCP)
+  * @param     = +$NAME/bot : a name of a schema
+  * @param     = +$LEFT/bot : a left daughter
+  * @param     = +$RIGHT/bot : a right daughter
+  * @param     = -$MOTHER/bot : a mother
+  * @param     = +$DCP/pred : DCP executed in parsing
+  * @see       = id_schema_unary/4
+  * @desc      = Definition of a binary ID schema
+  * Definition of ID schemata (grammar rules of an HPSG grammar).
+  * $NAME can be used for identifying each schema.
+  * The sign of the schema is specified by $MOTHER, where its daughters are
+  * specified by $LEFT and $RIGHT.  You can specify a definite clause
+  * program (DCP) $DCP, which is evaluated when the schema
+  * application succeeds.  If you do not need DCPs, write "true".
+%*/
+id_schema_binary <- [pred].
+'id_schema_binary/5' <- [id_schema_binary, 'pred/5'].
+
+%/**
+  * @interface = id_schema_unary(+$NAME, +$DAUGHTER, -$MOTHER, +$DCP)
+  * @param     = +$NAME/bot : a name of a schema
+  * @param     = +$DAUGHTER/bot : a daughter
+  * @param     = -$MOTHER/bot : a mother
+  * @param     = +$DCP/pred : DCP executed in parsing
+  * @see       = id_schema_binary/5
+  * @desc      = Definition of a unary ID schema
+  * Definition of ID schemata (grammar rules of an HPSG grammar).
+  * $NAME can be used for identifying each schema.
+  * The sign of the schema is specified by $MOTHER, where its daughter is
+  * specified by $DAUGHTER.  You can specify a definite clause
+  * program (DCP) $DCP, which is evaluated when the schema
+  * application succeeds.  If you do not need DCPs, write "true".
+%*/
+id_schema_unary <- [pred].
+'id_schema_unary/4' <- [id_schema_unary, 'pred/4'].
+
+%/**
+  * @interface = reduce_sign(-$InSign, +$OutSign, +$SignPlus)
+  * @param     = $InSign/bot : a sign
+  * @param     = $OutSign/bot : a sign
+  * @param     = $SignPlus/bot : reduced part of a sign
+  * @desc      = Definition of the factoring of a sign.
+%*/
+reduce_sign <- [pred].
+'reduce_sign/3' <- [reduce_sign, 'pred/3'].
+
+%/**
+  * @interface = root_sign($Sign)
+  * @param     = $Sign/bot : a sign
+  * @desc      = Definition of a root condition
+%*/
+root_sign <- [pred].
+'root_sign/1' <- [root_sign, 'pred/1'].
+
+%/**
+  * @interface = fom_root(+$Sign, -$FOM)
+  * @param     = +$Sign/bot : phrasal sign of the root of a sentence
+  * @param     = -$FOM/float : FOM of the sign
+  * @desc      = FOM of the root of a sentence
+  * This predicate computes the FOM of the sign of the root of a sentence.
+%*/
+fom_root <- [pred].
+'fom_root/2' <- [fom_root, 'pred/2'].
+
+%/**
+  * @interface = fom_binary(+$RuleName, +$LeftDtr, +$RightDtr, +$MotherSign, +$SignPlus, -$FOM)
+  * @param     = +$RuleName/bot : schema name
+  * @param     = +$LeftDtr/bot : sign of the left daughter
+  * @param     = +$RightDtr/bot : sign of the right daughter
+  * @param     = +$MotherSign/bot : sign of the mother
+  * @param     = +$SignPlus/bot : 3rd argument of 'reduce_sign/3'
+  * @param     = -$FOM/float : FOM of the construction
+  * @desc      = FOM of the application of a binary rule
+  * This predicate computes the FOM of the application of a binary rule.
+%*/
+fom_binary <- [pred].
+'fom_binary/6' <- [fom_binary, 'pred/6'].
+
+%/**
+  * @interface = fom_unary(+$RuleName, +$Dtr, +$MotherSign, +$SignPlus, -$FOM)
+  * @param     = +$RuleName/bot : schema name
+  * @param     = +$Dtr/bot : sign of the daughter
+  * @param     = +$MotherSign/bot : sign of the mother
+  * @param     = +$SignPlus/bot : 3rd argument of 'reduce_sign/3'
+  * @param     = -$FOM/float : FOM of the construction
+  * @desc      = FOM of the application of a unary rule
+  * This predicate computes the FOM of the application of a unary rule.
+%*/
+fom_unary <- [pred].
+'fom_unary/5' <- [fom_unary, 'pred/5'].
+
+%/**
+  * @interface = fom_terminal(+$LexName, +$Sign, +$SignPlus, -$FOM)
+  * @param     = +$LexName/bot : a lexicon name (stored in LEX_NAME\)
+  * @param     = +$Sign/bot : lexical entry corresponding to the word
+  * @param     = +$SignPlus/bot : 3rd argument of 'reduce_sign/3'
+  * @param     = -$FOM/float : FOM of the terminal sign
+  * @desc      = FOM of the terminal sign
+  * This predicate computes the FOM of a terminal sign
+%*/
+fom_terminal <- [pred].
+'fom_terminal/4' <- [fom_terminal, 'pred/4'].
+
+%/*
+  * @interface = word_to_strlist(+$Word, -$WordFeatures)
+  * @param     = +$Word/bot : a word feature structure
+  * @param     = -$WordFeatures/list : a string-list representation of the input word
+  * @desc      = conversion from a word TFS to its string-list representation
+  * This predicate converts a word TFS to its string-list representation
+%*/
+word_to_strlist <- [pred].
+'word_to_strlist/2' <- [word_to_strlist, 'pred/2'].
+
+%/*
+  * @interface = strlist_to_word(+$WordFeatures, +$Begin, +$End, -$Word)
+  * @param     = +$WordFeatures/list : a string-list representation of a word
+  * @param     = +$Begin : lattice node ID of the begin position
+  * @param     = +$End   : lattice node ID of the end position
+  * @param     = -$Word/bot : a word feature structure
+  * @desc      = conversion from a string-list to a word TFS
+  * This predicate converts a string-list to a word TFS
+%*/
+strlist_to_word <- [pred].
+'strlist_to_word/4' <- [strlist_to_word, 'pred/4'].
+
+%/*
+  * @interface = word_to_lookup_keys(+$Word, -$LookupKeys)
+  * @param     = +$Word/bot : word type
+  * @param     = -$LookupKeys/list : a list of lexicon lookup keys
+  * @desc      = lexicon look-up keys of a word
+  * This predicate makes a list of lexicon look-up keys from a word type
+%*/
+word_to_lookup_keys <- [pred].
+'word_to_lookup_keys/2' <- [word_to_lookup_keys, 'pred/2'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Parser Control
+%%%
+
+%/**
+  * @interface = parser_init
+  * @desc      = specify a program for initializing the parser
+  * This interface can be used to specify a program to be executed
+  * when the parser is intialized.
+%*/
+parser_init <- [pred].
+'parser_init/0' <- [parser_init, 'pred/0'].
+
+%/**
+  * @interface = parser_term
+  * @desc      = specify a program for terminating the parser
+  * This interface can be used to specify a program to be executed
+  * when the parser is terminated.
+%*/
+parser_term <- [pred].
+'parser_term/0' <- [parser_term, 'pred/0'].
+
+%% Calls all parser_init/parser_term
+initialize_parser <- [pred].
+'initialize_parser/0' <- [initialize_parser, 'pred/0'].
+terminate_parser <- [pred].
+'terminate_parser/0' <- [terminate_parser, 'pred/0'].
+
+%/**
+  * @variable = set_grammar_name(+$NAME)
+  * @param    = +$NAME/string : a name of the grammar
+  * @desc     = Definition of a name of the grammar
+  * @see      = get_grammar_name/1
+  * Set the name of the grammar.
+%*/
+set_grammar_name <- [pred].
+'set_grammar_name/1' <- [set_grammar_name, 'pred/1'].
+
+%/**
+  * @variable = get_grammar_name(+$NAME)
+  * @param    = +$NAME/string : a name of the grammar
+  * @desc     = Definition of a name of the grammar
+  * @see      = set_grammar_name/1
+  * Get the name of the grammar.
+%*/
+get_grammar_name <- [pred].
+'get_grammar_name/1' <- [get_grammar_name, 'pred/1'].
+
+%/**
+  * @variable = set_grammar_version(+$VERSION)
+  * @param    = +$VERSION/string : a version of the grammar
+  * @desc     = Definition of a version of the grammar
+  * @see      = get_grammar_version/1
+  * Set the version of the grammar.
+%*/
+set_grammar_version <- [pred].
+'set_grammar_version/1' <- [set_grammar_version, 'pred/1'].
+
+%/**
+  * @variable = get_grammar_version(+$VERSION)
+  * @param    = +$VERSION/string : a version of the grammar
+  * @desc     = Definition of a version of the grammar
+  * @see      = set_grammar_version/1
+  * Get the version of the grammar.
+%*/
+get_grammar_version <- [pred].
+'get_grammar_version/1' <- [get_grammar_version, 'pred/1'].
+
+%/**
+  * @variable = set_limit_sentence_length(+$NUM)
+  * @param    = +$NUM/integer : a limit length of sentences
+  * @desc     = Definition of a limit length of sentences
+  * @see      = get_limit_words/1
+  * This variable specifies the limit number of words (morphemes).
+  * If an input sentence exceeds the limit,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+set_limit_sentence_length <- [pred].
+'set_limit_sentence_length/1' <- [set_limit_sentence_length, 'pred/1'].
+
+%/**
+  * @variable = get_limit_sentence_length(+$NUM)
+  * @param    = +$NUM/integer : a limit length of sentences
+  * @desc     = Definition of a limit length of sentences
+  * @see      = set_limit_words/1
+  * This variable obtains the limit number of words (morphemes).
+  * If an input sentence exceeds the limit,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+get_limit_sentence_length <- [pred].
+'get_limit_sentence_length/1' <- [get_limit_sentence_length, 'pred/1'].
+
+%/**
+  * @variable = set_limit_edge_number'(+$NUM)
+  * @param    = +$NUM/integer : a limit number of edges
+  * @desc     = Definition of a limit number of edges
+  * @see      = get_limit_edge_number/1
+  * This variable specifies the limit number of edges (morphemes).
+  * If a parser generates more than the limit number of edges,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+set_limit_edge_number <- [pred].
+'set_limit_edge_number/1' <- [set_limit_edge_number, 'pred/1'].
+
+%/**
+  * @variable = get_limit_edge_number'(+$NUM)
+  * @param    = +$NUM/integer : a limit number of edges
+  * @desc     = Definition of a limit number of edges
+  * @see      = set_limit_edge_number/1
+  * This variable obtains the limit number of edges.
+  * If a parser generates more than the limit number of edges,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+get_limit_edge_number <- [pred].
+'get_limit_edge_number/1' <- [get_limit_edge_number, 'pred/1'].
+
+%/**
+  * @variable = set_limit_parse_time'(+$NUM)
+  * @param    = +$NUM/integer : a limit of parse time (in second)
+  * @desc     = Definition of a limit of parse time
+  * @see      = get_limit_parse_time/1
+  * This variable specifies the limit parse time (in second).
+  * If a parse time exceeds the limit time,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+set_limit_parse_time <- [pred].
+'set_limit_parse_time/1' <- [set_limit_parse_time, 'pred/1'].
+
+%/**
+  * @variable = get_limit_parse_time'(+$NUM)
+  * @param    = +$NUM/integer : a limit number of parse time (in second)
+  * @desc     = Definition of a limit number of parse time (in second)
+  * @see      = set_limit_parse_time/1
+  * This variable obtains the limit of parse time.
+  * If a parse time exceeds the limit time,
+  * <a href="#parse/1">'parse/1'</a> fails.
+%*/
+get_limit_parse_time <- [pred].
+'get_limit_parse_time/1' <- [get_limit_parse_time, 'pred/1'].
+
+%/**
+  * @variable = set_parser_mode(+$Mode, -$Value)
+  * @param    = +$Mode/string : a name of the parameter
+  * @param    = -$Value/bot : a value of the parameter
+  * @desc     = Parser-dependent parameter setting
+  * This predicate is for a switch for changing parser bahaviours.
+  * Parameters are dependent on parsers.
+%*/
+set_parser_mode <- [pred].
+'set_parser_mode/2' <- [set_parser_mode, 'pred/2'].
+
+%/**
+  * @variable = get_parser_mode(+$Mode, -$Value)
+  * @param    = +$Mode/string : a name of the parameter
+  * @param    = -$Value/bot : a value of the parameter
+  * @desc     = Parser-dependent parameter setting
+  * This predicate is for a switch for changing parser bahaviours.
+  * Parameters are dependent on parsers.
+%*/
+get_parser_mode <- [pred].
+'get_parser_mode/2' <- [get_parser_mode, 'pred/2'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Parser Input
+%%%
+
+%/**
+  * @interface = parse(+$Sentence)
+  * @param     = +$Sentence/string : an input sentence
+  * @desc      = Parse a sentence
+  * @see       = parse_word_lattice/2
+  * Start parsing a sentence and store the results into the chart table.
+%*/
+parse <- [pred].
+'parse/1' <- [parse, 'pred/1'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Parser Output
+%%%
+
+%/**
+  * @interface = get_parse_status(-$Status)
+  * @param     = -$Status/parse_status: status of parsing
+  * @desc      = Get the status of parsing
+  * Get the status of parsing with the following types.
+  * parse_status <- [bot].
+  * parse_success <- [parse_status].            %% successful parse
+  * parse_failure <- [parse_status].            %% failure
+  * parse_no_root_edge <- [parse_failure].      %% no successful parse
+  * preprocess_failure <- [parse_failure].      %% error in preprocessing
+  * parse_error <- [parse_failure].
+  * parse_error_too_long <- [parse_error].      %% limit of sentence length exceeded
+  * parse_error_edge_limit <- [parse_error].    %% limit of the number of edges exceeded
+  * parse_error_time_limit <- [parse_error].    %% limit of parse time exceeded
+  * parse_error_search_limit <- [parse_error].  %% limit of search width exceeded
+  * parse_error_unknown <- [parse_error].       %% unknown error
+%*/
+get_parse_status <- [pred].
+'get_parse_status/1' <- [get_parse_status, 'pred/1'].
+
+parse_status <- [bot].
+not_parsed_yet <- [parse_status].            %% not started
+parse_success  <- [parse_status].            %% successful parse
+parse_failure  <- [parse_status].            %% failure
+preprocess_error <- [parse_failure].         %% error in preprocessing
+word_analysis_error   <- [preprocess_error]. %% error in word analysis
+lexent_analysis_error <- [preprocess_error]. %% error in lexent analysis
+parse_error <- [parse_failure].
+parse_error_too_long     <- [parse_error].  %% limit of sentence length exceeded
+parse_error_edge_limit   <- [parse_error].  %% limit of the number of edges exceeded
+parse_error_time_limit   <- [parse_error].  %% limit of parse time exceeded
+parse_error_search_limit <- [parse_error].  %% limit of search width exceeded
+parse_error_unknown      <- [parse_error].  %% unknown error
+
+%/**
+  * @interface = edge_id_list(+$Left, +$Right, -$IDList)
+  * @param     = +$Left/integer : a left position of a cell
+  * @param     = +$Right/integer : a right position of a cell
+  * @param     = -$IDList/list of integers : a list of IDs of edges in the cell
+  * @desc      = Get an ID list of a cell
+  * Get the list of IDs of a specified cell in the chart table.
+%*/
+edge_id_list <- [pred].
+'edge_id_list/3' <- [edge_id_list, 'pred/3'].
+
+%/**
+  * @interface = top_edge_id_list(-$IDList)
+  * @param     = -$IDList/list of integers : a list of IDs of edges in the top cell
+  * @see       = edge_id_list/3
+  * @desc      = Get an ID list of the top cell
+  * Get the list of IDs of the final parsing result (i.e., in the top cell).
+  * This is the same as <code>edge_id_list(0, $Len, $IDList)</code>,
+  * when $Len is equal to the sentence length.
+%*/
+top_edge_id_list <- [pred].
+'top_edge_id_list/1' <- [top_edge_id_list, 'pred/1'].
+
+%/**
+  * @interface = root_edge_id_list(-$LIST)
+  * @param     = -$LIST/list : a list of IDs
+  * @desc      = get the list of edge IDs that satisfy the root condition
+%*/
+root_edge_id_list <- [pred].
+'root_edge_id_list/1' <- [root_edge_id_list, 'pred/1'].
+
+%/**
+  * @interface = edge_sign(+$ID, -$Sign)
+  * @param     = +$ID/integer : an ID of an edge
+  * @param     = -$Sign/bot : a sign
+  * @desc      = Get a sign of a specified edge ID
+  * Get the feature structure of a specified ID.
+%*/
+edge_sign <- [pred].
+'edge_sign/2' <- [edge_sign, 'pred/2'].
+
+%/**
+  * @interface = edge_position(+$ID, -$Left, -$Right)
+  * @param     = +$ID/integer : an ID of an edge
+  * @param     = -$Left/integer : left position
+  * @param     = -$Right/integer : right position
+  * @desc      = Get the position of a specified edge ID
+  * Get the position of a specified ID.
+%*/
+edge_position <- [pred].
+'edge_position/3' <- [edge_position, 'pred/3'].
+
+%/**
+  * @interface = edge_link_id_list(+$ID, -$IDList)
+  * @param     = +$ID/integer : an ID of an edge
+  * @param     = -$IDList/list of IDs of edge_link: a list of IDs of edge_link
+  * @desc      = Get links to daughter edges
+  * Get IDs of edge_link, which is a link to daughter edges.
+  * Each element of the list corresponds to each factored out edge.
+%*/
+edge_link_id_list <- [pred].
+'edge_link_id_list/2' <- [edge_link_id_list, 'pred/2'].
+
+%/**
+  * @interface = edge_link(+$ID, -$Link)
+  * @param     = +$ID/integer : an ID of an edge link
+  * @param     = -$Link/link: an edge link
+  * @desc      = Get a link to daughter edges
+  * Get a link to daughter edges.
+  * A link corresponds to each factored out edge.
+  * The definition of 'link' is like this:
+  * <pre>
+  * link <- [bot] +
+  *     [SIGN_PLUS\bot (-100)].      %% Reduced feature values for factoring
+  * terminal <- [link] +
+  *     [LEX_NAME\bot (5),           %% 2rd argument of 'lexical_entry/2'
+  *      WORD_ID\integer(6)].        %% only for internal use
+  * nonterminal <- [link] +
+  *     [APPLIED_SCHEMA\bot(5)].     %% The name of an applied schema
+  * nonterminal_binary <- [nonterminal] +
+  *     [L_DTR\integer(0),           %% Edge ID of a left daughter
+  *      R_DTR\integer(1)].          %% Edge ID of a right daughter
+  * nonterminal_unary <- [nonterminal] +
+  *    [U_DTR\integer(0)].           %% Edge ID of a daughter
+  * </pre>
+%*/
+edge_link <- [pred].
+'edge_link/2' <- [edge_link, 'pred/2'].
+
+link <- [bot] +
+    [SIGN_PLUS\bot (-100)].      %% Reduced feature values for factoring
+terminal <- [link] +
+    [LEX_NAME\bot (5),           %% 2rd argument of 'lexical_entry/2'
+     WORD_ID\integer(6)].        %% only for internal use
+nonterminal <- [link] +
+    [APPLIED_SCHEMA\bot (5)].    %% The name of an applied schema
+nonterminal_binary <- [nonterminal] +
+    [L_DTR\integer(0),           %% Edge ID of a left daughter
+     R_DTR\integer(1)].          %% Edge ID of a right daughter
+nonterminal_unary <- [nonterminal] +
+   [U_DTR\integer(0)].           %% Edge ID of a daughter
+
+%/**
+  * @interface = get_parse_tree(+$ID, +$ParseTree)
+  * @param     = -$ID/bot : ID of a root edge
+  * @param     = -$ParseTree/parse_tree : a parse tree
+  * @desc      = Get a parse tree from parse forest
+  * This predicate returns a parse tree from a parse forest.
+  * A parse tree is represented with the following feature structure.
+  * <pre>
+  * parse_tree <- [bot] +
+  *   [EDGE_ID\integer(0),        %% ID of the edge
+  *    EDGE_LINK\link(1),         %% Edge link of the edge
+  *    EDGE_SIGN\bot(2)].         %% Sign of the edge
+  * parse_tree_terminal <- [parse_tree] +
+  *   [EDGE_LINK\terminal].
+  * parse_tree_nonterminal <- [parse_tree] +
+  *   [EDGE_LINK\nonterminal].
+  * parse_tree_nonterminal_binary <- [parse_tree_nonterminal] +
+  *   [EDGE_LINK\nonterminal_binary,
+  *    L_TREE\parse_tree(5),      %% Left daughter
+  *    R_TREE\parse_tree(6)].     %% Right daughter
+  * parse_tree_nonterminal_unary <- [parse_tree_nonterminal] +
+  *   [EDGE_LINK\nonterminal_unary,
+  *    U_TREE\parse_tree(5)].     %% Daughter
+  * </pre>
+%*/
+get_parse_tree <- [pred].
+'get_parse_tree/2' <- [get_parse_tree, 'pred/2'].
+
+%%%  Data structures for a parse tree
+parse_tree <- [bot] +
+  [EDGE_ID\integer(0),        %% ID of the edge
+   EDGE_LINK\link(1),         %% Edge link of the edge
+   EDGE_SIGN\bot(2)].         %% Sign of the edge
+parse_tree_terminal <- [parse_tree] +
+  [EDGE_LINK\terminal].
+parse_tree_nonterminal <- [parse_tree] +
+  [EDGE_LINK\nonterminal].
+parse_tree_nonterminal_binary <- [parse_tree_nonterminal] +
+  [EDGE_LINK\nonterminal_binary,
+   L_TREE\parse_tree(5),      %% Left daughter
+   R_TREE\parse_tree(6)].     %% Right daughter
+parse_tree_nonterminal_unary <- [parse_tree_nonterminal] +
+  [EDGE_LINK\nonterminal_unary,
+   U_TREE\parse_tree(5)].     %% Daughter
+
+%/**
+  * @interface = edge_fom(+$EdgeID, -$FOM)
+  * @param     = +$EdgeID/integer : edge ID
+  * @param     = -$FOM/float : FOM of the edge
+  * @desc      = FOM of the edge
+  * This predicate returns the FOM of the edge.
+%*/
+edge_fom <- [pred].
+'edge_fom/2' <- [edge_fom, 'pred/2'].
+
+%/**
+  * @interface = edge_link_fom(+$LinkID, -$FOM)
+  * @param     = +$LinkID/integer : link ID
+  * @param     = -$FOM/float : FOM of the link
+  * @desc      = FOM of the link
+  * This predicate returns the FOM of the link.
+%*/
+edge_link_fom <- [pred].
+'edge_link_fom/2' <- [edge_link_fom, 'pred/2'].
+
+%/**
+  * @interface = best_fom_sign(-$ID, -$Sign, -$FOM)
+  * @param     = -$ID/integer : edge ID of a sign
+  * @param     = -$Sign/bot : a sign
+  * @param     = -$FOM/float : FOM of the sign
+  * @desc      = a sign with the best FOM
+  * This predicate computes a sign with the best FOM
+%*/
+best_fom_sign <- [pred].
+'best_fom_sign/3' <- [best_fom_sign, 'pred/3'].
+
+%/**
+  * @interface = best_fom_parse_tree(-$Tree, -$FOM)
+  * @param     = -$Tree/parse_tree : parse tree
+  * @param     = -$FOM/float : FOM of the parse tree
+  * @desc      = a parse tree with the best FOM
+  * This predicate computes a parse tree with the best FOM
+%*/
+best_fom_parse_tree <- [pred].
+'best_fom_parse_tree/2' <- [best_fom_parse_tree, 'pred/2'].
+
+%% parse_tree_fom <- [parse_tree] + [EDGE_FOM\float(10)].
+%% parse_tree_terminal_fom <- [parse_tree_terminal, parse_tree_fom].
+%% parse_tree_nonterminal_fom <- [parse_tree_nonterminal, parse_tree_fom].
+%% parse_tree_nonterminal_binary_fom <- [parse_tree_nonterminal_binary, parse_tree_nonterminal_fom].
+%% parse_tree_nonterminal_unary_fom <- [parse_tree_nonterminal_unary, parse_tree_nonterminal_fom].
+
+%/**
+  * @variable = get_sentence_length(-$Length)
+  * @param    = -$Length/integer : a length of an input sentence
+  * @desc     = The length of an input sentence
+  * A parser sets the length of an input sentence.
+%*/
+get_sentence_length <- [pred].
+'get_sentence_length/1' <- [get_sentence_length, 'pred/1'].
+
+%/**
+  * @variable = get_edge_number(-$Number)
+  * @param    = -$Number/integer : a number of generated edges
+  * @desc     = The number of generated edges
+  * A parser sets a number of generated edges.
+%*/
+get_edge_number <- [pred].
+'get_edge_number/1' <- [get_edge_number, 'pred/1'].
+
+%/**
+  * @variable = get_analyze_word_time(-$Time)
+  * @param    = -$Time/integer : a time taken for word analysis (msec)
+  * @desc     = A time taken for word analyzing (= tokenizing + POS tagging)
+  * A parser sets a time taken for word analyzing
+%*/
+get_analyze_word_time <- [pred].
+'get_analyze_word_time/1' <- [get_analyze_word_time, 'pred/1'].
+
+%/**
+  * @variable = get_analyze_lexent_time(-$Time)
+  * @param    = -$Time/integer : a time taken for lexical entry analysis (msec)
+  * @desc     = A time taken for lexical entry analysis (= supertagging)
+  * A parser sets a time taken for lexical entry analysis
+%*/
+get_analyze_lexent_time <- [pred].
+'get_analyze_lexent_time/1' <- [get_analyze_lexent_time, 'pred/1'].
+
+%/**
+  * @variable = get_analyze_parse_time(-$Time)
+  * @param    = -$Time/integer : a time taken for parsing (msec)
+  * @desc     = A time taken for parsing
+  * A parser sets a time taken for parsing
+%*/
+get_analyze_parse_time <- [pred].
+'get_analyze_parse_time/1' <- [get_analyze_parse_time, 'pred/1'].
+
+%/**
+  * @variable = get_total_time(-$Time)
+  * @param    = -$Time/integer : a time taken for all (msec)
+  * @desc     = A time taken for all (= analyze_word_time + analyze_lexent_time + analyze_parse_time)
+  * A parser sets a time taken for all
+%*/
+get_total_time <- [pred].
+'get_total_time/1' <- [get_total_time, 'pred/1'].
+
+%/**
+  * @variable = get_parser_name(-$Name)
+  * @param    = -$Name/string : a name of a parser
+  * @desc     = a name of the parser
+  * A parser sets the name of the parser.
+%*/
+get_parser_name <- [pred].
+'get_parser_name/1' <- [get_parser_name, 'pred/1'].
+
+%/**
+  * @variable = get_parser_version(-$Version)
+  * @param    = -$Version/string : a version of a parser
+  * @desc     = a version of the parser
+  * A parser sets the version of the parser to this variable.
+%*/
+get_parser_version <- [pred].
+'get_parser_version/1' <- [get_parser_version, 'pred/1'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+%% initialization
+
+parser_init :- fail.
+parser_term :- fail.
+
+'*initialization_state*' <- [variable].
+:-
+    init_integer_variable('*initialization_state*').
+
+initialize_parser :-
+    get_variable('*initialization_state*', 0),
+    parser_init,
+    fail.
+initialize_parser :-
+    set_variable('*initialization_state*', 1).
+
+terminate_parser :-
+    get_variable('*initialization_state*', 1),
+    parser_term,
+    fail.
+terminate_parser :-
+    set_variable('*initialization_state*', 0).
+

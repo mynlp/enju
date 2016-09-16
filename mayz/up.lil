@@ -1,0 +1,173 @@
+%/**
+  * @module    = mayz:up
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2007-10-14 13:05:21 yusuke>
+  * @cvs       = $Id: up.lil,v 1.8 2010-05-25 06:55:31 matuzaki Exp $
+  * @desc      = LiLFeS's part of UP
+%*/
+
+:- module("mayz:up").
+
+:- module_interface.
+
+set_beam_thresholding_params <- [pred].
+
+:- ensure_loaded("parser").
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+
+set_grammar_name($Name) :-
+    up_set_grammar_name($Name).
+get_grammar_name($Name) :-
+    up_get_grammar_name($Name).
+
+set_grammar_version($Version) :-
+    up_set_grammar_version($Version).
+get_grammar_version($Version) :-
+    up_get_grammar_version($Version).
+
+set_limit_sentence_length($Len) :-
+    up_set_limit_sentence_length($Len).
+get_limit_sentence_length($Len) :-
+    up_get_limit_sentence_length($Len).
+
+set_limit_edge_number($Num) :-
+    up_set_limit_edge_number($Num).
+get_limit_edge_number($Num) :-
+    up_get_limit_edge_number($Num).
+
+set_limit_parse_time($TimeInSec) :-
+    up_set_limit_parse_time($TimeInSec).
+get_limit_parse_time($TimeInSec) :-
+    up_get_limit_parse_time($TimeInSec).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parse($Sentence) :-
+    up_parse($Sentence).
+%% obsolete
+%% parse_with_brackets($Sentence) :-
+%%     up_parse_with_bracket($Sentence).
+
+%parse_word_lattice($Sentence, $Extent) :-
+%    up_parse_word_lattice($Sentence, $Extent).
+%parse_word_lattice(_, $Extent) :-
+%    up_parse_word_lattice($Extent).
+
+set_parser_mode($Name, $Val) :-
+    up_set_parser_mode($Name, $Val).
+get_parser_mode($Name, $Val) :-
+    up_get_parser_mode($Name, $Val).
+
+%%set_beam_thresholding_params($Num, $Width) :-
+%%    pcky_set_beam_thresholding_params($Num, $Width).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_parse_status($Status) :-
+    up_get_parse_status($Status).
+
+words($Begin, $End, $WordList) :-
+    up_words($Begin, $End, $WordList).
+
+edge_id_list($Left, $Right, $IDList) :-
+    up_edge_id_list($Left, $Right, $IDList).
+top_edge_id_list($IDs) :-
+    up_get_sentence_length($N),
+    up_edge_id_list(0, $N, $IDs).
+filter_root_edges <- [pred].
+filter_root_edges([], []).
+filter_root_edges([$ID1|$IDs1], $IDs) :-
+    (up_edge($ID1, $Sign),
+     root_sign($Sign) ->
+     $IDs = [$ID1|$NextIDs] ;
+     $IDs = $NextIDs),
+    filter_root_edges($IDs1, $NextIDs).
+root_edge_id_list($IDs) :-
+    up_get_sentence_length($N),
+    up_edge_id_list(0, $N, $IDs1),
+    filter_root_edges($IDs1, $IDs).
+
+edge_sign($ID, $Sign) :-
+    up_edge($ID, $Sign).
+edge_position($ID, $Left, $Right) :-
+    up_edge_position($ID, $Left, $Right).
+edge_link_id_list($ID, $LinkIDs) :-
+    up_link_id_list($ID, $LinkIDs).
+edge_link($ID, $Link) :-
+    up_link($ID, $Link).
+
+get_parse_tree_dispatch <- [pred].
+get_parse_tree_dispatch(L_DTR\$LID & R_DTR\$RID & APPLIED_SCHEMA\$Schema,
+			L_TREE\$LTree & R_TREE\$RTree & EDGE_SIGN\$Sign) :-
+    get_parse_tree($LID, $LTree & EDGE_SIGN\$LSign),
+    get_parse_tree($RID, $RTree & EDGE_SIGN\$RSign),
+    id_schema_binary($Schema, $LSign, $RSign, $Sign, $DCP),
+    call($DCP).
+get_parse_tree_dispatch(U_DTR\$UID & APPLIED_SCHEMA\$Schema,
+			U_TREE\$UTree & EDGE_SIGN\$Sign) :-
+    get_parse_tree($UID, $UTree & EDGE_SIGN\$USign),
+    id_schema_unary($Schema, $USign, $Sign, $DCP),
+    call($DCP).
+get_parse_tree_dispatch(terminal & LEX_NAME\$LexName,
+			parse_tree_terminal & EDGE_SIGN\$Sign) :-
+    lexical_entry_sign($LexName, $Sign).
+get_parse_tree($ID, $Tree & EDGE_ID\$ID & EDGE_LINK\$Link) :-
+    edge_link_id_list($ID, $LinkIDs),
+    member($LinkID, $LinkIDs),
+    !,
+    edge_link($LinkID, $Link),
+    get_parse_tree_dispatch($Link, $Tree).
+
+edge_fom($ID, $FOM) :-
+    pcky_get_edge_fom($ID, $FOM).
+edge_link_fom($ID, $FOM) :-
+    pcky_get_edge_link_fom($ID, $FOM).
+
+best_fom_sign($ID, $Sign, $FOM) :-
+    root_edge_id_list($IDList),
+    member($ID, $IDList),
+    !,
+    edge_fom($ID, $FOM),
+    get_parse_tree($ID, EDGE_SIGN\$Sign).
+best_fom_parse_tree($Tree, $FOM) :-
+    root_edge_id_list($IDList),
+    member($ID, $IDList),
+    !,
+    edge_fom($ID, $FOM),
+    get_parse_tree($ID, $Tree).
+
+%get_sentence($Sentence) :-
+%    up_get_sentence($Sentence).
+%get_word_lattice($WordLattice) :-
+%    up_get_word_lattice($WordLattice).
+%get_word_lattice($Left, $Right, $WordLattice) :-
+%    up_get_word_sublattice($Left, $Right, $WordLattice).
+get_sentence_length($Len) :-
+    up_get_sentence_length($Len).
+get_edge_number($Num) :-
+    up_get_edge_number($Num).
+
+get_analyze_word_time($Time) :-
+    up_get_analyze_word_time($Time).
+get_analyze_lexent_time($Time) :-
+    up_get_analyze_lexent_time($Time).
+get_analyze_parse_time($Time) :-
+    up_get_analyze_parse_time($Time).
+%get_parse_setup_time($Time) :-
+%    up_get_parse_setup_time($Time).
+%get_parse_lex_time($Time) :-
+%    up_get_parse_lex_time($Time).
+%get_parse_phrase_time($Time) :-
+%    up_get_parse_phrase_time($Time).
+get_total_time($Time) :-
+    up_get_total_time($Time).
+
+get_parser_name($Name) :-
+    up_get_parser_name($Name).
+get_parser_version($Version) :-
+    up_get_parser_version($Version).
+

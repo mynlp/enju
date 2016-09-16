@@ -1,0 +1,140 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Sign の構造</title>
+</head>
+
+
+
+<body>
+<h1>Sign の構造</h1>
+
+<a href="sign.html">English version</a>
+
+<p>
+Sign の型階層は "enju/types.lil" で定義されています．Enju における 
+sign は，基本的に [Pollar and Sag, 1994] および <a
+href="http://www.delph-in.net/erg/">LinGO English Resource Grammar
+(ERG)</a> を参考にしていますが，complex constraint や Minimal
+Recursion Semantics (MRS) を使わないように変更，簡単化されています．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4">
+    <td>PHON: 句がカバーする単語列
+    <td class="rprn" rowspan="4">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+        <td class="lprn" rowspan="2">
+        <td>
+        <table class="fs">
+        <tr><td rowspan="3">LOCAL
+            <td class="lprn" rowspan="3">
+            <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="3">HEAD
+                    <td class="lprn" rowspan="3">
+                    <td>句の主辞(head)から規定される制約
+                    <td class="rprn" rowspan="3">
+                <tr><td>MOD: 修飾先の句の制約(local のリスト)
+                <tr><td>POSTHEAD: 後ろから修飾するか否か(hpsg_binary)
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="6">VAL
+                    <td class="lprn" rowspan="6">
+                    <td>句の下位範疇化フレーム
+                    <td class="rprn" rowspan="6">
+                <tr><td>SUBJ: 句が左側にとる句の制約(synsem のリスト)
+                <tr><td>COMPS: 句が右側にとる句の制約(synsem のリスト)
+                <tr><td>SPR: 句が左側にとる限定詞句の制約(synsem のリスト)
+                <tr><td>SPEC: 限定詞の係り先の句の制約(synsem のリスト)
+                <tr><td>CONJ: 並列句にとる句の制約(synsem のリスト)
+                </table>
+            </table>
+            <td class="rprn" rowspan="3">
+        <tr><td>CONT: 述語項構造
+        <tr><td>CONX: <em>現在は使われていません</em>
+        </table>
+        <td class="rprn" rowspan="2">
+        <tr><td>
+            <table class="fs">
+            <tr><td rowspan="3">NONLOCAL
+                <td class="lprn" rowspan="3">
+                <td>長距離依存関係の制約
+                <td class="rprn" rowspan="3">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">INHER
+                    <td class="lprn" rowspan="5">
+                    <td>娘から受け継がれる長距離依存制約
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Wh疑問詞の制約
+                <tr><td>REL: 関係節の先行詞になる句の制約(local のリスト)
+                <tr><td>SLASH: 長距離依存関係にある句の制約(local のリスト)
+                <tr><td>F_REL: 自由関係詞節の制約(local のリスト)
+                </table>
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">TO_BIND
+                    <td class="lprn" rowspan="5">
+                    <td>この句が打ち消す長距離依存制約
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Wh疑問詞の制約
+                <tr><td>REL: 関係節の先行詞になる句の制約(local のリスト)
+                <tr><td>SLASH: 長距離依存関係にある句の制約(local のリスト)
+                <tr><td>F_REL: 自由関係詞節の制約(local のリスト)
+            </table>
+        </table>
+    </table>
+  <tr><td>PROB_FEATURE: 確率モデルで使う素性
+  <tr><td>LEX_SPEC: lexical head の名前 (lex_entry)
+</table>
+
+<p>
+HEAD の取りうる型として，各品詞に対して以下の型が定義されています．
+<table border=1>
+  <tr><th>型<th>品詞<th>素性
+  <tr><td>hpsg_verb<td>動詞<td>VFORM: 動詞の型(hpsg_vform), AUX: 助動詞
+  (hpsg_aux), INV: 倒置しているか(hpsg_binary)
+  <tr><td>hpsg_noun<td>名詞<td>CASE: 格(hpsg_case), NFORM: 名詞の型(hpsg_nform)
+  <tr><td>hpsg_prep<td>前置詞<td>PFORM: 前置詞の型(hpsg_pform)
+  <tr><td>hpsg_adj<td>形容詞<td>AFORM: 形容詞の型(hpsg_aform)
+  <tr><td>hpsg_adv<td>副詞<td>
+  <tr><td>hpsg_pl<td>不変化詞<td>
+  <tr><td>hpsg_comma<td>カンマ<td>
+  <tr><td>hpsg_punct<td>記号<td>
+  <tr><td>hpsg_conj<td>等位接続詞<td>
+  <tr><td>hpsg_subc<td>従属接続詞<td>
+  <tr><td>hpsg_comp<td>補文標識<td>CFORM: 補文標識の型(hpsg_cform)
+  <tr><td>hpsg_det<td>冠詞<td>
+</table>
+
+<p>
+CONT素性には，その句の predicate-argument structure が格納されます．詳
+しくは<a href="pas.ja.html">述語項構造</a>を参照して下さい．
+
+<p>
+PROB_FEATURE素性は，曖昧性解消モデルで使用します．詳しくは，<a
+href="probmodel.ja.html">確率モデル</a>を参照して下さい．
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

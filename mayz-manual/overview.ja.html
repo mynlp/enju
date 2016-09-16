@@ -1,0 +1,173 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-overview.css">
+<title>文法開発の流れ</title>
+</head>
+
+
+
+<body>
+<h1>文法開発の流れ</h1>
+
+<a href="overview.html">English version</a>
+
+<ul>
+  <li><a href="#make_grammar">文法を作る</a>
+  <li><a href="#make_probmodel">確率モデルを作る</a>
+</ul>
+
+<h2><a name="make_grammar">文法を作る</a></h2>
+
+<p>
+文法を作るには，<a href="treetrans.ja.html"><tt>treetrans</tt></a>, <a
+href="lexextract.ja.html"><tt>lexextract</tt></a>, <a
+href="lexrefine.ja.html"><tt>lexrefine</tt></a> を使います．これらのツー
+ルを使った文法開発のプロセスは，以下の図のようになります．
+
+<p>
+<img src="development.ja.png" width=640 height=480 alt="文法開発の流れ">
+
+<ol>
+  <li>文法開発の原料となる treebank を用意する．
+    <p>まず，文法開発のスタートに，原料となる treebank を用意します．
+    Penn Treebank のように，trace などの情報が付加されているものが最適
+    です．しかし，そのような treebank がなくても，後のプロセスにおいて，
+    様々な付加情報をパターンルールで追加していくことができます．極端な
+    話，構文情報がないコーパスしかない時は，shallow parser などを使っ
+    て簡単な情報をつけたものからスタートしても構いません．
+  <li>構文木を変形したり，付加情報をつける．
+    <p><a href="treetrans.ja.html"><tt>treetrans</tt></a>ツールを使って，
+    treebank の構文木を変形したり，付加情報をつけたりします．構文木は
+    素性構造で表され，変形のルールは，lilfes のプログラムで記述します．
+    変換ルールを簡単に書くため，いくつかのインタフェースが提供されてい
+    ます．また，構文木を2分木化したり，head を決めるツールも提供されて
+    います．
+  <li>文法を抽出する．
+    <p><a href="lexextract.ja.html"><tt>lexextract</tt></a>ツールを使って，
+    derivbank, lexbank, lexicon, templates を抽出します．文法抽出のター
+    ゲットとなる文法理論で規定される一般的文法規則を定義することで，ツー
+    ルが lexicon を自動的に作成してくれます．
+    <p>まず，treebank から derivbank を作成するため，逆向きの文法規則
+    (スキーマ，プリンシプル)を定義します．それから，derivation の 
+    terminal の素性構造から，lexical entry template を抽出するためのイ
+    ンタフェースを定義します．また，逆向きの lexical rule を定義するこ
+    とで，inflection などを抽象化した lexeme の template を抽出するこ
+    ともできます．
+  <li>文法を精製する．
+    <p><a href="lexrefine.ja.html"><tt>lexrefine</tt></a>ツールを使って，
+    lexicon と templates を精製します．上で得た lexicon, templates は，
+    構文木変換のミスなどによりゴミを含んでいる可能性があるので，頻度の
+    低い template を足切りしたりして文法を精製します．また，もともとの 
+    lexicon は未知後に対する辞書項目がありませんが，ある頻度以下の語を
+    未知語とみなすことで，未知語の辞書項目を作成することができます．さ
+    らに，ここで lexical rule を適用して template をあらかじめ生成して
+    おくこともできます．これにより，構文解析時に lexical rule を 
+    online で適用する必要がなくなります．
+</ol>
+
+
+<h2><a name="make_probmodel">確率モデルを作る</a></h2>
+
+<p>
+確率モデルを作るには，<a
+href="unimaker.ja.html"><tt>unimaker</tt></a>, <a
+href="forestmaker.ja.html"><tt>forestmaker</tt></a>, <a
+href="amisfilter.ja.html"><tt>amisfilter</tt></a>，および最大エントロ
+ピーモデル推定器の<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis</a> (バージョン
+3.0 以上)を使います．確率モデルを作成する流れは以下の図のようになりま
+す．
+
+<p>
+<img src="probmodel.ja.png" width=640 height=480 alt="確率モデル作成の流れ">
+
+<h3>Unigram 確率モデルを作る場合</h3>
+
+<p>
+Unigram 確率モデルは，各単語に対して lexical entry を割り当てる確率の
+モデルです．単語を<i>w</i>，lexical entry を<i>l</i>とすると，
+<i>p(l|w)</i>を求めます．単語と lexical entry の共起情報だけを使うので，
+簡単にモデルを作ることができ，またパラメタ推定もすぐ終わります．しかし，
+文法規則適用の preference などはとらえられないため，解析精度はあまり良
+くありません．パーザが正しく動いているかどうかとりあえず試すときや，次
+節の feature forest モデル作成のコストを小さくするために使います．
+
+<p>
+Unigram モデルを作るには，mayz/amismodel.lil で定義されている
+<tt>extract_lexical_event/4</tt>と，<tt>feature_mask/3</tt>を実装する
+必要があります．前者は，単語と lexical entry から，そのイベントを表す
+文字列リストを作成します．後者は，そのイベント文字列にマスクをかけるこ
+とで，最大エントロピーモデルの<em>素性</em>を取り出します．
+
+<p>
+まず，<tt><a href="unimaker.ja.html">unimaker</a></tt>ツールにより，イ
+ベント文字列を取り出し，初期イベントデータを作成します．次に，
+<tt><a href="amisfilter.ja.html">amisfilter</a></tt>ツールにより，イベ
+ント文字列にマスクをかけ，素性を取り出し，amis 形式のデータファイルを
+生成します．最後に，既存のツール amis を利用し，最大エントロピーモデル
+のパラメタを計算します．
+
+
+
+<h3>Feature forest モデルを作る場合</h3>
+
+Feature forest モデルは，文が与えられた時に，その derivation の確率を
+与えるモデルです．文を<i>s</i>，その derivation を<i>d</i>とすると，
+<i>p(d|s)</i>を求めます．学習データを作るためにトレーニングコーパスを
+全てパーズする必要があり，またイベントデータが非常に大きくなるため，モ
+デル作製には時間がかかります．しかし，構文解析における様々な特長(文法
+規則適用の preference や，bi-lexical dependency)を素性としてモデルに組
+み入れられるため，高精度が期待できます．
+
+<p>
+Feature forest モデルを作るためには，トレーニングコーパスの各文に対し
+て正解の構文解析結果と，その文を解析した時の parse forest が必要になり
+ます．forestmaker は，derivbank を与えると，各文の derivation を正解構
+文解析結果に変換し，さらに各文を構文解析して parse forest を作ります．
+この作業のためには，文法を使って構文解析するためのインタフェースが実装
+され，実際に構文解析ができる必要があります．詳しくは，<a
+href="usegrammar.ja.html">文法の使い方</a>を参照して下さい．
+
+<p>
+Feature forest モデルを作るには，mayz/amismodel.lil で定義されている
+<tt>extract_terminal_event/6</tt>, <tt>extract_unary_event/7</tt>,
+<tt>extract_binary_event/8</tt> <tt>extract_root_event/4</tt>, および 
+<tt>feature_mask/3</tt> を実装します．最初の4つは，それぞれ，終端ノー
+ド，unary schema の適用，binary schema の適用，ルートノード，における
+イベントを表す文字列リストを作成します．後者は，unigram モデルと同様に，
+そのイベント文字列にマスクをかけることで，最大エントロピーモデルの素性
+を取りだします．
+
+<p>
+まず，<tt><a href="forestmaker.ja.html">forestmaker</a></tt>ツールによ
+り，イベントを取りだし，初期イベントデータを作成します．後は unigram 
+モデルと同じで，<tt><a href="amisfilter.ja.html">amisfilter</a></tt>で
+amis 用データファイルを作り，最後に<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis</a> でモデルパ
+ラメータを推定します．
+
+<p>
+Feature forest モデルを作るときに，より簡単なモデル(たとえば，unigram 
+モデル)を reference distribution として用いることができます．
+<tt>reference_prob_terminal/5</tt>, <tt>reference_prob_unary/6</tt>,
+<tt>reference_prob_binary/7</tt>, <tt>reference_prob_root/3</tt> を実装す
+ると，それぞれ終端ノード，unary schema の適用，binary schema の適用，
+ルートノード，におけるreference probability distribution を与えること
+ができます．
+
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

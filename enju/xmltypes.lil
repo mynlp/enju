@@ -1,0 +1,10 @@
+:- module("enju:xmltype").
+
+:- module_interface.
+
+xml_rel <- [bot] + [XML_REL_LABEL\string, XML_REL_VALUE\string] ./ extendable.
+xml_word_or_phrase <- [bot] + [XML_NODE_ID\string, XML_CAT\string].
+xml_word <- [xml_word_or_phrase] + [XML_SURFACE\string, XML_POS\string, XML_BASE\string, XML_LEXENTRY\string, XML_PRED\string, XML_REL_LIST\list] ./ extendable.
+xml_phrase <- [xml_word_or_phrase] + [XML_XCAT\list, XML_HEAD_ID\string, XML_SEM_HEAD_ID\string, XML_SCHEMA\string, XML_DTRS\list] ./ extendable.
+xml_sentence <- [bot] + [XML_SENTENCE_ID\string, XML_PARSE_STATUS\string, XML_FOM\float, XML_PARSE_TREE\bot] ./ extendable.
+

@@ -1,0 +1,61 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-terms.css">
+<title>Glossary</title>
+</head>
+
+
+
+<body>
+<h1>Glossary</h1>
+
+<a href="terms.ja.html">Japanese version</a>
+
+<p>
+This is a collection of terms related to the MAYZ Toolkit.
+
+<dl>
+  <dt><a name="me_model">maximum entropy (ME) model</a>
+  <dd>A probabilistic model.  For details, see <a
+  href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis Home Page</a>.
+  <dt><a name="derivation">derivation</a> (specific usage in MAYZ)
+  <dd>A tree structure representing a syntactic structure conforming
+  to the target grammar theory.  In addition to phrase information, it
+  includes information about applied schemas.  For example, in HPSG,
+  it corresponds to a sign includes daughter structures, and in CCG,
+  it corresponds to a derivation tree.  In LTAG, it corresponds to a
+  derived tree annotated with substitution/adjunction labels.
+  <dt><a name="derivbank">derivbank</a> (specific to MAYZ)
+  <dd>A collection of <a href="#derivation">derivations</a>.  In MAYZ,
+  it is created semi-automatically by converting a treebank.
+  <dt><a name="lexbank">lexbank</a> (specific to MAYZ)
+  <dd>A collection of terminals of <a
+  href="#derivation">derivations</a>.  It can be used to collect
+  lexical information.
+  <dt><a name="treebank">treebank</a>
+  <dd>A collection of sentences annotated with CFG-style phrase
+  structures.  Various treebanks, e.g. Penn Treebank, have been
+  produced.  The aim of the development with the MAYZ toolkit is to
+  make a <a href="#derivbank">derivbank</a> from a treebank.
+  <dt><a name="parse_tree">parse tree</a> (specific usage in MAYZ)
+  <dd>In the MAYZ toolkit, trees in an input <a
+  href="#treebank">treebank</a> are called "<a
+  href="#parse_tree">parse tree</a>".  Pharse structures in the target
+  grammar theory are called "<a href="#derivation">derivation</a>".
+</dl>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

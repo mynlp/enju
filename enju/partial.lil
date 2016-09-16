@@ -1,0 +1,118 @@
+%/**********************************************************************
+  * @module    =  enju:partial
+  * @copyright =  Copyright (c) 2007-2008, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  Collect fragmental parses
+  **********************************************************************
+%*/
+
+:- module("enju:partial").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+
+collect_partial_parse <- [pred].
+
+%% parse status types from which partial parses can be collected
+partial_parse_status <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+
+partial_parse_status(parse_success).
+partial_parse_status(parse_error_edge_limit).
+partial_parse_status(parse_error_search_limit).
+partial_parse_status(parse_error_time_limit).
+
+'*partial_parse_score*' <- [pred].
+'*partial_parse_tree*' <- [pred].
+:-
+    declare_array('*partial_parse_score*'(key_inthash, key_inthash, array_value_float)),
+    declare_array('*partial_parse_tree*'(key_inthash, key_inthash, array_value)).
+
+set_table <- [pred].
+set_table($Left, $Right, $Score, $Tree) :-
+    set_array('*partial_parse_score*'($Left, $Right, $Score)),
+    set_array('*partial_parse_tree*'($Left, $Right, $Tree)).
+
+get_table <- [pred].
+get_table($Left, $Right, $Score, $Tree) :-
+    get_array('*partial_parse_score*'($Left, $Right, $Score)),
+    get_array('*partial_parse_tree*'($Left, $Right, $Tree)).
+
+update_table <- [pred].
+update_table($Left, $Right, $Score, $Tree) :-
+    (get_array('*partial_parse_score*'($Left, $Right, $OldScore)),
+     $Score <= $OldScore ->
+     true ;
+     set_table($Left, $Right, $Score, $Tree)).
+
+set_terminal_score <- [pred].
+set_terminal_score($Left, $Length) :-
+    $Left =:= $Length,
+    !.
+set_terminal_score($Left, $Length) :-
+    $Right is $Left + 1,
+    edge_id_list($Left, $Right, [$EdgeID|_]),
+    edge_fom($EdgeID, $Score),
+    % set_table($Left, $Right, $Score, $EdgeID),
+    set_table($Left, $Right, $Score, [$EdgeID]),
+    set_terminal_score($Right, $Length).
+
+partial_parse_loop3 <- [pred].
+partial_parse_loop3(_, $Mid, $Right) :-
+    $Mid =:= $Right,
+    !.
+partial_parse_loop3($Left, $Mid, $Right) :-
+%%printAVM(["l3", $Left, $Mid, $Right]),
+    get_table($Left, $Mid, $Score1, $Tree1),
+    get_table($Mid, $Right, $Score2, $Tree2),
+    $Score is $Score1 + $Score2,
+    update_table($Left, $Right, $Score, [$Tree1, $Tree2]),
+    fail.
+partial_parse_loop3($Left, $Mid, $Right) :-
+    $NextMid is $Mid + 1,
+    partial_parse_loop3($Left, $NextMid, $Right).
+
+partial_parse_loop2 <- [pred].
+partial_parse_loop2(_, $Right, $Length) :-
+    $Right > $Length,
+    !.
+partial_parse_loop2($Left, $Right, _) :-
+%%printAVM(["l2", $Left, $Right]),
+    (edge_id_list($Left, $Right, [$EdgeID|_]) ->
+     edge_fom($EdgeID, $Score),
+     % set_table($Left, $Right, $Score, $EdgeID);
+     set_table($Left, $Right, $Score, [$EdgeID]);
+     true),
+    $Mid is $Left + 1,
+    partial_parse_loop3($Left, $Mid, $Right),
+    fail.
+partial_parse_loop2($Left, $Right, $Length) :-
+    $NextLeft is $Left + 1,
+    $NextRight is $Right + 1,
+    partial_parse_loop2($NextLeft, $NextRight, $Length).
+
+partial_parse_loop1 <- [pred].
+partial_parse_loop1($Span, $Length) :-
+    $Span > $Length,
+    !.
+partial_parse_loop1($Span, $Length) :-
+%%printAVM(["l1", $Span, $Length]),
+    partial_parse_loop2(0, $Span, $Length),
+    fail.
+partial_parse_loop1($Span, $Length) :-
+    $NextSpan is $Span + 1,
+    partial_parse_loop1($NextSpan, $Length).
+
+collect_partial_parse($IDList, $Score) :-
+    clear_array('*partial_parse_score*'(_, _, _)),
+    clear_array('*partial_parse_tree*'(_, _, _)),
+    get_sentence_length($Length),
+%%    set_terminal_score(0, $Length),
+    partial_parse_loop1(1, $Length),
+    get_table(0, $Length, $Score, $IDTree),
+    flatten_list($IDTree, $IDList).
+

@@ -1,0 +1,77 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Schemata and principles</title>
+</head>
+
+
+
+<body>
+<h1>Schemata and principles</h1>
+
+<a href="schemata.ja.html">Japanese version</a>
+
+<p>
+Schemata and principles are defined in the file "grammar/schema.lil"．The name of each schema is given in 
+the file "grammar/types.lil"．
+
+<p>
+The following standard HPSG schemata are implemented．
+
+<table border>
+<tr><th>Schema<th>Name given to the schema in the definition file<th>Description
+<tr><td>Head-Subject Schema<td>subj_head_schema<td>A verb takes a noun phrase as its subject
+<tr><td>Head-Complement Schema<td>head_comp_schema<td>A verb or a preposition takes a noun phrase as its object
+<tr><td>Head-Specifier Schema<td>spec_head_schema<td>A noun takes a determiner(an article or a demonstrative)
+<tr><td>Head-Modifier Schema (left head)<td>head_mod_schema<td>The head is premodified by a modifier
+<tr><td>Head-Modifier Schema (right head)<td>mod_head_schema<td>The head is postmodified by a modifier
+<tr><td>Head-Filler Schema<td>filler_head_schema<td>Long distance dependencies
+</table>
+
+<p>
+Besides the above schemata, we have added the following schemata．
+<table border>
+<tr><th>Name given to the schema in the definition file<th>Description
+<tr><td>head_relative_schema<td>A noun is modified by a relative clause
+<tr><td>coord_right_schema<td>A conjunction takes its right conjunct as its argument
+<tr><td>coord_left_schema<td>A conjunction takes its left conjunct as its arugment
+<tr><td>empty_filler_head_schema<td>A relative clause takes an empty relative pronoun as its argument
+<tr><td>empty_specifier_schema<td>?A noun takes an empty specifier as its argument
+</table>
+
+<p>
+The following principles are implemented．
+
+<table border>
+<tr><th>Name given to the schema in the definition file<th>Description
+<tr><td>head_feature_principle<td>The HEAD value of the head daughter is passed up to its mother
+<tr><td>semantic_binary_principle<td>?The CONT value of the head daughter is passed up to its mother. The CONT value of the non-head daughter is incorporated in the RELS list of its mother.非主辞の CONT
+    は RELS に入る
+<tr><td>semantic_unary_principle<td>The CONT value of the only daughter is passed up to its mother.
+<tr><td>phonology_principle<td>The PHON value of all daughters are concatenated
+<tr><td>adjacency_principle<td>The PROB_FEATURE|L_ADJAC feature contains information passed up from the left daughter whereas of PROP_FEATURE|R_ADJAC contains information passed up from the right daughter
+</table>
+
+<p>
+Besides the able principles, we have principles for passing information used by the statistical model．
+
+<p>
+Other principles in HPSG(such as the Valence Principle) are hard-coded as part of the above principles.
+
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

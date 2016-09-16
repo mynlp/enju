@@ -1,0 +1,98 @@
+%/**********************************************************************
+  * @module    = mayz:tagger
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: tagger.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   = Time-stamp: <2006-12-22 14:44:24 yusuke>
+  * @desc      = Interface for using an external tagger
+  **********************************************************************
+%*/
+
+:- module("mayz:tagger").
+
+:- module_interface.
+
+initialize_external_tagger <- [pred].
+terminate_external_tagger <- [pred].
+is_external_tagger_initialized <- [pred].
+
+external_tagger_name <- [pred].
+
+enable_external_tagger <- [pred].
+disable_external_tagger <- [pred].
+is_external_tagger_enabled <- [pred].
+
+external_tagger <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lillib/debug").
+
+'*use_external_tagger*' <- [variable].
+'*external_tagger_handle*' <- [variable].
+'*external_tagger_name*' <- [variable].
+'*external_tagger_arguments*' <- [variable].
+
+:-
+    init_integer_variable('*use_external_tagger*'),
+    define_variable('*external_tagger_handle*'),
+    set_variable('*external_tagger_handle*', handle_invalid),
+    define_string_variable('*external_tagger_name*'),
+    set_variable('*external_tagger_name*', ""),
+    define_variable('*external_tagger_arguments*'),
+    set_variable('*external_tagger_arguments*', []).
+
+initialize_external_tagger($Name, $Args) :-
+    terminate_external_tagger,
+    ($Name = "" ->
+     disable_external_tagger  %% tagger is not used
+     ;
+     (open_pty_stream($Name, $Args, $Handle) ->
+      set_variable('*external_tagger_name*', $Name),
+      set_variable('*external_tagger_arguments*', $Args),
+      set_variable('*external_tagger_handle*', $Handle) ;
+      error_message("Initialization of external tagger failed: ", [$Name]),
+      fail),
+     enable_external_tagger).
+terminate_external_tagger :-
+    disable_external_tagger,
+    get_variable('*external_tagger_handle*', $Handle),
+    ($Handle = handle_invalid ->
+     true ;
+     close($Handle),
+     set_variable('*external_tagger_name*', ""),
+     set_variable('*external_tagger_arguments*', []),
+     set_variable('*external_tagger_handle*', handle_invalid)).
+is_external_tagger_initialized :-
+    get_variable('*external_tagger_handle*', $Handle),
+    $Handle \= handle_invalid.
+
+external_tagger_name($Name, $Arguments) :-
+    get_variable('*external_tagger_name*', $Name),
+    get_variable('*external_tagger_arguments*', $Arguments).
+
+enable_external_tagger :-
+    set_variable('*use_external_tagger*', 1).
+disable_external_tagger :-
+    set_variable('*use_external_tagger*', 0).
+is_external_tagger_enabled :-
+    get_variable('*use_external_tagger*', 1).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+external_tagger($RawSentence, $TaggedSentence) :-
+    (is_external_tagger_enabled ->
+     (is_external_tagger_initialized ->
+      get_variable('*external_tagger_handle*', $Handle),
+      writeln_string($Handle, $RawSentence),
+      flush_output($Handle),
+      readln_string($Handle, $TaggedSentence)
+      ;
+      error_message("External tagger is not initialized yet\n"),
+      fail)
+     ;
+     $TaggedSentence = $RawSentence).
+

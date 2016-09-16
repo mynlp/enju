@@ -1,0 +1,341 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-usegrammar.css">
+<title>文法の使い方</title>
+</head>
+
+
+
+<body>
+<h1>文法の使い方</h1>
+
+<a href="usegrammar.html">English version</a>
+
+<p>
+<em>MAYZ ツールキットで作成した文法を使って，構文解析を行なう方法を説
+明します．</em>
+
+<ul>
+  <li><a href="#up">UP の使い方</a>
+  <li><a href="#lexicon">Lexicon, template の使い方</a>
+  <li><a href="#probmodel">確率モデルの使い方</a>
+</ul>
+
+<hr>
+
+
+<h2><a name="up">UP の使い方</a></h2>
+
+<p>
+MAYZ ツールキットでは，lexicon, template や確率モデルを作ることができ
+ますが，それを使って実際に構文解析を行なうには，構文解析器が必要です．
+MAYZ ツールキットには，unification-based grammar のための高速な汎用構
+文解析器<a href="up.ja.html">UP</a>が含まれています．このツールを利用
+すれば，UP が要求するいくつかのインタフェースを実装するだけで，構文解
+析を行なうことができます．
+
+<p>
+UP を利用して構文解析を行なうためには，UP が文法や曖昧性解消モデルにア
+クセスするためのインタフェースを実装する必要があります．インタフェース
+は "mayz/parser.lil" で定義されています．
+
+<p>
+UP を用いるには，最低限以下のインタフェースを実装する必要があります．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>sentence_to_word_lattice(+$Input, -$WordLattice)</tt>
+<tr><td>$Input<td>入力文
+<tr><td>$WordLattice<td>list of extent
+<tr><td colspan=2>$Input を単語単位に区切り，単語のリスト $WordLattice
+を返す．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lexical_entry(+$Word, -$LexName)</tt>
+<tr><td>$Word<td>入力の単語
+<tr><td>$LexName<td>lexical entry の名前
+<tr><td colspan=2>単語 $Word に割り当てる lexical entry の名前
+$LexName を返す．一つの $Word に複数の $LexName を返してもよい．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lexical_entry_sign(+$LexName, -$Sign)</tt>
+<tr><td>$LexName<td>lexical entry の名前
+<tr><td>$LexEntry<td>lexical entry の素性構造
+<tr><td colspan=2>$LexName に対応する lexical entry を返す．$LexName
+と $Sign は一対一に対応しなければならない．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>id_schema_unary(+$SchemaName, +$Dtr, -$Mother,
+-$DCP)</tt>
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Dtr<td>娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$DCP<td>スキーマ適用後に実行する lilfes プログラム
+<tr><td colspan=2>unary schema を適用します．unary schema がない場合は，
+実装する必要はありません．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>id_schema_binary(+$SchemaName, +$Left, +$Right,
+-$Mother, -$DCP)</tt>
+<tr><td>$SchemaName<td>スキーマの名前
+<tr><td>$Left<td>左の娘の素性構造
+<tr><td>$Right<td>右の娘の素性構造
+<tr><td>$Mother<td>親の素性構造
+<tr><td>$DCP<td>スキーマ適用語に実行する lilfes プログラム
+<tr><td colspan=2>binary schema を適用します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>root_sign($Sign)</tt>
+<tr><td>$Sign<td>文のルートノードの素性構造
+<tr><td colspan=2>$Sign がルートノードの条件を満たしているかどうか判断
+します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reduce_sign(+$InSign, -$OutSign, -$SignPlus)</tt>
+<tr><td>$InSign<td>スキーマ適用後の親の sign
+<tr><td>$OutSign<td>不要な情報を取り除いた sign
+<tr><td>$SignPlus<td>取り除かれた情報
+<tr><td colspan=2>スキーマ適用が成功したときにできた sign に適用されま
+す．以降の解析では，$InSign ではなく，$OutSign が使われます．$InSign
+の中で不要な情報(娘の素性構造など)を取り除くと，違う構造から同じ
+$OutSign ができたとき，それらを同一視して解析を続けることで，解析を効
+率化することができます．$SignPlus には，そのとき取り除かれた情報を返す
+ようにすると，edge_link の SIGN_PLUS 素性にその情報が残されます．
+</table>
+
+<p>
+"mayz/sample_hpsg.lil" に簡単な HPSG 文法の例があり，そこでこれらのイ
+ンタフェースが実装されているので参考にしてください．
+
+<p>
+以上のインタフェースだけでは確率モデルの情報がありませんので，曖昧性解
+消はできません．以上のインタフェースのみを実装した文法で構文解析を行う
+ときは，UP を "-nofom" オプションつきで起動してください．たとえば，
+"mayz/sample_hpsg.lil" で構文解析を行うときは，以下のように UP を起動
+します．
+
+<pre>
+% up -i -nofom -l mayz/sample_hpsg
+</pre>
+
+<p>
+曖昧性解消を行いたいときは，以下のインタフェースを実装します．以下のイ
+ンタフェースを実装すると，UP は figure-of-merit (FOM) の計算を構文解析
+と同時に行ない，best_fom_sign/2 などで最適解を得ることができます．各 
+FOM は加算されていくので，確率値を用いるときは，log-probability を用い
+てください．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fom_root(+$Sign, -$FOM)</tt>
+<tr><td>$Sign<td>文のルートノードの素性構造
+<tr><td>$FOM<td>ルートノードの FOM
+<tr><td colspan=2>ルートノードの FOM を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_binary(+$RuleName, +$LeftDtr, +$RightDtr,
++$MotherSign, +$SignPlus, -$FOM)</tt>
+<tr><td>$RuleName<td>スキーマの名前
+<tr><td>$LeftDtr<td>左の娘の素性構造
+<tr><td>$RightDtr<td>左の娘の素性構造
+<tr><td>$MotherSign<td>親の素性構造
+<tr><td>$SignPlus<td>reduce_sign/3 の第３引数
+<tr><td>$FOM<td>binary スキーマ適用の FOM
+<tr><td colspan=2>binary スキーマを適用したときの FOM を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_unary(+$RuleName, +$Dtr, +$MotherSign,
++$SignPlus, -$FOM)</tt>
+<tr><td>$RuleName<td>スキーマの名前
+<tr><td>$Dtr<td>娘の素性構造
+<tr><td>$MotherSign<td>親の素性構造
+<tr><td>$SignPlus<td>reduce_sign/3 の第３引数
+<tr><td>$FOM<td>unary スキーマ適用の FOM
+<tr><td colspan=2>unary スキーマを適用したときの FOM を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_terminal(+$LexName, +$Sign, +$SignPlus, -$FOM)</tt>
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/2 の第２引数)
+<tr><td>$Sign<td>語彙項目の素性構造
+<tr><td>$SignPlus<td>reduce_sign/3 の第３引数
+<tr><td>$FOM<td>終端 sign の FOM
+<tr><td colspan=2>終端 sign の FOM を返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fom_lexical_entry(+$Word, +$LexName, -$FOM)</tt>
+<tr><td>$Word<td>単語
+<tr><td>$LexName<td>LEX_NAME (lexical_entry/2 の第２引数)
+<tr><td>$FOM<td>語彙項目の FOM
+<tr><td colspan=2>語彙項目の FOM を返します．
+</table>
+
+<p>
+上のインタフェースを実装した文法を用いて構文解析を行うときは，"-fom"
+または "-iter" オプションつきで UP を起動します．たとえば，
+"mygrammar.lil" を用いて起動するときは，以下のようにします．
+<pre>
+% up -i -iter -l mygrammar
+</pre>
+
+<p>
+これ以外の UP の機能については，<a href="up.ja.html">UP のマニュアル
+</a>を参照してください．
+
+
+<h2><a name="lexicon">Lexicon, template の使い方</a></h2>
+
+<p>
+MAYZ ツールキットでは，lexicon や template をデータベースから引いてく
+るための機能しか提供しません．構文解析器が要求するインタフェースは，文
+法開発者が実装する必要があります．詳しくは<a href="#up">UPの使い方</a>
+を見てください．
+
+<p>
+MAYZ ツールキットが lexicon や template をデータベースから引くために提
+供するツールは以下の通りで，mayz/grammar.lil で実装されています．これ
+ら以外にも<a href="modules.ja.html#tagger">外部タガーを利用するための
+ツール</a>も提供されています．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>import_lexicon($LexFile, $TemplateFile)</tt>
+<tr><td>$LexFile<td>lexicon のファイル名
+<tr><td>$TemplateFile<td>template table のファイル名
+<tr><td colspan=2>lexicon と template table を読みこみます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_lexicon(+$Word, -$TempNameList)</tt>
+<tr><td>$Word<td>単語を表す素性構造
+<tr><td>$TempNameList<td>lex_template のリスト
+<tr><td colspan=2>lexicon を引いて，単語に割り当てられた template のリ
+ストを返します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>lookup_template(+$TempName, -$Template)</tt>
+<tr><td>$TempName<td>lex_template
+<tr><td>$Template<td>template の素性構造
+<tr><td colspan=2>template table を引いて，template の名前からその素性
+構造を返します．
+</table>
+
+<p>
+これらのツールを使うためには，以下のインタフェースを実装する必要があり
+ます．
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexicon_lookup_key(+$Word, -$Key)
+<tr><td>$Word<td>単語を表す素性構造
+<tr><td>$Key<td>lexicon を引くためのキー
+<tr><td colspan=2>単語を表す素性構造(sentence_to_word_lattice/2 で返した
+リストの各要素)から，lexicon を引くためのキー(inverse_lexical_rule/5
+の第3引数や，lexical_rule/5 の第4引数)を返す．
+</table>
+
+<table border=1>
+<tr><td colspan=2>unknown_word_lookup_key(+$Word, -$Key)
+<tr><td>$Word<td>単語を表す素性構造
+<tr><td>$Key<td>lexicon を引くためのキー
+<tr><td colspan=2>単語を表す素性構造から，未知語の lexicon を引くため
+のキーを返す．
+</table>
+
+<p>
+UP で構文解析を行うときは，lexical_entry/2, lexical_entry_sign/2 で 
+lexical entry を作るときに，lookup_lexicon/2 や lookup_template/2 を利
+用することになります．
+
+
+<h2><a name="probmodel">確率モデルの使い方</a></h2>
+
+<p>
+<a href="unimaker.ja.html">unimaker</a>, <a
+href="forestmaker.ja.html">forestmaker</a> で作った確率モデルは，UP で
+構文解析する時の FOM として使うことができます．ツール
+キットで提供されているパーザ<a href="mayzup.ja.html">mayzup</a>を使う
+と，確率モデルを作るときに使ったインタフェース
+<tt>extract_???_event</tt>や<tt>feature_mask/3</tt>をそのまま使って，
+FOM (log probability) を計算するための組みこみ述語が提供されます．
+
+<p>
+以下の組み込み述語は，<a href="mayzup.ja.html">mayzup</a> のみで提供さ
+れます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>init_amis_model(+$ModelName, +$ModelFile)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$ModelFile<td>パラメタファイルの名前
+<tr><td colspan=2>新しい amis モデルを作り，$ModelFile からパラメタを
+読みこみ，さらに feature_mask を読みこんで初期化します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>delete_amis_model(+$ModelName)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td colspan=2>init_amis_model/2 で作ったモデルを消します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_event_weight(+$ModelName, +$Category,
++$Event, -$FOM)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$Event<td>イベント(文字列のリスト)
+<tr><td>$FOM<td>イベントの FOM (log probability)
+<tr><td colspan=2>文字列リストで表されたイベントに，$Category の
+feature mask をかけて得られた素性の重みの和を FOM として返す．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>amis_log_probability(+$ModelName, +$Category,
++$EventList, -$FOM)</tt>
+<tr><td>$ModelName<td>モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$EventList<td>イベントのリスト(文字列リストのリスト)
+<tr><td>$FOM<td>イベントの FOM (log probability) のリスト
+<tr><td colspan=2>各イベントの重みを amis_event_weight で計算し，それ
+を正規化して FOM として返す．
+</table>
+
+<p>
+以上の組みこみ述語を利用して，イベントの FOM (log probability) を計算
+します．計算した FOM は，<a href="#up">UP の使い方</a>で説明したインタ
+フェースを用いて，構文解析器から利用できるようにします．
+
+<p>
+<a href="mayzup.ja.html">mayzup</a> の使い方はほとんど <a
+href="up.ja.html">up</a>と同じです．たとえば，"mygrammar.lil" を読み込
+むときは，以下のように起動します．
+
+<pre>
+% mayzup -i -iter -l mygrammar
+</pre>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

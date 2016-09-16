@@ -1,0 +1,57 @@
+%/**********************************************************************
+  * @module    =  enju:synmodel
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: synmodel.lil,v 1.5 2009-12-11 08:33:57 yusuke Exp $
+  * @version   =  Time-stamp: <2009-12-11 17:32:19 yusuke>
+  * @desc      =  synmodel: feature forest model with syntactic features
+  **********************************************************************
+%*/
+
+:- module("enju:synmodel").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+:- ensure_loaded("forestprob").
+:- ensure_loaded("synmask").
+%:- ensure_loaded("../enju/word").
+:- ensure_loaded("../mayz/lexentry").
+
+:- module_implementation.
+
+:- ensure_loaded("tools").
+:- ensure_loaded("lillib/debug").
+:- set_debug_mode("enju_fom").
+
+%% fom_semantics_loop <- [pred].
+%% fom_semantics_loop([], $Prob, $Prob).
+%% fom_semantics_loop([$Ind|$IndList], $InProb, $OutProb) :-
+%%     fom_derivation_semantics($Ind, $Prob),
+%%     $NextProb is $InProb + $Prob,
+%%     fom_semantics_loop($IndList, $NextProb, $OutProb).
+
+fom_binary($RuleName, $Left, $Right, _, _, $FOM) :-
+    deriv_weight_binary($RuleName, $Left, $Right, $FOM).
+
+fom_unary($RuleName, $Dtr, _, _, $FOM) :-
+    deriv_weight_unary($RuleName, $Dtr, $FOM).
+
+fom_root($Sign, $FOM) :-
+    root_weight($Sign, $FOM).
+
+fom_terminal(_, $Sign, _, $FOM) :-
+    deriv_weight_terminal($Sign, $FOM).
+
+parser_init :-
+    (get_enju_file_path("DATA/Enju-syn.output.gz", $SynFile) ->
+     true ;
+     error_message("Cannot find FOM file: DATA/Enju-syn.output.gz\n"),
+     fail),
+    debug_message("enju_fom", "  Loading Syntax FOM model: ~s\n", [$SynFile]),
+    (import_forest_model($SynFile) ->
+     true ;
+     error_message("Cannot import forest model: ~s\n", [$SynFile]),
+     fail),
+    debug_message("enju_fom", "  done.\n", []).
+

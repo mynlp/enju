@@ -1,0 +1,43 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Using MoriV</title>
+</head>
+
+
+
+<body>
+<h1>Using MoriV</h1>
+
+<a href="moriv.ja.html">Japanese version</a>
+
+<p>You can use 
+<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv/">MoriV</a> as a GUI to view the result of a parse and syntactic details. MoriV is a web browser for viewing feature structures and trees written in tags proposed as an extension to XHTML. Normal browser cannot be used for viewing feature structures and trees. Browsers that support XSLT and XHTML like Firefox can be used for viewing feature structures and trees converted by XSLT. For details on how to use this GUI, please refer to <a
+href="modules.html#moriv">Viewing the result of a parse with a GUI</a>.
+
+<p>
+The program for passing XHTML data to MoriV is "grammar/moriv.lil". Almost all the operations done by this program are handled by modules of the MAYZ toolkit. What it does is just loading the modules. 
+
+<p>
+ENJU has a special feature. It allows predicate-argument structure to be viewed in a GUI on a page. Moving the mouse cursor to a word (mouse-over) in a sentence would cause the system to highlight the phrase that takes that word as argument. This feature requires Javascript. MoriV does not support this feature but Firefox supports it.
+
+<p>
+The processing related to this mouse-over is done by "grammar/moriv.lil". First, we generate something similar to the XML output of a parse described in <a href="output.html">Output</a>. This way we can tell which word is the argument of which phrase. Next, we use this information to generate the Javascript for highlighting the phrase that takes as argument the word being mouse-overed. 
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

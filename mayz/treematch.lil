@@ -1,0 +1,149 @@
+%/**********************************************************************
+  * @module    = mayz:treematch
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: treematch.lil,v 1.3 2009-10-02 11:56:39 yusuke Exp $
+  * @version   = Time-stamp: <2009-10-02 20:51:37 yusuke>
+  * @desc      = Tools for tree matching and substitution
+  **********************************************************************
+%*/
+
+:- module("mayz:treematch").
+
+:- module_interface.
+
+:- ensure_loaded("treetypes").
+
+tree_match <- [pred].
+tree_substitution <- [pred].
+tree_subst <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/fs").
+:- ensure_loaded("lillib/lists").
+
+is_any <- [pred].
+is_any($Any) :-
+    type_equal($Any, tree_any).
+is_path <- [pred].
+is_path($Path) :-
+    type_equal($Path, tree_path).
+
+tree_match_dtrs <- [pred].
+
+tree_match_any <- [pred].
+tree_match_any([ANY_TREES\[]|$Patterns], $Dtrs) :-
+    tree_match_dtrs($Patterns, $Dtrs).
+tree_match_any([TREE_NODE\$Node &
+		ANY_TREES\[$Dtr|$AnyDtrs]
+		|$Patterns],
+	       [$Dtr & TREE_NODE\$Node1|$Dtrs]) :-
+%printAVM($Dtr),
+    copy($Node, $Copy),
+    $Node1 = $Copy,
+    tree_match_dtrs([tree_any & TREE_NODE\$Node & ANY_TREES\$AnyDtrs
+		     |$Patterns],
+		    $Dtrs).
+
+tree_match_path <- [pred].
+tree_match_path(TREE_NODE\$Node & PATH_DTR\$PathDtr &
+		PATH_TREES\[$Dtr|$PathTrees],
+		$Dtrs) :-
+    copy($Node, $Copy),
+    $Node1 = $Copy,
+    member($Dtr & TREE_NODE\$Node1 & TREE_DTRS\$NextDtrs, $Dtrs),
+%%printAVM(["next", $Node1]),
+    tree_match_path(TREE_NODE\$Node & PATH_DTR\$PathDtr &
+		    PATH_TREES\$PathTrees,
+		    $NextDtrs).
+tree_match_path(PATH_DTR\$Pattern & PATH_TREES\[$Tree],
+		$Dtrs) :-
+    member($Tree, $Dtrs),
+%%printAVM(["term", $Tree]),
+%%printAVM($Pattern),
+    tree_match($Pattern, $Tree).
+
+%% old version -- bot is regarded as tree_any
+%% tree_match_dtrs([], []).
+%% tree_match_dtrs([$Any|$Patterns], $Dtrs) :-
+%%     is_any($Any),
+%%     !,
+%%     tree_match_any([$Any|$Patterns], $Dtrs).
+%% tree_match_dtrs([$Pattern|$Patterns], [$Dtr|$Dtrs]) :-
+%%     tree_match($Pattern, $Dtr),
+%%     tree_match_dtrs($Patterns, $Dtrs).
+%% new version -- bot is regarded as tree
+tree_match_dtrs([], []).
+tree_match_dtrs([$Any|$Patterns], $Dtrs) :-
+    is_any($Any),
+    !,
+    tree_match_any([$Any|$Patterns], $Dtrs).
+tree_match_dtrs([$Pattern|$Patterns], [$Dtr|$Dtrs]) :-
+    tree_match($Pattern, $Dtr),
+    tree_match_dtrs($Patterns, $Dtrs).
+
+%% main routine
+tree_match($Pattern & tree & TREE_NODE\$PatternNode, $Tree & TREE_NODE\$Node) :-
+    !,
+    $PatternNode = $Node,
+    ($Tree = TREE_DTRS\$Dtrs ->
+     $Pattern = TREE_DTRS\$PatternDtrs,
+     ($Dtrs = $PatternDtrs ->
+      true ;
+      tree_match_dtrs($PatternDtrs, $Dtrs))
+     ;
+     true).
+tree_match(tree_path & $Pattern, $Tree) :-
+    !,
+    tree_match_path($Pattern, [$Tree]).
+tree_match(tree_any & TREE_NODE\$Node &
+	   ANY_TREES\[$Tree],
+	   $Tree & TREE_NODE\$Node) :-
+    !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tree_substitution_dtrs <- [pred].
+
+tree_substitution_dtrs([], []).
+tree_substitution_dtrs([tree_any & ANY_TREES\$AnyDtrs|$InDtrs],
+		       $OutDtrs) :-
+    !,
+    append($AnyDtrs, $NextDtrs, $OutDtrs),
+    tree_substitution_dtrs($InDtrs, $NextDtrs).
+tree_substitution_dtrs([$InDtr|$InDtrs], [$OutDtr|$OutDtrs]) :-
+    tree_substitution($InDtr, $OutDtr),
+    tree_substitution_dtrs($InDtrs, $OutDtrs).
+
+tree_substitution_path_sub <- [pred].
+tree_substitution_path_sub([$Dtr1|$Dtrs], $Dtr2, [$Tree|$Dtrs], $Tree) :-
+    identical($Dtr1, $Dtr2),
+    !.
+tree_substitution_path_sub([$Dtr1|$Dtrs1], $Dtr2, [$Dtr1|$Dtrs2], $Tree) :-
+    tree_substitution_path_sub($Dtrs1, $Dtr2, $Dtrs2, $Tree).
+tree_substitution_path <- [pred].
+tree_substitution_path([_], $PathDtr, $Tree) :-
+    tree_substitution($PathDtr, $Tree).
+tree_substitution_path([TREE_NODE\$Node & TREE_DTRS\$Dtrs, $Dtr|$Path], $PathDtr,
+		       TREE_NODE\$Node & TREE_DTRS\$OutDtrs) :-
+    tree_substitution_path_sub($Dtrs, $Dtr, $OutDtrs, $NextTree),
+    tree_substitution_path([$Dtr|$Path], $PathDtr, $NextTree).
+
+tree_substitution(tree_term & $Tree, $Tree) :- !.
+tree_substitution(tree_empty & $Tree, $Tree) :- !.
+tree_substitution(TREE_NODE\$Node & TREE_DTRS\$InDtrs,
+		  TREE_NODE\$Node & TREE_DTRS\$OutDtrs) :-
+    !,
+    tree_substitution_dtrs($InDtrs, $OutDtrs).
+tree_substitution(tree_path & PATH_TREES\$PathTrees & PATH_DTR\$Dtr, $Tree) :-
+    tree_substitution_path($PathTrees, $Dtr, $Tree).
+
+tree_subst($InPattern, $OutPattern, $InTree, $OutTree) :-
+    tree_match($InPattern, $InTree),
+%printAVM("match!"),
+%printAVM($InPattern),
+    tree_substitution($OutPattern, $OutTree).
+

@@ -1,0 +1,160 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>確率モデル</title>
+</head>
+
+
+
+<body>
+<h1>確率モデル</h1>
+
+<a href="probmodel.html">English version</a>
+
+<p>
+Enju では構文解析結果が複数ある場合，一番尤もらしい結果を選ぶために確率モデルを使った曖昧性解消を行っています．
+具体的には，語彙項目割り当ての際とスキーマ適用によって部分木を大きくする際に，それぞれ語彙項目や部分木の尤もらしさを確率モデルを使って求めています．
+</p>
+
+<p>
+Enju の確率モデルは，最大エントロピーモデル（あるいは，log-linear model) というモデルになっています．
+このモデルは入力文を s, 構文木を t とすると，以下の式で確率値を与えます．
+
+<blockquote>
+p(t|s)=1/Z exp( sum( l_i f_i(t,s) ) )
+</blockquote>
+
+f_i(t,s) は<em>素性</em>（素性構造の素性とは違う意味）と呼ばれ，t, s がある特徴を満たすとき 0 以外の値をとる関数です．
+つまり，素性関数は t, s の特徴を実数空間に写像するためのものです．
+l_i は各素性に対応する重みであり，素性の特徴をどの程度重視するかを示す確率モデルのパラメタです．
+各素性の重みはパラメタ推定プログラムが自動的に最適なものを計算します（詳しくは <a href="unigram.ja.html">語彙項目割り当てモデルの節</a>， <a href="forest.ja.html">Feature forest モデルの節</a> を参照して下さい）．
+Z は，全ての構文木 t について p(t|s) を足したときに和が１になるようにするための正規化項です．
+</p>
+
+<p>
+上のモデルを用いて曖昧性解消を行うには，p(t|s) を最大にする t を求めればよいことになります．
+ここで式をよく見ると，Z は定数なので曖昧性解消を行うためには計算する必要がないことがわかります．
+また，exp も単調増加関数なので，計算する必要がありません．従って，構文解析の際には各構文木 t の
+
+<blockquote>
+sum( l_i f_i(t,s) )
+</blockquote>
+
+だけ計算して比較すればよいことになります．
+この値は，構文木の尤もらしさを表す値なので，FOM (figure-of-merit) と呼ぶことにします．
+</p>
+
+<p>
+Enju の現在の実装では，素性関数 f_i(t,s) には語彙項目割り当ての特徴を示す関数と，スキーマ適用の特徴を表す関数があります．
+従って，語彙項目割り当ての際にはその割り当てに対する FOM を求め，
+構文解析の際にはスキーマ適用に対応する FOM を足していけば構文木全体の FOM が計算できます．
+</p>
+
+<p>
+FOM は，以下のような手順で計算されます．
+
+<ol>
+  <li>確率イベントを表す文字列リストを作る
+  <li>文字列リストにマスクをかけて素性を作る
+  <li>素性の重みを得る
+</ol>
+
+<p>
+以下，それぞれについて説明します．
+
+<h2><a name="extract">確率イベントを作る</a></h2>
+
+<p>
+まず，単語に対する語彙項目割り当ての特徴，またはスキーマ適用の特徴を表す文字列リストを作ります．
+例えば、"In an Oct. 19 review of ..." と始まる文の先頭の "In"  に語彙項目 [&lt P &gt NP.acc]V_lxm を割り当てるのは以下のように表現します．
+
+<blockquote>
+ &lt BOS, BOS, in, IN, an, DT, oct., NNP [&lt P &gt NP.acc]V_lxm &gt
+</blockquote>
+
+リストの要素には，直前の単語文字列と品詞，割り当て対象の単語文字列と品詞，直後の単語文字列と品詞等が並び，最後の要素が割り当てる語彙項目の ID を表わしています("BOS" というのは文頭を表す記号です)．
+同じようにスキーマ適用の確率イベントも文字列リストとして表します．
+例えば，代名詞の"he"と自動詞の"runs"が Head-Subject Schema で合成されるのは以下のように表現します．
+
+<blockquote>
+&lt; SUBJ, 1, VP, runs, VBZ, [NP.nom&lt V.bse &gt]_lxm-sigular3rd_verb_rule, NP, he, PRP, [&lt NP.3sg.acc &gt] &gt;
+</blockquote>
+
+リストの各要素は，スキーマ名，距離，主辞の非終端記号，表層文字列，品詞，語彙項目テンプレート名，非主辞の非終端記号，表層文字列，品詞，語彙項目テンプレート名，を表します．
+この他にもいくつかの特徴が使われますが，詳しくは<a href="unigram.ja.html"> 語彙項目割り当てモデルの節</a>と<a href="forest.ja.html">Feature forest モデルの節</a>を参照してください．
+</p>
+
+<p>
+確率イベントの文字列リストは，語彙項目割り当ての場合 mayz ツールキットの unimaker ツールによってつくられ，スキーマ適用の場合は "enju/forestevent.lil" によって作られています．
+</p>
+
+<h2><a name="mask">マスクをかけて素性を作る</a></h2>
+
+<p>
+上記の文字列リストをそのまま素性関数として用いるとデータスパースネスの問題が発生します．
+そのため，実際の素性関数にはいくつかの情報を落としたものを使用します．
+これは，文字列リストにマスク（文字列リストと同じ長さの1/0リスト）をかけることで行います．例えば，下のマスクを上記の語彙項目割り当てイベントにかけると
+
+<blockquote> &lt; 0, 1, 0, 1, 0, 0, 0, 0, 1&gt; </blockquote>
+
+以下のようになります．
+
+<blockquote>
+ &lt _, BOS, _, IN, _, _, _, _ [&lt P &gt NP.acc]V_lxm &gt
+</blockquote>
+
+ここで，"_" は「なんでもいい」(don't care)を表します．このリストが，最大エントロピーモデルの素性関数となります．同様に以下のマスクを上記のスキーマ適用の確率イベントにかけると
+
+<blockquote> &lt; 1, 1, 1, 0, 0, 0, 1, 0, 0, 0 &gt; </blockquote>
+
+以下のようになります．
+
+<blockquote> &lt; SUBJ, 1, VP, _, _, _, NP, _, _, _ &gt; </blockquote></p>
+
+<p>
+マスクは，"enju/lexmask.lil" と "enju/synmask.lil" で実装されています．
+前者は 語彙項目割り当てモデル，後者は feature forest モデルの素性のためのマスクです．
+
+<h2><a name="weight">素性の重みを得る</a></h2>
+
+<p>
+上記のように作られた素性を使い，パラメタ推定プログラム amis によって素性の重みを計算します．
+amis によって推定された素性の重みは，上記の文字列リストを "//" でつなげた文字列と，その重みを表す実数のペアとしてファイルに出力されます．
+例えば，上の素性については，以下のように表現されます．
+
+<blockquote>_//BOS//_//IN//_//_//_//_//[&lt P &gt NP.acc]V_lxm 1.23</blockquote>
+<blockquote>SUBJ//1//VP//_//_//_//NP//_//_//_    1.35</blockquote>
+</p>
+
+<p>
+構文解析時に FOM を計算するには，まず素性の重みのファイルを読み込みます．
+Enju では組み込み述語 'init_amis_model/2' にファイル名を渡し，データを読み込んで内部データベースに変換しています．
+また，このときにマスクも同時に読み込んでいます．
+</p>
+
+<p>
+次にFOM を計算したい部分木または語彙項目割り当てから，「確率イベントを作る」で説明した文字列リストを作ってマスクをかけ，素性を取り出します．
+それらの素性に対して重みをデータベースから取り出し，sum( l_i f_i(t,s) ) を計算します．
+この処理は，インターフェース述語 <tt>amis_event_weight/4</tt> によって行うことができます．この述語に確率イベントを表す文字列リストを渡すと，その確率イベントに対する FOM を得ることができます．
+(ただし語彙項目割り当て時の FOM 計算は up によって自動的に行われます．)
+</p>
+
+<p>
+これらの処理は，up の モジュール LexicalAnalyzer と "enju/forestprob.lil" で実装されています．
+前者は語彙項目割り当てモデル，後者は feature forest モデルのためのプログラムです．また，ここで計算された素性の重みをパーザに渡すためのインタフェースは，"enju/synmodel.lil" で実装されています．
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

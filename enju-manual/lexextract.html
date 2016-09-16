@@ -1,0 +1,273 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Lexicon extraction</title>
+</head>
+
+
+
+<body>
+<h1>Lexicon extraction</h1>
+
+<a href="lexextract.ja.html">Japanese version</a>
+
+<p>
+The next step in the development cycle of Enju grammar is the acquisition of  a lexicon  and a template database based on the phrase structure tree transformed by the previous step. The dictionary used is a mapping between lexical information (of type 'word') and names of lexical entry templates (of type 'lex_entry'). The template database is a mapping between names of lexical entry templates and feature structures of lexical entry templates (of type 'hpsg_word')> 
+
+<p>
+To be more precise, what is first done in this step is to come up with the derivation of a phrase based on HPSG using the transformed phrase structure tree as input. Next, a dictionary and a template database is acquired by extracting from the leave of such derivation. To refine the dictionary and the template database, entries with low frequency are removed and entries of unknown words are created. Derivation and the acquisition of the dictionary and the template database are handled by the <a href="../../manual/lexextract.ja.html">lexextract</a> tool of mayz. The refinement of the dictionary and the template database are handled by the <a href="../../manual/lexrefine.ja.html">lexrefine</a> tool of mayz. 
+
+<h2>Extracting the Template Database and Lexicon</h2>
+
+<p>Let us explain how <a href="../../manual/lexextract.ja.html">lexextract</a> can be used for derivation from tranformed phrase structure trees and extraction of the template database and lexicon. 
+
+<table border=1>
+<tr><td colspan=2>lexextract GRAMMAR EXTRACTION MODULE TREEBANK DERIVBANK LEXICON TEMPLATE LEXBANK
+<tr><td>GRAMMAR ACQUISITION  MODULE<td>A lilfes program in which the inverse schema and the inverse lexical rule are defined
+<tr><td>TREEBANK<td>input treebank (lildb format)
+<tr><td>DERIVBANK<td>derivation  (lildb format)
+<tr><td>LEXICON<td>output file of the lexicon (lildb format)
+<tr><td>TEMPLATE<td>output file of the lexical entry template (lildb format)
+<tr><td>LEXBANK<td>output file of the terminal line of derivation(lildb format)
+</table>
+
+<p>Phrase structure trees taken from the input treebank are obtained by tranforming a corpus. HPSG-style derivation trees are obtained by using  "devel/lexextract.lil" with transformed phrase structure trees. The type of HPSG-style derivation trees is defined in the file "derivtypes.lil" in Mayz. LEXICON and TEMPLATE in the above table refers to the dictionary and lexicon template database on ENJU. 
+
+<h3>Transforming phrase structure trees to derviation trees</h3>
+
+Let's explain how an input phrase structure tree is transformed to a HPSG-style derivation tree. The actual processing is done by calling the interface predicates: <tt>root_constraints/1</tt>’¡¤
+<tt>inverse_schema_binary/4</tt>’¡¤<tt>inverse_schema_unary/3</tt>’¡¤
+<tt>lexical_constraints/2</tt> following the algorithm given below:
+
+<ol>
+  <li>Apply the constraint defined in <tt>root_constraints/1</tt> to the root sign of the derivation tree
+  <li>For non-terminals which have the structure of a unary tree, the  <tt>inverse_schema_unary/3</tt> predicate is applied. For non-terminals which have the structure of a binary tree, the <tt>inverse_schema_binary/4</tt> predicate is applied. The application of these two predicates to the sign of the mother node yields the sign of their daughter(s). 
+  <li>Apply the constraint defined in <tt>lexical_constraints/2</tt> to leafs. Constraints can vary  with the corresponding lexical information (of the type 'word'). 
+</ol>
+
+The predicate that handles this in ENJU is defined in  "devel/invschema.lil" as follows:
+
+<ul>
+   <li>All valence features (grouped under SYNSEM\LOCAL\CAT\VAL\) of the root sign: SUBJ, COMPS, SPR, SPEC, CONJ are assigned empty lists as their values.
+   <li>Applying the Head-Subject schema to the root sign in reverse direction would yield a pair of daughter nodes. The SYNSEM\LOCAL\CAT\VAL\SUBJ feature of the right daughter structure-shares its value with the SYNSEM value of the left daughter.
+   <li>As part of the preprocessing of phrases consisting "be", "was" at leaf level, the SYNSEM\LOCAL\CAT\HEAD\AUX value of the corresponding sign is assigned the value 'copula_be'’¡¥
+</ul>
+
+To illustrate:
+
+<small>
+<blockquote>
+<pre>
+root_constraints($Sign) :-
+    $Sign = (SYNSEM\(LOCAL\CAT\(HEAD\MOD\[] &
+				VAL\(SUBJ\[] & COMPS\[] & SPR\[] &
+				     SPEC\[] & CONJ\[])))).
+
+inverse_schema_binary(subj_head_schema,
+		      $Mother, $Left, $Right) :-
+    $Left = (SYNSEM\($LeftSynsem &
+		     LOCAL\CAT\(HEAD\MOD\[] &
+				VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[])))),
+    $Subj = $LeftSynsem,
+    $Right = (SYNSEM\(LOCAL\CAT\(HEAD\$Head &
+				 VAL\(SUBJ\[$Subj] &
+				      COMPS\[] &
+				      SPR\[] &
+				      SPEC\$Spec &
+				      CONJ\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\(HEAD\$Head &
+				  VAL\(SUBJ\[] &
+				       COMPS\[] &
+				       SPR\[] &
+				       SPEC\$Spec &
+				       CONJ\[])))).
+
+lexical_constraints(SURFACE\$Surface, 
+                    SYNSEM\LOCAL\CAT\HEAD\AUX\copula_be) :-
+    auxiliary_be($Surface).
+</pre>
+</blockquote>
+</small>
+
+<h3>Extraction of Lexical Entries and Lexical Entry Templates</h3>
+
+<p>Next, we obtain the dictionary and the template database from the feature structure of the leaf nodes of a derivation tree. 
+
+The following interface predicates: <tt>lexical_entry_template/3</tt>,
+<tt>reduce_lexical_template/5</tt>, <tt>lexeme_name/4</tt>,
+<tt>word_count_key/2</tt> are applied to the leaf nodes of the relevant derivation tree. Here is the order that they are applied:
+
+<ol>
+  <li>Create lexical entry templates from the lexical information given at leaf nodes and the signs of these leafs using the <tt>lexical_entry_template/3</tt> predicate
+  <li>Create lexeme templates from lexical entry templates using the <tt>reduce_lexical_template/5</tt> predicate. The key for storing the lexeme template in the dictoinary is obtained from this process. 
+  <li>If the lexeme template created above has not yet been stored in the template database, the name of the lexeme template is obtained by using the <tt>lexeme_name/4</tt> predicate. The mapping between the key created in the last step and the lexeme template is stored in the dictionary. 
+
+  <li>Obtain the key for counting the frequency of a word from the key used for looking up words from the dictionary using the <tt>word_count_key/2</tt>. The number of times the obtained key appears is incremented. (Even if different keys are used for looking up a certain word in the dictionary, the same key is returned for all instances of the word. 
+</ol>
+
+<p>
+The above interface predicates are found in  "devel/lextemplate.lil". The file contains the following specification:
+
+<ul>
+    <li>When creating lexical entry templates, the CAT and NONLOCAL features of the template are assigned values copied from the  CAT and NONLOCAL features of leaf nodes with some of constraints relaxed. This is done  by substituting the value of an affected  feature with the most general type. 
+
+    <li>Lexical rules <a href="lexrules.ja.html"> are applied in the reverse direction to lexical entry templates. 
+    <li>The name of a lexeme is created by combining the string assigned to its CAT feature, the string assigned to its VAL\SUBJ feature and a number. For example, the lexeme of a transitive verb that takes a subject noun phrase and an object noun phrase as arguments are named [npVPnp]_lxm_10. The "np" in the beginning of the string stands for the value of the SUBJ feature of the verb. The "VP" that comes after "np" stands for the value of the CAT feature of the verb. The final "np" stands for the value of the COMP featur eof the verb. 
+</ul>
+
+<p>
+Let us look at some sample codes:
+
+<small>
+<blockquote>
+<pre>
+lexical_entry_template($WordInfo, $Sign, $Template) :-
+    $Sign = (SYNSEM\(LOCAL\CAT\$Cat &
+		     NONLOCAL\$NonLocal)),
+    copy($Cat, $OutCat),
+    copy($NonLocal, $OutNonLocal),
+    $Template = (hpsg_word &
+		 SYNSEM\(LOCAL\CAT\($OutCat & VAL\SUBJ\[$Subj]) &
+			 NONLOCAL\$OutNonLocal)),
+    abstract_subj($Subj).
+
+abstract_subj($Synsem) :-
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, POSTHEAD\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, AGR\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, ADJ\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, AUX\]),
+    restriction($Synsem, [LOCAL\, CAT\, HEAD\, TENSE\]).
+</pre>
+</blockquote>
+</small>
+
+<small>
+<blockquote>
+<pre>
+reduce_lexical_template($WordInfo, $LexEntry, $Key, $Lexeme, $Rules) :-
+    get_sign($LexEntry, $Sign),
+    get_lexeme($WordInfo, $LexEntry, $BaseWordInfo, $Lexeme1, [], $Rules1),
+    canonical_copy($Lexeme1, $Lexeme),
+    $Rules = $Rules1,
+    $BaseWordInfo = (BASE\$Base & POS\$POS),
+    $Key = (BASE\$Base & POS\$POS).
+
+get_lexeme($WordInfo, $InTemplate, $NewWordInfo, $NewTemplate,
+	   $InRules, $NewRules) :-
+    ($InRules = [$Rule1|_] ->
+     upper_rule($Rule1, $Rule); true),
+    inverse_rule_lex($Rule, $WordInfo, $InTemplate, $WordInfo1, $Template1),
+    get_lexeme($WordInfo1, $Template1, $NewWordInfo, $NewTemplate,
+	       [$Rule|$InRules], $NewRules).
+</pre>
+</blockquote>
+</small>
+
+<h2>Refining the dictionary and the template database</h2>
+
+<p>
+Let us explain how we make use of <a href="../../manual/lexrefine.ja.html">lexrefine</a> for refining the dictionary and template database extracted by lexextract.
+
+<table border=1>
+<tr><td colspan=2>lexrefine rule module original lexicon original template new exicon new template
+<tr><td>rule module<td>the module where lexical rules are defined
+<tr><td>original lexicon<td>input lexicon
+<tr><td>original template<td>input template database
+<tr><td>new lexicon<td>refined lexicon
+<tr><td>new template<td>refined template
+</table>
+
+<p>
+First, the input template database is refined. This takes the form of applying <a href="lexrules.ja.html">lexical rules</a> defined in the rule module. Next, the input dictionary is refined. Entries corresponding to templates disappeared with the refinement process are deleted from the dictionary. Entries corresponding to templates obtained from applying lexical rules are added to the dictionary. Finally, entries corresponding to unknown words are added to the dictionary.
+
+<h3>Refining the Template Database</h3>
+
+The template database is refined in the following way:
+<ol>
+  <li>Template entries with frequencies larger than the threshold specified by the -tf option are stored in the the output template database.  <li>If the <tt>expand_lexical_template/5</tt> predicate is defined,the entry template stored in the last step is applied to the <tt>expand_lexical_template/5</tt>predicate, the output obtained is stored in the output database. The number of times a new template appears is the same the number of times the original template appears.
+</ol>
+
+ <a href="lexrules.ja.html">Lexical reles</a> would be applied to the template of lexems that have frequencies highter than some threshold values and lexical entry templates would be obtained. 
+
+ <small>
+<blockquote>
+<pre>
+expand_lexical_template($InTempName, $InTemplate, $Count, $LexRules, $NewTemplate) :-
+     get_variable('*template_expand_threshold*', $Thres),
+     ($Count > $Thres ->
+      ordered_lexical_rules($LexRules),
+      apply_ordered_lexical_rules(_, $InTemplate, $LexRules, _, $Template1),
+      get_sign($Template1, $NewTemplate);
+      $LexRules = [], 
+      get_sign($InTemplate, $NewTemplate)).
+</pre>
+</blockquote>
+</small>
+
+<h3>Refining the Dictionary</h3>
+
+This is the process which creates a new dictionary by removeing entries of templates deleted as a result of the refinement of the template database and adding to the dictionary entries for added templates.
+
+<ol>
+<li>If the lexeme template of an entry of the original dictionary is left in the new template database, the entry is added to the new dictionary.
+<li>If there is any new template created from an entry by <tt>expand_lexical_template/5</tt>, obtain a key for <tt>expand_lexicon/3</tt> to store the new template in the new dictionary. The number of times the key of a lexeme database appears is added to the number of time the key of the new template appears. 
+
+
+The keys in the dictionary of ENJU are of the type 'word' with the BASE feature and the POS feature specified. The keys of lexical entries have their POS value changed by the <tt>expand_lexicon/3</tt> predicate. The value of the POS feature is determined by the lexical rule applied when creating the lexcial entry. For example, when creating the lexical entry of a verb  from a lexeme entry with the rule for creating the third person singular form of a verb, the POS feature of the key of the lexical entry is assigned the value "VBZ".
+
+<small>
+<blockquote>
+<pre>
+expand_lexicon($InKey, $NewTempName, $NewKey) :-
+    $InKey = BASE\$Base & POS\$BasePOS,
+    $NewTempName = LEXICAL_RULES\$Rules,
+    rules_to_inflection($BasePOS, $Rules, $POSList),
+    member($NewPOS, $POSList),
+    $NewKey = BASE\$Base & POS\$NewPOS.
+</pre>
+</blockquote>
+</small>
+
+<h3>Adding  Unseen Words to the Dictionary</h3>
+
+<p>
+Next, lexrefine would add entries of unknown words to the dictionary. Any word that has a frequency lower than the threshold would be taken aas unseen words and new entries would be created for them. These new entries are created by using the interface predicate <tt>unknown_word_key/2</tt>. Details of the processing is given as follows:
+
+<ol>
+<li>If the new dictionary contains entries whose frequencies are lower than the threshold (specified by the -uwf option), use the <tt>unknown_word_key/2</tt> predicate to generate keys for lexical entries of  unseen words from the keys of these entries.
+<li>Keys of templates whose original keys have frequencies higher than the threshold (specified by the -utf option) and keys of unseen words are added to the new dictionary.
+<li>If the frequency of the original key is below the threshold (specified by the -wf option), the entry of the original key is deleted.
+</ol>
+
+<p>
+The keys of unseen words in ENJU are feature structure of the type 'word' with the POS feature specified. Calling the interface predicate <tt>unknown_word_key/2</tt> would return a feature structure of the type 'word' with the same POS value as the original key as the key of an unseen word. 
+
+<small>
+<blockquote>
+<pre>
+unknown_word_key(POS\$POS, POS\$POS).
+</pre>
+</blockquote>
+</small>
+
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

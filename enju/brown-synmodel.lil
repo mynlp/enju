@@ -1,0 +1,132 @@
+%/**********************************************************************
+  * @module    =  enju:synmodel
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: brown-synmodel.lil,v 1.2 2010-08-27 03:12:15 harasan Exp $
+  * @version   =  Time-stamp: <2010-08-26 12:19:45 harasan>
+  * @desc      =  synmodel: feature forest model with syntactic features
+  **********************************************************************
+%*/
+
+:- module("enju:synmodel").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+%:- ensure_loaded("genia-forestprob").
+%:- ensure_loaded("genia-synmask").
+:- ensure_loaded("forestprob").
+:- ensure_loaded("synmask").
+%:- ensure_loaded("../enju/word").
+:- ensure_loaded("../mayz/lexentry").
+
+:- module_implementation.
+
+:- ensure_loaded("tools").
+:- ensure_loaded("lillib/debug").
+:- set_debug_mode("enju_fom").
+
+%% fom_semantics_loop <- [pred].
+%% fom_semantics_loop([], $Prob, $Prob).
+%% fom_semantics_loop([$Ind|$IndList], $InProb, $OutProb) :-
+%%     fom_derivation_semantics($Ind, $Prob),
+%%     $NextProb is $InProb + $Prob,
+%%     fom_semantics_loop($IndList, $NextProb, $OutProb).
+
+fom_binary($RuleName, $Left, $Right, _, _, $FOM) :-
+    deriv_weight_binary($RuleName, $Left, $Right, $FOM).
+
+fom_unary($RuleName, $Dtr, _, _, $FOM) :-
+    deriv_weight_unary($RuleName, $Dtr, $FOM).
+
+fom_root($Sign, $FOM) :-
+    root_weight($Sign, $FOM).
+
+fom_terminal(_, $Sign, _, $FOM) :-
+    deriv_weight_terminal($Sign, $FOM).
+
+parser_init :-
+    (get_enju_file_path("DATA/Enju-Brown-adaptsyn.output.gz", $SynFile) ->
+     true ;
+     error_message("Cannot find FOM file: DATA/Enju-Brown-adaptsyn.output.gz\n"),
+     fail),
+    debug_message("enju_fom", "  Loading Syntax FOM model: ~s\n", [$SynFile]),
+    (import_forest_model($SynFile) ->
+     true ;
+     error_message("Cannot import forest model: ~s\n", [$SynFile]),
+     fail),
+    debug_message("enju_fom", "  done.\n", []).
+
+
+%fom_binary($RuleName, $Left, $Right, _, _, $FOM) :-
+%    deriv_weight_binary($RuleName, $Left, $Right, $FOM1),
+%    deriv_weight_binary_main($RuleName, $Left, $Right, $FOM2),
+%    $FOM is $FOM1 + $FOM2.
+%fom_unary($RuleName, $Dtr, _, _, $FOM) :-
+%    deriv_weight_unary($RuleName, $Dtr, $FOM1),
+%    deriv_weight_unary_main($RuleName, $Dtr, $FOM2),
+%    $FOM is $FOM1 + $FOM2.
+%fom_root($Sign, $FOM) :-
+%    root_weight($Sign, $FOM1),
+%    root_weight_main($Sign, $FOM2),
+%    $FOM is $FOM1 + $FOM2.
+%fom_terminal(_, $Sign, _, $FOM) :-
+%    deriv_weight_terminal($Sign, $FOM1),
+%    deriv_weight_terminal_main($Sign, $FOM2),
+%    $FOM is $FOM1 + $FOM2.
+%
+%parser_init :-
+%    (get_enju_file_path("DATA/Enju-syn.output.gz", $SynFile) ->
+%     true ;
+%     error_message("Cannot find FOM file: DATA/Enju-syn.output.gz\n"),
+%     fail),
+%    (get_enju_file_path("DATA/Enju-Brown-adaptsyn.output.gz", $SynFileMain) ->
+%     true ;
+%     error_message("Cannot find FOM file: DATA/Enju-Brown-adaptsyn.output.gz\n"),
+%     fail),
+%    debug_message("enju_fom", "  Loading Syntax FOM model: ~s\n", [$SynFile]),
+%    (import_forest_model($SynFile) ->
+%     true ;
+%     error_message("Cannot import forest model: ~s\n", [$SynFile]),
+%     fail),
+%    debug_message("enju_fom", "  Loading Syntax FOM model: ~s\n", [$SynFileMain]),
+%    (import_forest_model_main($SynFileMain) ->
+%     true ;
+%     error_message("Cannot import forest model: ~s\n", [$SynFileMain]),
+%     fail).
+
+%fom_binary($RuleName, $Left, $Right, _, _, $FOM) :-
+%    deriv_weight_binary($RuleName, $Left, $Right, $FOM).
+%
+%fom_unary($RuleName, $Dtr, _, _, $FOM) :-
+%    deriv_weight_unary($RuleName, $Dtr, $FOM).
+%
+%fom_root($Sign, $FOM) :-
+%    root_weight($Sign, $FOM).
+%
+%fom_terminal(_, $Sign, _, $FOM) :-
+%    deriv_weight_terminal($Sign, $FOM).
+%
+%fom_lexical_entry(_, $LexName, $FOM) :-
+%    uni_log_probability($LexName, $FOM).
+%
+%parser_init :-
+%    (get_enju_file_path("DATA/Enju-lex.output.gz", $LexFile) ->
+%     true ;
+%     error_message("Cannot find FOM file: DATA/Enju-lex.output.gz\n"),
+%     fail),
+%    (get_enju_file_path("DATA/Enju-syn.output.gz", $SynFile) ->
+%     true ;
+%     error_message("Cannot find FOM file: DATA/Enju-syn.output.gz\n"),
+%     fail),
+%    debug_message("enju_fom", "  Loading Unigram FOM model: ~s\n", [$LexFile]),
+%    (import_uni_model($LexFile) ->
+%     true ;
+%     error_message("Cannot import Unigram model: ~s\n", [$LexFile]),
+%     fail),
+%    debug_message("enju_fom", "  Loading Syntax FOM model: ~s\n", [$SynFile]),
+%    (import_forest_model($SynFile) ->
+%     true ;
+%     error_message("Cannot import forest model: ~s\n", [$SynFile]),
+%     fail).
+

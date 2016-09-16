@@ -1,0 +1,384 @@
+%/**********************************************************************
+  * @module    =  enju:nbest
+  * @copyright =  Copyright (c) 2008, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  Experimental implementation of nbest parsing
+  * Run the following commend:
+  * % enju -l enju/nbest.lil -e output_xml_nbest_file
+  * You will get n-best results for each sentence in the XML format.
+  * Blank lines indicate sentence boundaries.
+  **********************************************************************
+%*/
+
+:- module("enju:nbest").
+
+:- module_interface.
+
+:- ensure_loaded("mayz/parser").
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("types").
+:- ensure_loaded("display").
+:- ensure_loaded("outputxml").
+
+edge_nbest <- [pred].
+root_nbest <- [pred].
+
+xml_parse_tree_nbest <- [pred].
+output_xml_nbest_file <- [pred].
+'output_xml_nbest_file/0' <- ['pred/0', output_xml_nbest_file].
+'output_xml_nbest_file/1' <- ['pred/1', 'output_xml_nbest_file/0'].
+output_so_nbest_file <- [pred].
+'output_so_nbest_file/0' <- ['pred/0', output_so_nbest_file].
+'output_so_nbest_file/1' <- ['pred/1', 'output_so_nbest_file/0'].
+
+'*default_n*' <- [variable].
+:-
+    define_integer_variable('*default_n*'),
+    set_variable('*default_n*', 20).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/lists").
+
+nbest_derivation <- [pred].
+:-
+    declare_array(nbest_derivation(key_inthash, array_value)).
+
+%% simple implementation of priority queue
+
+insert_priority_queue <- [pred].
+insert_priority_queue_sub <- [pred].
+insert_priority_queue_sub(0, _, _, []) :- !.
+insert_priority_queue_sub(_, [], _, []) :- !.
+insert_priority_queue_sub($Thresh, [($Elem, _)|$Queue], $Elem1, $NextQueue) :-
+    equivalent($Elem, $Elem1),
+    !,
+    insert_priority_queue_sub($Thresh, $Queue, $Elem, $NextQueue).
+insert_priority_queue_sub($Thresh, [$X|$Queue], $Elem, [$X|$NextQueue]) :-
+    $NextThresh is $Thresh - 1,
+    insert_priority_queue_sub($NextThresh, $Queue, $Elem, $NextQueue).
+
+insert_priority_queue([], $Thresh, $Elem, $Prob, $NewQueue) :-
+    $Thresh > 0,
+    $NewQueue = [($Elem, $Prob)].
+insert_priority_queue([($Elem1, $Prob1)|$Queue], $Thresh,
+		      $Elem, $Prob, [($Elem, $Prob)|$NextQueue]) :-
+    $Prob > $Prob1,
+    !,
+    $NextThresh is $Thresh - 1,
+    insert_priority_queue_sub($NextThresh, [($Elem1, $Prob1)|$Queue],
+			      $Elem, $NextQueue).
+insert_priority_queue([($Elem, $Prob1)|$Queue], _,
+		      $Elem1, _, [($Elem, $Prob1)|$Queue]) :-
+    equivalent($Elem, $Elem1),
+%%    $Prob <= $Prob1,  %% always true
+    !.
+insert_priority_queue([($Elem1, $Prob1)|$Queue], $Thresh,
+		      $Elem, $Prob, [($Elem1, $Prob1)|$NextQueue]) :-
+    $NextThresh is $Thresh - 1,
+    insert_priority_queue($Queue, $NextThresh, $Elem, $Prob, $NextQueue).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% main program to obtain n-best link trees
+
+merge_queue_unary <- [pred].
+merge_queue_unary([], _, _, _, $NBest, $NBest).
+merge_queue_unary([($Dtr, $FOM1)|$NBest1], $FOM, $Tree, $N, $InNBest, $OutNBest) :-
+    $NewFOM is $FOM1 + $FOM,
+    (insert_priority_queue($InNBest, $N, [$Tree, $Dtr], $NewFOM, $NextNBest) ->
+     merge_queue_unary($NBest1, $FOM, $Tree, $N, $NextNBest, $OutNBest) ;
+     $InNBest = $OutNBest).
+
+merge_queue_binary_sub <- [pred].
+merge_queue_binary_sub([], _, _, _, _, $NBest, $NBest).
+merge_queue_binary_sub([($Right, $FOM2)|$NBest2], $Left, $FOM, $Tree, $N, $InNBest, $OutNBest) :-
+    $NewFOM is $FOM2 + $FOM,
+    (insert_priority_queue($InNBest, $N, [$Tree, $Left, $Right], $NewFOM, $NextNBest) ->
+     merge_queue_binary_sub($NBest2, $Left, $FOM, $Tree, $N, $NextNBest, $OutNBest) ;
+     $InNBest = $OutNBest).
+merge_queue_binary <- [pred].
+merge_queue_binary([], _, _, _, _, $NBest, $NBest).
+merge_queue_binary([($Left, $FOM1)|$NBest1], $NBest2, $FOM, $Tree, $N, $InNBest, $OutNBest) :-
+    $NewFOM is $FOM1 + $FOM,
+    merge_queue_binary_sub($NBest2, $Left, $NewFOM, $Tree, $N, $InNBest, $NextNBest),
+    merge_queue_binary($NBest1, $NBest2, $FOM, $Tree, $N, $NextNBest, $OutNBest).
+
+get_nbest <- [pred].
+get_nbest_dtrs <- [pred].
+get_nbest_dispatch <- [pred].
+get_nbest_dispatch($Terminal & terminal, $FOM, $N, _, $InNBest, $OutNBest) :-
+    (insert_priority_queue($InNBest, $N, [$Terminal], $FOM, $OutNBest) ->
+     true ;
+     $InNBest = $OutNBest).
+get_nbest_dispatch($UnaryLink & nonterminal_unary & U_DTR\$DtrID,
+		   $FOM, $N, $NextN, $InNBest, $OutNBest) :-
+    get_nbest($DtrID, $NextN, $NBest1),
+    merge_queue_unary($NBest1, $FOM, $UnaryLink, $N, $InNBest, $OutNBest).
+get_nbest_dispatch($BinaryLink & nonterminal_binary & L_DTR\$LeftID & R_DTR\$RightID,
+		   $FOM, $N, $NextN, $InNBest, $OutNBest) :-
+    get_nbest($LeftID, $NextN, $NBest1),
+    get_nbest($RightID, $NextN, $NBest2),
+    merge_queue_binary($NBest1, $NBest2, $FOM, $BinaryLink, $N, $InNBest, $OutNBest).
+
+determine_n <- [pred].
+determine_n([], _, $N, $N).
+determine_n([(_, $FOM)|_], $BestFOM, $N, $N) :-
+    $FOM < $BestFOM,
+    !.
+determine_n([_|$NBest], $BestFOM, $N, $NewN) :-
+    $NextN is $N - 1,
+    determine_n($NBest, $BestFOM, $NextN, $NewN).
+
+get_nbest_dtrs([], _, _, $NBest, $NBest).
+get_nbest_dtrs([$LinkID|$LinkIDList], $BestFOM, $N, $InNBest, $OutNBest) :-
+    edge_link($LinkID, $Link),
+    edge_link_fom($LinkID, $LinkFOM),
+    $DiffFOM is $LinkFOM - $BestFOM,
+    determine_n($InNBest, $DiffFOM, $N, $NextN),
+%%printAVM([$LinkID, $NewN]),
+    ($NextN > 0 ->
+     get_nbest_dispatch($Link, $DiffFOM, $N, $NextN, $InNBest, $NextNBest),
+     get_nbest_dtrs($LinkIDList, $BestFOM, $N, $NextNBest, $OutNBest)
+     ;
+     $InNBest = $OutNBest).
+
+get_nbest($EdgeID, $N, $NBest) :-
+    get_array(nbest_derivation($EdgeID, $NBest)),
+    length($NBest, $N1),
+    $N1 >= $N,
+    !.
+get_nbest($EdgeID, $N, $NBest) :-
+    edge_link_id_list($EdgeID, [$LinkID|$LinkIDList]),
+    edge_link_fom($LinkID, $FOM),
+    get_nbest_dtrs([$LinkID|$LinkIDList], $FOM, $N, [], $NBest),
+    set_array(nbest_derivation($EdgeID, $NBest)),
+    fail.
+get_nbest($EdgeID, _, $NBest) :-
+    get_array(nbest_derivation($EdgeID, $NBest)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+edge_nbest($EdgeID, $N, $NBest) :-
+    clear_array(nbest_derivation(_, _)),
+    get_nbest($EdgeID, $N, $NBest).
+
+merge_nbest_list <- [pred].
+merge_nbest_list([], _, _, $NBest, $NBest).
+merge_nbest_list([($Tree, $FOM1)|$NBest1], $N, $FOM, $InNBest, $OutNBest) :-
+    $NewFOM is $FOM1 + $FOM,
+    (insert_priority_queue($InNBest, $N, $Tree, $NewFOM, $NextNBest) ->
+     merge_nbest_list($NBest1, $N, $FOM, $NextNBest, $OutNBest) ;
+     $InNBest = $OutNBest).
+get_nbest_list <- [pred].
+get_nbest_list([], _, _, $NBest, $NBest).
+get_nbest_list([$EdgeID|$EdgeIDList], $BestFOM, $N, $InNBest, $OutNBest) :-
+    edge_fom($EdgeID, $FOM),
+    $DiffFOM is $FOM - $BestFOM,
+    get_nbest($EdgeID, $N, $NBest1),
+    merge_nbest_list($NBest1, $N, $DiffFOM, $InNBest, $NextNBest),
+    get_nbest_list($EdgeIDList, $BestFOM, $N, $NextNBest, $OutNBest).
+
+root_nbest($N, $NBest, $BestFOM) :-
+    clear_array(nbest_derivation(_, _)),
+    root_edge_id_list([$BestRootID|$RootIDList]),
+    edge_fom($BestRootID, $BestFOM),
+    get_nbest_list([$BestRootID|$RootIDList], $BestFOM, $N, [], $NBest).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% convert link tree to parse tree
+
+link_tree_to_parse_tree <- [pred].
+link_tree_to_parse_tree([$Link & terminal & LEX_NAME\$LexName],
+			parse_tree_terminal & EDGE_SIGN\$Sign & EDGE_LINK\$Link) :-
+    lexical_entry_sign($LexName, $Sign),
+    !.
+link_tree_to_parse_tree([$Link & nonterminal_unary & APPLIED_SCHEMA\$Schema,
+			 $Dtr],
+			parse_tree_nonterminal_unary &
+			U_TREE\$UTree & EDGE_SIGN\$Sign & EDGE_LINK\$Link) :-
+    link_tree_to_parse_tree($Dtr, $UTree & EDGE_SIGN\$USign),
+    id_schema_unary($Schema, $USign, $Sign, $DCP),
+    call($DCP),
+    !.
+link_tree_to_parse_tree([$Link & nonterminal_binary & APPLIED_SCHEMA\$Schema,
+			 $LDtr, $RDtr],
+			parse_tree_nonterminal_binary &
+			L_TREE\$LTree & R_TREE\$RTree & EDGE_SIGN\$Sign & EDGE_LINK\$Link) :-
+    link_tree_to_parse_tree($LDtr, $LTree & EDGE_SIGN\$LSign),
+    link_tree_to_parse_tree($RDtr, $RTree & EDGE_SIGN\$RSign),
+    id_schema_binary($Schema, $LSign, $RSign, $Sign, $DCP),
+    call($DCP),
+    !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% '*sentence_id_number*' <- [variable].
+%% :- init_integer_variable('*sentence_id_number*').
+
+%% sentence_id_str <- [pred].
+%% sentence_id_str($Id, $IdStr) :-
+%%     inttostr($Id, $Str1),
+%%     strcat("s", $Str1, $IdStr).
+
+%% error_type_string <- [pred].
+%% error_type_string(parse_success, "no successful parse") :- !.
+%% error_type_string(preprocess_error, "preprocess error") :- !.
+%% error_type_string(parse_error_too_long, "too long sentence") :- !.
+%% error_type_string(parse_error_edge_limit, "edge limit exceeded") :- !.
+%% error_type_string(_, "unknown").
+
+%% xml_parse_tree_nbest_sub <- [pred].
+%% xml_parse_tree_nbest_sub([], _, []).
+%% xml_parse_tree_nbest_sub([($LinkTree, $FOM)|$LinkTrees], $SentenceIdStr, [($XML, $FOM)|$XMLs]) :-
+%%     (get_xml_parse_tree($LinkTree, $XMLTree) ->
+%%      $ParseStatus = "success" ;
+%%      $ParseStatus = "XML encoding error"),
+%%     $XML = xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\$ParseStatus & XML_PARSE_TREE\$XMLTree,
+%%     xml_parse_tree_nbest_sub($LinkTrees, $SentenceIdStr, $XMLs).
+
+%% xml_parse_tree_nbest($N, $Sentence, $XMLList) :-
+%%     inc_variable('*sentence_id_number*', $LineId),
+%%     sentence_id_str($LineId, $SentenceIdStr),
+%%     (parse($Sentence),
+%%      start_prof("nbest"),
+%%      root_nbest($N, $NBest) ->
+%%      stop_prof("nbest"),
+%%      xml_parse_tree_nbest_sub($NBest, $SentenceIdStr, $XMLList)
+%%      ;
+%%      stop_prof("nbest"),
+%%      (get_parse_status($Status),
+%%       error_type_string($Status, $ParseStatus) ->
+%%       true ;
+%%       $ParseStatus = "unknown"),
+%%      $XMLList = [(xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\$ParseStatus, 0.0)]).
+
+%% main routine
+
+xml_parse_tree_nbest_sub <- [pred].
+xml_parse_tree_nbest_sub([], _, _, []).
+xml_parse_tree_nbest_sub([($LinkTree, $DiffFOM)|$LinkTrees], $SentenceIDStr, $BestFOM, [$XML|$XMLs]) :-
+    (link_tree_to_parse_tree($LinkTree, $ParseTree),
+     parse_tree_to_xml($ParseTree, $XMLTree) ->
+     $ParseStatus = "success" ;
+     $ParseStatus = "XML encoding error"),
+    $FOM is $DiffFOM + $BestFOM,
+    $XML = xml_sentence & XML_SENTENCE_ID\$SentenceIDStr & XML_PARSE_STATUS\$ParseStatus & XML_FOM\$FOM & XML_PARSE_TREE\$XMLTree,
+    xml_parse_tree_nbest_sub($LinkTrees, $SentenceIDStr, $BestFOM, $XMLs).
+
+xml_parse_tree_nbest($N, $Sentence, $XMLList) :-
+    sentence_id($SentenceIdStr),
+    (regex_match("^[[:space:]]*$", $Sentence) ->
+     $XMLList = [xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\"empty line"]
+     ;
+     (parse($Sentence),
+      start_prof("nbest"),
+      root_nbest($N, $NBest, $BestFOM) ->
+      stop_prof("nbest"),
+      start_prof("output_xml"),
+      xml_parse_tree_nbest_sub($NBest, $SentenceIdStr, $BestFOM, $XMLList),
+      stop_prof("output_xml")
+      ;
+      stop_prof("nbest"),
+      start_prof("output_xml"),
+      get_parse_status($Status),
+      %(($Status = parse_success ; $Status = parse_error_edge_limit),
+      (partial_parse_status($Status),
+       collect_partial_parse($IDList, $FOM) ->
+       (get_xml_partial_parses($IDList, $XMLTree) ->
+	$ParseStatus = "fragmental parse" ;
+	$ParseStatus = "XML encoding error")
+       ;
+       error_type_string($Status, $ParseStatus)),
+      $XMLList = [xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\$ParseStatus & XML_FOM\$FOM & XML_PARSE_TREE\$XMLTree],
+      stop_prof("output_xml"))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% interface for external use
+
+output_xml_parse_tree_list <- [pred].
+output_xml_parse_tree_list([], _, $Output) :-
+    writeln_string($Output, "").
+output_xml_parse_tree_list([$XML|$XMLList], $Sentence, $Output) :-
+%%    format($Output, "FOM=~f\t", [$FOM]),
+    output_xml_parse_tree($Sentence, $XML, $Output),
+    output_xml_parse_tree_list($XMLList, $Sentence, $Output).
+
+output_xml_nbest <- [pred].
+output_xml_nbest($Sentence, $Output) :-
+    get_variable('*default_n*', $N),
+    xml_parse_tree_nbest($N, $Sentence, $XMLList),
+    output_xml_parse_tree_list($XMLList, $Sentence, $Output),
+    !.
+
+output_xml_loop <- [pred].
+output_xml_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_xml_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    output_xml_nbest($Sentence, $Output),
+    fail.
+output_xml_loop($Input, $Output) :-
+    output_xml_loop($Input, $Output).
+
+output_xml_nbest_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    init_id_numbers,
+    output_xml_loop($Input, $Output).
+
+output_xml_nbest_file($N) :-
+    set_variable('*default_n*', $N),
+    output_xml_nbest_file.
+
+%% Stand-off format
+
+'*file_offset*' <- [variable].
+:- init_integer_variable('*file_offset*').
+
+output_so_parse_tree_list <- [pred].
+output_so_parse_tree_list([], _, _, $Output) :-
+    writeln_string($Output, "").
+output_so_parse_tree_list([$XML|$XMLList], $Offset, $Sentence, $Output) :-
+%%    format($Output, "FOM=~f\t", [$FOM]),
+    output_so_parse_tree($Offset, $Sentence, $XML, $Output),
+    output_so_parse_tree_list($XMLList, $Offset, $Sentence, $Output).
+
+output_so_nbest <- [pred].
+output_so_nbest($Sentence, $Output) :-
+    get_variable('*default_n*', $N),
+    xml_parse_tree_nbest($N, $Sentence, $XMLList),
+    get_variable('*file_offset*', $Offset),
+    output_so_parse_tree_list($XMLList, $Offset, $Sentence, $Output),
+    strlen($Sentence, $Len),
+    $NewOffset is $Offset + $Len + 1,
+    set_variable('*file_offset*', $NewOffset).
+
+output_so_loop <- [pred].
+output_so_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_so_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    output_so_nbest($Sentence, $Output),
+    fail.
+output_so_loop($Input, $Output) :-
+    output_so_loop($Input, $Output).
+
+output_so_nbest_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    init_id_numbers,
+    set_variable('*file_offset*', 0),
+    output_so_loop($Input, $Output).
+
+output_so_nbest_file($N) :-
+    set_variable('*default_n*', $N),
+    output_so_nbest_file.
+

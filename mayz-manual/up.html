@@ -1,0 +1,565 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>up: a general-purpose parser</title>
+</head>
+
+
+
+<body>
+<h1>up: a general-purpose parser</h1>
+
+<a href="up.ja.html">Japanese version</a>
+
+<p>
+Index<br>
+<a href="#overview">1. Overview</a><br>
+<a href="#how_to">2. How To Use UP</a><br>
+<a href="#word_lattice">3. Word Lattice and Extent</a><br>
+<a href="#edge">4. Edge</a><br>
+<a href="#chart">5. Chart</a><br>
+<a href="#link">6. Link</a><br>
+<a href="#root_parse_tree">7. Root Condition and Parse Tree</a><br>
+<a href="#fom">8. Disambiguation Module</a><br>
+<a href="#misc">9. Miscellaneous Items</a><br>
+</p>
+
+<h2><a name="overview">1. Overview</a></h2>
+<p>
+The up is a parser that analyzes a sentence according to a
+unification-based grammar, e.g., HPSG.  See <a
+href="usegrammar.html">this</a> for further details about the grammar
+specifications.
+</p>
+
+<p>
+The parser starts analyzing a sentence when users call parse/1 or
+parse_word_lattice.  Users can give the target sentence as a string or a
+word latttice to the parser.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parse(+$Sentence)</tt>
+<tr><td>$Sentence<td>string of a sentence
+<tr><td colspan=2>The parser parses $Sentence.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parse_word_lattice(+$WordLattice)</tt>
+<tr><td>$WordLattice<td>a word lattice (= a list of extent) of a sentence
+<tr><td colspan=2>The parser parses $WordLattice.
+</table>
+</p>
+
+<p>
+Parsing proceeds in the following steps.
+
+<ol>
+<li> preprocessing
+<li> lexicon lookup
+<li> kernel parsing
+</ol>
+
+The following is the overview of the parser.
+
+<center>
+<img src="up_overview.png" alt="overview">
+</center>
+
+In the case of parse/1, tokenizing, POS tagging, and morphological
+analyzing are done in `preprocessing.'  parse_word_lattice/1 is
+supposed to receive the result of a tokenizer, POS tagger or
+morphological analyzer, and does not do the preprocessing.  In the
+lexicon lookup, the parser consults a dicionary to find lexical
+entries for the word lattice.  Finally, the parser does phrase
+analysis in the kernel parsing process.
+</p>
+
+<p>
+As seen in the figure, the parser has data structures called chart,
+edge manager, link manager and FOM manager.  The details of them will
+be explained later.
+</p>
+
+<h2><a name="how_to">2. How To Use UP</a></h2>
+<p>
+<table border=1>
+<tr><td colspan=2>up [options] [-a arguments]
+<tr><td colspan=2>Arguments following "-a" are passed to LiLFeS
+programs as command-line arguments
+<tr><td colspan=2>Options
+<tr><td>-L directory<td>Directory of LiLFeS modules
+<tr><td>-W number<td>Limit number of words
+<tr><td>-E number<td>Limit number of edges
+<tr><td>-l module<td>Load LiLFeS program
+<tr><td>-e command<td>Execute LiLFeS command
+<tr><td>-i<td>Interactive mode (show LiLFeS prompt)
+<tr><td>-n<td>Non-interactive mode (default)
+<tr><td>-iter<td>With iterative beam thresholding (default)
+<tr><td>-fom<td>With disambiguation
+<tr><td>-nofom<td>Without disambiguation
+</table>
+</p>
+
+<p>
+This tool loads LiLFeS modules specified with "-l" and executes a
+parser.  If a lilfes command is specified, it is executed.  If
+interactive mode is specified, it prints a command prompt of LiLFeS
+after executing the lilfes command.
+</p>
+
+<p>
+It does nothing about loading of a lexicon and initialization of FOM
+models.  For these, utilize the interfaces of "up" such as
+"<tt>parser_init</tt>".
+</p>
+
+<h2><a name="word_lattice">3. Word Lattice and Extent</a></h2>
+<p>
+When parse/1 is evoked, the string in the argument will be converted
+to a word lattice by sentence_to_word_lattice/2, and then parse/1 does
+the same process as parse_word_lattice/1 does.  The word lattice is
+defined as a list of extents, but the implementation of
+sentence_to_word_lattice/2 must be given in the grammar.  The extent
+type is defined in parser.lil as follows.  We call the data structure
+of extent type `extent.'<br>
+
+<br>
+extent &lt;- [bot] + [left_position\integer(0), right_position\integer(1)].<br>
+<br>
+extent_bracket &lt;- [extent].<br>
+extent_sign_constraint &lt;- [extent] + [sign_constraint\bot(5)]. <br>
+extent_word &lt;- [extent] + [word\bot(5)].<br>
+<br>
+
+The children of extent type are extent_bracket,
+extent_sign_constraint, extent_word, and they all have the feature
+left_position\ and right_position\.
+</p>
+
+<p>
+The values of left_position\ and right_position\ are integer that
+represents the position in the target sentence.  We call the integer
+`position,' and the sub-string designated by the left position and the
+right position `region.'  When the target sentence is tokenized as a
+sequence of words w1,w2,w3,w4,w5,...,wn, the left position of w1 is 0,
+and the right position is 1.  In general, the left position of wi is
+i-1, and the right position is i.  Intuitively, the relation between
+words and positions are illustrated as follows.
+
+<center>
+<img src="up_position.png" alt="position">
+</center>
+
+The position is placed between words.  With this definition, we can
+easily see whether the words or phrases are adjacent.  For example,
+suppose we have two words wa and wb.  They are adjacent if the right
+position of wa and the left position of wb are equal, or the left
+position of wa and the right position of wb are equal.
+</p>
+
+<p>
+extent_word is an extent that corresponds to a word.  It has not only
+positions, but has the values relevant to the word, e.g., the
+spelling, POS, in the word\ feature.  The value in the word\ feature
+is defined in each grammar module.  When the lexicon lookup process,
+the lexical entry is retrieved by using the value in the word\
+feature.
+</p>
+
+<p>
+Users can explicitly specify the phrase boundary by specifying
+extent_bracket.  That is, the parser never generates a parse tree that
+cross the region specified by the extent_bracket.
+</p>
+
+<p>
+Users can add constraints to the feature structures in the region by
+specifying extent_sign_constraint.
+</p>
+
+<h2><a name="edge">4. Edge</a></h2>
+<p>
+There is no corresponding type to edge, but edge is a quintuple &lt;
+left-position, right-position, sign, a list of links, FOM &gt;, which
+represents a phrasal structure for the sub-string of the target
+sentence.  Left-position and right-position are positions in the
+sentence.  Sign is a phrasal structure represented as a feature
+structure.  That is, an edge is a phrase structures that corresponds
+to a region.  The edge also has an information to reconstruct the
+parse tree after parsing in the list of links, and also has an
+information about the score (FOM) for disambiguation of analysis.
+</p>
+
+All edges are assignd IDs.  The number of generated edges during
+paring is acquired by calling get_edge_number/1.  The positions of an
+edge is acquired by calling edge_position/3, and the sign of an edge
+is acquired by calling edge_sign/2, specifying the ID of the edge.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_edge_number(-$Num)</tt>
+<tr><td>$Num<td>the number of edges
+<tr><td colspan=2>This retures the number of all edges generated during parsing.  It is valid until the next sentence is input.  ID of each edge is an integer from 0 to $Num -1.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_sign(+$ID, -$Sign)</tt>
+<tr><td>$ID<td> The ID of an edge: integer
+<tr><td>$Sign<td> sign
+<tr><td colspan=2>This returns a sign of the edge identified by the edge ID $ID.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_position(+$ID, -$Left, -$Right)</tt>
+<tr><td>$ID<td> The ID of an edge: integer
+<tr><td>$Left<td> left position
+<tr><td>$Right<td> right position
+<tr><td colspan=2>This returns the left and right postion of the edge ideintified by the edge ID $ID.
+</table>
+</p>
+
+All edges are assigned an integer ranging from 0 to the number of
+edges minus one as an identifier.  So, all edges can be acquired by
+calling edge_sign and edge_position specifying from 0 to the number of
+edges minus one as an identifier.
+</p>
+
+<h2><a name="chart">5. Chart</a></h2>
+<p>
+The parser has a data structure generally called `chart.'  The chart
+is a two dimensional table.  Here, we call each cell in the table `CKY
+cell.'  Let an input sentence s(= w1, w2, w3,...,wn), for example, w1
+= "I", w2="saw", w3= "a", w4 = "girl", w5 = "with", w6 = "a", w7 =
+"telescope" for the sentence "I saw a girl with a telescope", the
+chart is arranged as follows.
+
+<center>
+<img src="up_chart.png" alt="chart">
+</center>
+
+Let S[i][j] be each cell in the chart.  The suffixes i and j
+correspond to the left position and the right position in the
+sentence.  For example, `edges' correspond to "I" are stored to
+S[0][1], edges for "saw" are stored to S[1][2], and edges for
+"telescope" are stored to S[6][7] (`edges' will be explained later).
+That is, the edges for word wi are stored to S[i-1][i].  The phrasal
+edges generated during parsing are stored to the chart.  For example,
+edges for "I saw" are stored to S[0][2], edges for "saw a" are stored
+to S[1][3], and edges for wider phrase "I saw a" are stored to
+S[0][3].  Supposing that the sentence length is n, edges for the whole
+sentence are stored to S[0][n].  In the exmaple above, the edges for
+the whole sentence are store to S[0][7].
+</p>
+
+<p>
+The edges on the chart can be acquired by calling edge_id_list/3 and
+top_edge_id_list/1.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_id_list(+$Left, +$Right, -$IDList)</tt>
+<tr><td>$Left<td> the left postion of the CKY cell
+<tr><td>$Right<td> the right postion of the CKY cell
+<tr><td>$IDList<td> Edge ID list
+<tr><td colspan=2>This returns all edges stored in S[$Left][$Right].
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>top_edge_id_list(-$IDList)</tt>
+<tr><td>$IDList<td> Edge ID list
+<tr><td colspan=2>This returns all edges store in S[0][n] where n is the sentence length.
+</table>
+</p>
+
+The IDs of the edges in S[i][j] can be acquired by calling
+edge_id_list/3, and the IDs of the edges in S[0][n], where n is the
+sentence length, can be acquired by calling top_edge_id_list/1.
+</p>
+
+<h2><a name="link">6. Link</a></h2>
+<p>
+During parsing, an edge (parent) is generated by applying the grammar
+rules to two edges (children).  For example, the results of applying
+the grammar rules to an edge in S[0][3] and an edge in S[3][5] are
+stored to S[0][5].  When an edge is store to a CKY cell, signs are
+reduced, and if reduced signs are equivalent with any of reduced signs
+in the same CKY cell, reduced signs are packed into one sign.  This
+process is called `factoring.'  The information that are cut off
+during factoring is stored to another data structure called `link.'
+For example, the signs of children in the parent are cut off in Enju.
+Instead, the IDs of child edges are stored as links in the parent's
+edge.  Because several reduced signs are packed into one, the edge has
+several links.
+</p>
+
+<p>
+A link is represented as the link type defined in parser.lil as follows.<br>
+
+<br>
+link <- [bot] + [SIGN_PLUS\bot (-100)].<br>
+terminal <- [link] + [LEX_NAME\bot (5)].<br>
+nonterminal <- [link] + [APPLIED_SCHEMA\bot (5)].<br>
+nonterminal_binary <- [nonterminal] + [L_DTR\integer(0), R_DTR\integer(1)].<br>
+nonterminal_unary <- [nonterminal] + [U_DTR\integer(0)].<br>
+<br>
+
+terminal is a link that corresponds to a lexical entry.
+nonterminal_binary is a link that corresponds to a phrasal sign
+generated by a binary grammar rules.  nonterminal_unairy is a link
+that corresponds to a phrasal sign generated by a unary grammar rule.
+The value of APPLIED_SCHEMA\ is an ID of the grammar rule used for
+generating the link.  The value of SIGN_PLUS\ is a feature structure
+that is cut off during factoring.  Namely, the original sign is
+restored by unifying reduced sign and the value in SIGN_PLUS\.  The
+value of L_DTR\ is an edge ID of the left child, and the value of
+R_DTR\ is an edge ID of the right child.  The value of U_DTR\ is an
+edge ID of the child for the construction by unary grammar rules.
+</p>
+
+<p>
+The link of an edge can be retriebed by calling edge_link_id_list/2
+and edge_link/2.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link_id_list($ID, $LinkIDs)</tt>
+<tr><td>$ID<td> an edge ID
+<tr><td>$LinkIDs<td> a list of link IDs
+<tr><td colspan=2>This returns a list of link IDs that the edge of $ID has.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link($ID, $Link)</tt>
+<tr><td>$ID<td> a link ID
+<tr><td>$Link<td> a link
+<tr><td colspan=2> This returns the link corresponding to the link ID $ID.
+</table>
+</p>
+
+Each link has an ID, and the link can be acquired by specifying the
+link ID in edge_link/2.  All the parsing results can be acquired by
+mutually and recursively following edge information and link
+information.
+</p>
+
+<h2><a name="root_parse_tree">7. Root Condition and Parse Tree</a></h2>
+<p>
+All edges that contributes to the final result of parsing must satisfy
+the root condition of parse trees.  It can be verified by calling
+root_sign/1 explained in <a href="usegrammar.html">How to use a
+grammar</a>.  root_edge_id_list returns only edge IDs which satisfy
+the root condition.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>root_edge_id_list(-$IDList)</tt>
+<tr><td>$IDList<td> a list of edge IDs
+<tr><td colspan=2>This returns a list of edge IDs which satisfy the root condition and in S[0][n] where n is the sentence length.
+</table>
+</p>
+
+</p>
+
+<p>
+
+get_parse_tree/2 reconstruct a parse tree by following edge and link informations.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parse_tree(+$ID, -$Tree)</tt>
+<tr><td>$ID<td> an edge ID
+<tr><td>$Tree<td> a parse tree
+<tr><td colspan=2>This returns a parse tree such that the root sign of the parse tree is specified by the edge ID $ID.  All parse trees can be retrieved by backtracking.
+</table>
+</p>
+</p>
+
+<h2><a name="fom">8. Disambiguation Module</a></h2>
+<p>
+If the disambiguation module is supported in the grammar, the score of
+each edge can be retrieved by calling edge_fom/2.  We call the score
+FOM (Figure of Merit).
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_fom(+$ID, -$FOM)</tt>
+<tr><td>$ID<td> an edge ID
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>This returns the FOM of the edge specified by the edge ID $ID.
+</table>
+</p>
+
+The FOM of link can be retrieved by calling edge_link_fom/2.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link_fom(+$ID, -$FOM)</tt>
+<tr><td>$ID<td> a link ID
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>This returns the FOM of the link specified by the link ID $ID.
+</table>
+</p>
+
+best_fom_sign/3 retrieves the ID, sign and FOM of an edge of the best FOM.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>best_fom_sign(-$ID, -$Sign, -$FOM)</tt>
+<tr><td>$ID<td> an edge ID
+<tr><td>$Sign<td> sign
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>This returns the ID, sign and FOM of an edge of the best FOM.
+</table>
+</p>
+
+The most frequently used and convinient predicate is best_fom_tree/2.
+best_fom_tree/2 retrieves the parse tree of the best FOM.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>best_fom_tree(-$Tree, -$FOM)</tt>
+<tr><td>$Tree<td> a parse tree
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>This returns the parse tree of the best FOM.
+</table>
+</p>
+
+</p>
+
+<h2><a name="misc">9. Miscellaneous Items</a></h2>
+
+Finally, we introduce some interfaces for getting the parser's status
+or setting parser's behaviour.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parser_init</tt>
+<tr><td colspan=2><tt>parser_term</tt>
+<tr><td colspan=2>This is automatically called from the parser when the parser finish its initialization or termination.  It is useful for the grammar writer to specify the maximum length of sentence, maximum size of edges, quick check path, etc.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_limit_sentence_length(-$Len)</tt>
+<tr><td colspan=2><tt>set_limit_sentence_length(+$Len)</tt>
+<tr><td>$Len<td>the maximum length of sentences
+<tr><td colspan=2>This retrieves/sets the maximum length of sentences.  If a sentence longer than this number is input, then the parser fails with the parsing state `parse_error_too_long.'
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_limit_edge_number(-$Num)</tt>
+<tr><td colspan=2><tt>set_limit_edge_number(+$Num)</tt>
+<tr><td>$Num<td>the maximum number of edges
+<tr><td colspan=2>This retrieves/sets the maximum number of edges.  If edges are generated more than this number, then the parser fails with the parsing state `parse_error_edge_limit.'
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>set_parser_mode(+$Name, +$Val)</tt>
+<tr><td colspan=2><tt>get_parser_mode(+$Name, +$Val)</tt>
+<tr><td>$Name<td>parser mode name
+<tr><td>$Val<td>parser mode value
+<tr><td colspan=2>This retrieves/sets the parse mode. Currently, users can specify "quick check path" and "enable quick check" only.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>set_beam_thresholding_params($Num, $Width)</tt>
+<tr><td>$Num<td> the maximum number of edges in each CKY cell
+<tr><td>$Width<td> the beam threshold
+<tr><td colspan=2>When beam search is evoked, edges in each CKY is sorted according to their FOM, at most $Num edges remains in each CKY cell, and only edges that has FOM greater than the highest FOM in the CKY cell minus the beam threshold $Width.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parse_status($Status)</tt>
+<tr><td>$Status<td> the status of the parser.  Currently, there five types of parser status; mayz:parser:parse_success, mayz:parser:preproc_error, mayz:parser:parse_error_too_long, mayz:parser:parse_error_edge_limit, mayz:parser:parse_error_unknown
+<tr><td colspan=2>This returns the status of the parser.  parse_success means that the parsing succeeded.  preproc_error means that an error occured during preprocessing.  parse_error_too_long means that the input sentence is too long, i.e., that is longer than the maximum sentence length.  parse_error_edge_limit means that the parser failed parsing because the number of generated edges is greater than the maximum edge number specified by set_limit_edge_number/1.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_sentence($Sentence)</tt>
+<tr><td colspan=2><tt>get_word_lattice($WordLattice)</tt>
+<tr><td>$Sentence<td> a sentence
+<tr><td>$WordLattice<td>a word lattice (= a list of extents)
+<tr><td colspan=2>This returns the input sentence or the word lattice.  This is valid until the next sentence is input.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_sentence_length($Len)</tt>
+<tr><td>$Len<td> the sentence length
+<tr><td colspan=2>This returns the sentence length.  This is valid until the next sentence is input.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_analyze_word_time($Time)</tt>
+<tr><td colspan=2><tt>get_analyze_lexent_time($Time)</tt>
+<tr><td colspan=2><tt>get_analyze_parse_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_setup_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_lex_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_phrase_time($Time)</tt>
+<tr><td colspan=2><tt>get_total_time($Time)</tt>
+<tr><td>$Time<td> time (msec)
+<tr><td colspan=2> get_analyze_word_time, get_analyze_lexent_time and get_analyze_parse_time return word analysis time, lexical-entry analysis time, parsing time respevtively.  get_total_time is a sum of these get_analyze_* time.  get_parse_setup_time, get_parse_lex_time and get_parse_phrase_time return setup time, leaf analysis time and phrase analysis time during parsing.  That is, the sum of get_parse_* is less than get_analyze_parse_time.  These are valid until next sentence is input.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parser_name($Name)</tt>
+<tr><td colspan=2><tt>get_parser_version($Version)</tt>
+<tr><td>$Name<td> the parser's name
+<tr><td>$Version<td> the parser's version
+<tr><td colspan=2> These return the parser's name and the parser's version respectively.
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_grammar_name(-$Name)</tt>
+<tr><td colspan=2><tt>get_grammar_version(-$Version)</tt>
+<tr><td colspan=2><tt>set_grammar_name(+$Name)</tt>
+<tr><td colspan=2><tt>set_grammar_version(+$Version)</tt>
+<tr><td>$Name<td> the grammar's name
+<tr><td>$Version<td> the grammar's version
+<tr><td colspan=2>These retrieve/set the grammar name/version.  This is optional.
+</table>
+</p>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:ninomi@is.s.u-tokyo.ac.jp">
+<address>Takashi Ninomiya (ninomi@is.s.u-tokyo.ac.jp)</address>
+</a>
+Jun. 14, 2005
+</body>

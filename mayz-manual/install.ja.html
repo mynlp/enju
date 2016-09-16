@@ -1,0 +1,52 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-install.css">
+<title>インストール方法</title>
+</head>
+
+
+
+<body>
+<h1>インストール方法</h1>
+
+<a href="install.html">English version</a>
+
+<p>
+<em>MAYZ ツールキットは Enju パッケージの一部として提供されています．
+MAYZ/Enju のコンパイルには<a
+href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/">LiLFeS</a>を使いま
+すので，これがインストールされている必要があります．また，g++ のバージョ
+ン 3.2 以上が必要です．</em>
+
+<ol>
+  <li>ソースパッケージをダウンロードして，展開します．
+    <pre>% tar xvzf enju-X.Y.Z.tar.gz</pre>
+  <li>configure スクリプトを実行します．
+    <pre>% ./configure</pre>
+  <li>make します．
+    <pre>% make</pre>
+  <li>mayz-src/ の下にコマンドが生成されます．
+</ol>
+
+<hr>
+
+<h3>CVS からパッケージをとった人へ</h3>
+はじめに，configure スクリプトを作るために以下を実行する必要があります．
+あとは上と同じです．
+<pre>% aclocal; autoheader; automake --add-missing --foreign; autoconf</pre>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

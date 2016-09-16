@@ -1,0 +1,271 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Structure of the Enju system</title>
+</head>
+
+
+
+<body>
+<h1>Structure of the Enju system</h1>
+
+<a href="grammar.ja.html">Japanese version</a>
+
+<p>
+<ul>
+  <li><a href="#sign">Structure of Sign</a>
+  <li><a href="#system">System architecture</a>
+  <ul>
+  <li><a href="#edge">Edge</a>
+  <li><a href="#chart">Chart</a>
+  <li><a href="#fom">FOM</a>
+  </ul>
+</ul>
+
+<hr>
+
+<h2><a name="sign">Structure of Sign</a></h2>
+
+<p>
+The grammar of Enju is based on the theory of Head-driven Phrase
+Structure Grammar (HPSG).  In HPSG, constraints on the structure of a
+language are represented with <em>typed feature structures</em>.
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes">LiLFeS Home
+Page</a> presents a brief introduction to typed feature structures.
+
+<p>
+One of the characteristics of HPSG is that most of the constraints on
+syntax and semantics are represented in lexical entries, while only a
+small number of grammar rules (corresponding to CFG rules) are defined
+and they represent general constraints irrelevant to specific words.
+This is because the constraints on the structure of a sentence are
+mostly introduced by words.
+
+<p>
+Syntactic/semantic constraints of words/phrases are represented in the
+data structure called <em>sign</em>.  In the current implementation of
+Enju, the structure of the sign basically follows [Pollar and Sag,
+1994] and <a href="http://www.delph-in.net/erg/">LinGO English
+Resource Grammar (ERG)</a>, while the type hierarchy is much
+simplified and modified not to use complex constraints nor Minimal
+Recursion Semantics (MRS).
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2">
+    <td>PHON: A sequence of words governed by the phrase
+    <td class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+        <td class="lprn" rowspan="2">
+        <td>
+        <table class="fs">
+        <tr><td rowspan="3">LOCAL
+            <td class="lprn" rowspan="3">
+            <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="3">HEAD
+                    <td class="lprn" rowspan="3">
+                    <td>Constraints inherited from the head daughter
+                    <td class="rprn" rowspan="3">
+                <tr><td>MOD: Constraints of a modifying phrase
+                <tr><td>POSTHEAD: Whether this phrase modifies a preceding phrase
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="6">VAL
+                    <td class="lprn" rowspan="6">
+                    <td>Subcategorization frame
+                    <td class="rprn" rowspan="6">
+                <tr><td>SUBJ: Constraints of left phrases that will be subcategorized
+                <tr><td>COMPS: Constraints of right phrases that will be subcategorized
+                <tr><td>SPR: Constraints of specifiers that will be subcategorized
+                <tr><td>SPEC: Constraints of a specifying phrase
+                <tr><td>CONJ: Constraints of conjuncts
+                </table>
+            </table>
+            <td class="rprn" rowspan="3">
+        <tr><td>CONT: Predicate-argument structure
+        <tr><td>CONX: <em>Currently not used</em>
+        </table>
+        <td class="rprn" rowspan="2">
+        <tr><td>
+            <table class="fs">
+            <tr><td rowspan="3">NONLOCAL
+                <td class="lprn" rowspan="3">
+                <td>Constraints of long-distance dependency
+                <td class="rprn" rowspan="3">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">INHER
+                    <td class="lprn" rowspan="5">
+                    <td>Constraints inherited from the daughters
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Constraints of wh-question words
+                <tr><td>REL: Constraints of an antecedent phrase of a relative clause
+                <tr><td>SLASH: Constraints of a phrase in long-distance dependencies
+                <tr><td>F_REL: Constraints of free relatives
+                </table>
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">TO_BIND
+                    <td class="lprn" rowspan="5">
+                    <td>Constraints bound in this phrase
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Constraints of wh-question words
+                <tr><td>REL: Constraints of an antecedent phrase of a relative clause
+                <tr><td>SLASH: Constraints of a phrase in long-distance dependencies
+                <tr><td>F_REL: Constraints of free relatives
+            </table>
+        </table>
+    </table>
+</table>
+
+<p>
+Constraints of phrases include various syntactic features
+(part-of-speech, agreement, tense, etc.).
+
+<p>
+CONT feature has a predicate-argument structure of the phrase.
+Predicate-argument structures represent relations of logical
+subject/object and modifying relations.  The CONT feature of the sign
+of the top node shows the predicate-argument structure of the whole
+sentence.
+
+<p>
+Types and features used in the Enju grammar are all defined in
+"enju/types.lil".  For details, see the source file.
+
+<hr>
+
+<h2><a name="system">System architecture</a></h2>
+
+<p>
+The Enju system uses <em>UP</em> (included in the MAYZ package), a
+general-purpose parser for unification grammars.  UP parses a sentence
+with provided lexical entries and grammar rules.  Enju creates the
+data passed to UP in the following way.
+
+<p>
+<img src="architecture.png" height=480 height=360 alt="Architecture of
+the grammar">
+
+<p>
+An input sentence is passed to <tt>sentence_to_word_lattice/2</tt>,
+and converted to a word lattice, i.e., a list of extents (a pair of
+word position and word information).  A word lattice is passed to UP,
+and parsing starts.  <tt>sentence_to_word_lattice/2</tt> first applies
+a POS tagger to an input sentence (<tt>external_tagger/2</tt>), splits
+it into words, and applies stemming to the words.
+<tt>sentence_to_word_lattice/2</tt> is implemented in
+"enju/grammar.lil".  By default, a POS tagger is "uptagger", and it
+can be changed by "-t" option of "enju" (or by
+<tt>initialize_external_tagger/2</tt>).
+
+<p>
+The predicate (<tt>lexical_entry/2</tt> and
+<tt>lexical_entry_sign/2</tt>) makes lexical entries by using two
+databases.  One is a mapping from a word/POS pair into a list of the
+names of lexical entry templates assigned to the word
+(<tt>lookup_lexicon/2</tt>).  The other is a mapping from the name of
+a template into a feature structure of the template
+(<tt>lookup_template/2</tt>).  Lexical entries are constructed by
+adding word-specific information (e.g. PHON feature) to lexical entry
+templates.  This predicate is implemented in "enju/grammar.lil".
+
+<p>
+Grammar rules (i.e., schemas) are implemented in "enju/schema.lil".
+They define phrase structure rules to make a mother from its
+daughters.
+
+<p>
+Inside UP, parsing proceeds in the following steps.
+<ol>
+<li> preprocessing
+<li> lexicon lookup
+<li> kernel parsing
+</ol>
+The preprocessor converts an input sentence into a word lattice
+by <tt>sentence_to_word_lattice/2</tt>.  In the lexicon lookup,
+the parser uses the predicate (<tt>lexical_entry/2</tt> and
+<tt>lexical_entry_sign/2</tt>) to 
+find lexical entries for the word lattice.  
+Finally, the parser does phrase
+analysis using the defined grammar rules in the kernel parsing process.
+UP uses data structures called edge and chart for phrase analysis.
+
+<h3><a name="edge">Edge</a></h3>
+
+<p>
+Edge is a quadruple &lt;
+left-position, right-position, sign, FOM (Figure of Merit)&gt;, which
+represents a phrasal structure for the sub-string of the target
+sentence.  Left-position and right-position are positions in the
+sentence.  Sign is a phrasal structure represented as a feature
+structure.  That is, an edge is a phrase structures that corresponds
+to a region.  The edge also has an
+information about the score (FOM) for disambiguation of analysis.  
+
+<h3><a name="chart">Chart</a></h3>
+
+<p>
+The parser has a data structure generally called `chart.'  The chart
+is a two dimensional table.  Here, we call each cell in the table `CKY
+cell.'  Let an input sentence s(= w1, w2, w3,...,wn), for example, w1
+= "I", w2="saw", w3= "a", w4 = "girl", w5 = "with", w6 = "a", w7 =
+"telescope" for the sentence "I saw a girl with a telescope", the
+chart is arranged as follows.
+
+<center>
+<img src="up_chart.png" alt="chart">
+</center>
+
+Let S[i][j] be each cell in the chart.  The suffixes i and j
+correspond to the left position and the right position in the
+sentence.  For example, `edges' correspond to "I" are stored to
+S[0][1], edges for "saw" are stored to S[1][2], and edges for
+"telescope" are stored to S[6][7].
+That is, the edges for word wi are stored to S[i-1][i].  The phrasal
+edges generated during parsing are stored to the chart.  For example,
+edges for "I saw" are stored to S[0][2], edges for "saw a" are stored
+to S[1][3], and edges for wider phrase "I saw a" are stored to
+S[0][3].  Supposing that the sentence length is n, edges for the whole
+sentence are stored to S[0][n].  In the exmaple above, the edges for
+the whole sentence are store to S[0][7].
+During parsing, an edge (mother) is generated by applying the grammar
+rules to two edges (daughters).  For example, the results of applying
+the grammar rules to an edge in S[0][3] and an edge in S[3][5] are
+stored to S[0][5].  
+
+<h3><a name="fom">FOM</a></h3>
+
+<p>
+FOM of an edge represents how likely the edge is.
+When a mother edge is generated by applying a grammar
+rule, the FOM of the mother can be obtained
+by adding the score of the rule.
+Edges for the whole sentence region, which correspond to roots of
+parse trees, must satisfy the root condition.
+Of all the trees satisfying the condition, 
+the one with the best FOM is taken as the final result.
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

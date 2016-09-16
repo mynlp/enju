@@ -1,0 +1,94 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Probabilistic model</title>
+</head>
+
+
+
+<body>
+<h1>Probabilistic model</h1>
+
+<a href="probmodel.ja.html">Japanese version</a>
+
+<p>
+
+The probabilistic model of Enju is a maximum entropy model（or a log-linear
+model)．Suppose s is the input sentence and t is the parse tree, the model assigns probabilities based on the following formula．
+
+<blockquote>
+p(t|s)=1/Z exp( sum( l_i f_i(t,s) ) )
+</blockquote>
+
+f_i(t,s) is a <em>feature</em> （used in a different sense from the <em>feature</em> of feature structures）in a probabilistic mode. t, s are functions that take non-zero values when a certain feature is satisfied. In other words, it maps the relevant features to the set of real numbers. l_i are the weights assigned to features and parameters of the probablistic model. The optimal parameter is computed by a parameter estimation program automatically.(For more details, please refer to the section on <a href="forest.ja.html">Feature forest model</a>) Z is the normalization factor that makes all p(t|s) add up to 1. 
+
+<p>
+When using the above model for disambuguation, we look for the t that maximize p(t|s). If we take a closer look of the formular, we call tell that Z is a constant and hence not required for the computation related to disambiguation. In addition, exp is a monotonic increasing function and hence ther is no need to calculate it either. In other words, we only need the following during a parse: 
+
+<blockquote>
+sum( l_i f_i(t,s) )
+</blockquote>
+
+This value represents the likelihood of a tree and is referred to as the FOM(figure of merit) score. 
+<p>
+For the current ENJU version, f_i(t,s) becomes the function that represents the feature for applying a schema.After applying all schemata, adding up the FOM scores for applying all the schemata would return the FOM score for the whole tree. <p>
+The FOM score for applying a schema is calculated in the following manner:
+
+<ol>
+<li>create a list of strings that represent the events in the probabilistic model</li>
+<li>apply a mask to the list of strings for creating the appropriate features</li>
+<li>obtain the weights for features</li>
+</ol>
+
+<p>
+Let's explain these three steps one by one.
+
+<h2><a name="extract">Create Events in the Probablistic Model</a></h2>
+<p>
+First, create a list of strings that represents the features for applying schemata. For example, when the pronoun "he" combines with the intransitive verb "runs" as a result of applying the  Head-Subject Schema, the list would look like the following:
+
+<blockquote>
+&lt; SUBJ, 1, VP, runs, VBZ, [npVP]_3sg, NP, he, PRP, [NP] &gt;
+</blockquote>
+
+<p>
+The members of the list are the name of the relevant schema, distance, the non-terminal symbol of the head node, surface form, POS label, the name of the template used for the relevant lexical entry, the non-terminal symbol of the non-head node, surface form, POS label, the name of the template used for the relevant lexical entry. Besides these features, there are several others. For more details, please refer to <a href="unigram.html">Unigram Model</a> and <a
+href="forest.html">Feature forest Model</a>.
+
+<p>
+The above string list can be created by "grammar/unievent.lil" and
+"grammar/forestevent.lil". The former is for creating events in a unigram model. The later is for creating events in a feature forest model.
+
+<h2><a name="mask">Applying a mask for creating appropriate features</a></h2>
+
+<p>
+If the above string list is used for creating features without making any changes, we would have problems with data sparseness. That's why we remove some information from such a list. This removal of information is done by applying a mask made up only by 1s or 0s on the list. An example of such a list is like the following:
+
+<blockquote> &lt; 1, 1, 1, 0, 0, 0, 1, 0, 0, 0 &gt; </blockquote>
+
+<p>
+Applying this mask to the list of strings given above would yield the following list:
+
+<blockquote> &lt; SUBJ, 1, VP, _, _, _, NP, _, _, _ &gt; </blockquote>
+
+<p>Here we use "_" to represent something that we don't care. This list becomes the feature function for the relevant  maximum entropy model. 
+
+<p>Masks are handled by "grammar/lexmask.lil" and  "grammar/synmask.lil". The former deals with masks for a unigram model whereas the latter deals with masks for events in a feature forest model.
+
+<h2><a name="weight">Weights Assigned to Features</a></h2>
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

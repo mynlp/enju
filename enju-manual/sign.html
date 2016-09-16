@@ -1,0 +1,143 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Sign</title>
+</head>
+
+
+
+<body>
+<h1>Sign</h1>
+
+<a href="sign.ja.html">Japanese version</a>
+
+
+<p>
+The type of signs is defined in the file "grammar/types.lil"．Signs in Enju are designed based on
+[Pollar and Sag, 1994] and  <
+href="http://www.delph-in.net/erg/">LinGO English Resource Grammar
+(ERG)</a>. But we make things simpler by omitting some complex constraints and picking a semantic representation different 
+from  Minimal
+Recursion Semantics (MRS)．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="4">
+    <td>PHON: the list of words covered by the parsed phrase
+    <td class="rprn" rowspan="4">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+        <td class="lprn" rowspan="2">
+        <td>
+        <table class="fs">
+        <tr><td rowspan="3">LOCAL
+            <td class="lprn" rowspan="3">
+            <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="3">HEAD
+                    <td class="lprn" rowspan="3">
+                    <td>constraint inherited from the head of the parsed phrase
+                    <td class="rprn" rowspan="3">
+                <tr><td>MOD: constraint on the modifiee of the parsed phrase(local list)
+                <tr><td>POSTHEAD: allow post-modification or not(hpsg_binary)
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="6">VAL
+                    <td class="lprn" rowspan="6">
+                    <td>subcategorization frame
+                    <td class="rprn" rowspan="6">
+                <tr><td>SUBJ: constraint on the subject that appears to the left of the parsed phrase(synsem list)
+                <tr><td>COMPS: constraint on the constituent to the right of the parsed phrase(synsem list)
+                <tr><td>SPR: constraint on the specifier to the left of the parsed phrase(synsem list)
+                <tr><td>SPEC: constraint placed by a specifier(the parsed phrase) on the head(synsem list)
+                <tr><td>?CONJ: constraint on a parallel structure conjoined to the parsed phrase(synsem list)
+                </table>
+            </table>
+            <td class="rprn" rowspan="3">
+        <tr><td>CONT: predicate-argument structure
+        <tr><td>CONX: <em>not used</em>
+        </table>
+        <td class="rprn" rowspan="2">
+        <tr><td>
+            <table class="fs">
+            <tr><td rowspan="3">NONLOCAL
+                <td class="lprn" rowspan="3">
+                <td>constraint on long distance dependencies
+                <td class="rprn" rowspan="3">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">INHER
+                    <td class="lprn" rowspan="5">
+                    <td>constraint on long distance dependencies inherited from daughter(s) of the parsed phrase
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: <em>not used</em>
+                <tr><td>REL: constraint on the relative pronoun used(local list)
+                <tr><td>?SLASH: constraint on the moved constituent(local list)
+                <tr><td>F_REL: constraint on free relatives
+                </table>
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">TO_BIND
+                    <td class="lprn" rowspan="5">
+                    <td>constraint on long distance dpendencies cancelled by the parsed phrase
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: <em>not used</em>
+                <tr><td>REL: constraint on the relative pronoun used(local list)
+                <tr><td>SLASH: constraint on the moved constituent(local list)
+                <tr><td>F_REL: constraint on free relatives
+            </table>
+        </table>
+    </table>
+  <tr><td>PROB_FEATURE: features used by the statistical model
+  <tr><td>LEX_SPEC: name of the lexical head (lex_entry)
+</table>
+
+<p>
+Types accepted by the HEAD feature are defined correponding to the following part of speeches．
+<table border=1>
+  <tr><th>type<th>part of speech<th>feature(s)
+  <tr><td>hpsg_verb<td>verb<td>VFORM: verb form(hpsg_vform), AUX: auxiliary verb 
+  (hpsg_aux), INV: inverted (hpsg_binary), TENSE: tense
+  (hpsg_tense)
+  <tr><td>hpsg_noun<td>noun<td>CASE: case(hpsg_case)
+  <tr><td>hpsg_prep<td>preposition<td>PFORM: preposition form(hpsg_pform)
+  <tr><td>hpsg_adj<td>adjective<td>
+  <tr><td>hpsg_adv<td>adverb<td>
+  <tr><td>hpsg_pl<td>particle<td>
+  <tr><td>hpsg_comma<td>comma<td>
+  <tr><td>hpsg_punct<td>punctuation<td>
+  <tr><td>hpsg_conj<td>conjunction<td>
+  <tr><td>hpsg_subc<td>subordinated clause<td>
+  <tr><td>hpsg_comp<td>complementizer<td>
+  <tr><td>hpsg_det<td>determiner<td>
+</table>
+
+<p>
+The CONT feature is assigned a predicate-argument structure as the semantic representation of the parsed phrase．For further information, please 
+look at <a href="pas.ja.html">predicate-argument structure</a>．
+
+<p>
+The PROB_FEATURE feature is used by the disambiguation model. For further information, please look at <a
+href="probmodel.ja.html">statistical model</a>．
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

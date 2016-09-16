@@ -1,0 +1,3358 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html><head>
+ 
+
+<meta http-equiv="Content-Type" content="application/xhtml+xml">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="enju-xml-format-style.css"><title>Enju XML Format</title></head><body>
+
+<h1>Enju XML Format</h1>
+
+<h2>Table of Contents</h2>
+<ol>
+ <li><a href="#introduction">Introduction</a></li>
+ <li><a href="#nouns">Nouns</a></li>
+ <li><a href="#determiners">Determiners</a></li>
+ <li><a href="#verbs">Verbs</a></li>
+ <li><a href="#auxiliaries">Auxiliaries</a></li>
+ <li><a href="#prepositionsandparticles">Prepositions and Particles</a></li>
+ <li><a href="#adjectives">Adjectives</a></li>
+ <li><a href="#adverbs">Adverbs</a></li>
+ <li><a href="#copulas">Copulas</a></li>
+ <li><a href="#relatives">Relative Clauses</a></li>
+ <li><a href="#connectives">Connectives</a></li>
+ <li><a href="#interrogatives">Interrogatives</a></li>
+ <li><a href="#constructionsofinterest">Constructions of Interest</a></li>
+<li><a href="#punctuations">Punctuations</a></li>
+ <li><a href="#unsorted">Unsorted Entries</a></li>
+ <li><a href="#conversion">Converting the XML Style Output to the Bracketing Style Output</a>
+</li></ol>
+
+<h1><a name="introduction">1. Introduction</a></h1>
+
+<p>
+This document is a guidebook for interpreting XML output produced by
+the Enju parser.  Enju is based on the HPSG theory and it computes
+feature structure-based analyses for sentences.  Hence, directly
+interpreting the Enju's internal structures requires in-depth
+knowledge about the theory of HPSG.  Since this is undesirable for
+end-users, Enju outputs a summary of its analysis in an XML format,
+which is intended for further processing in NLP applications without
+using any knowledge about HPSG.
+
+</p><p>
+Since the aim of this document is to explain Enju's output without any
+background knowledge of its framework, we will take an example-based
+way for explanation.  That is, we show example output for each
+construction, and describe how each syntactic/semantic relation is
+indicated in the output.
+
+</p><p>
+Because Enju computes HPSG-based structures, it outputs both phrase
+structures and predicate-argument structures.  Phrase structures look
+very similar to parse trees in CFG-style representations, while
+predicate-argument structures do not necessarily form trees.  Hence,
+in the XML format, phrase structure trees are expressed with nesting
+relations of XML tags, while predicate argument structures are
+represented with XML attributes that point to ID numbers assigned to
+XML tags.  XML output also includes attributes that convey additional
+information such as tense and aspect.  For further details of the XML
+tags and attributes, see <a href="enju-output-spec.html">"Enju Output
+Specifications."</a>
+
+</p><p>
+In this document, we represent Enju's output in a brackting format,
+which is similar to the Penn Treebank representation, because the
+native XML format is difficult for humans to read.  To increase the
+human readability, we extract the essence of the XML format for each
+construction, where XML attributes unnecessary for explanation are
+omitted.  The formal procedure for converting the XML format into the
+bracketing format is described in <a href="#conversion">Chapter
+16</a>.
+
+<p>
+In what follows, we show how the actual XML output looks like and how
+we represent it in a simplified way.
+
+
+
+<h4>XML Format</h4>
+<div class="xmlverb-default">&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c1</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">S</span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c3</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c3</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;</span>&lt;!--<span class="xmlverb-comment">this&nbsp;is&nbsp;the&nbsp;mother&nbsp;of&nbsp;the&nbsp;costituents&nbsp;represetned&nbsp;by&nbsp;c2&nbsp;and&nbsp;c3&nbsp;</span>--&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c2</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NP</span>"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--<span class="xmlverb-comment">this&nbsp;is&nbsp;the&nbsp;non-head&nbsp;daughter&nbsp;of&nbsp;the&nbsp;costituent&nbsp;represetned&nbsp;by&nbsp;c1&nbsp;</span>--&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;!--<span class="xmlverb-comment">this&nbsp;is&nbsp;the&nbsp;sister&nbsp;of&nbsp;the&nbsp;costituent&nbsp;represetned&nbsp;by&nbsp;c3&nbsp;</span>--&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="xmlverb-element-name">tok</span>&gt;<br>
+<span class="xmlverb-text">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;He<br></span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span class="xmlverb-element-name">tok</span>&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c3</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">VP</span>"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--<span class="xmlverb-comment">this&nbsp;is&nbsp;the&nbsp;head&nbsp;daughter&nbsp;of&nbsp;the&nbsp;costituent&nbsp;represetned&nbsp;by&nbsp;c1&nbsp;</span>--&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;!--<span class="xmlverb-comment">this&nbsp;is&nbsp;the&nbsp;sister&nbsp;of&nbsp;the&nbsp;costituent&nbsp;represetned&nbsp;by&nbsp;c2&nbsp;</span>--&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">verb_arg1</span>" <span class="xmlverb-attr-name">arg1</span>="<span class="xmlverb-attr-content">c2</span>"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--<span class="xmlverb-comment">&nbsp;assign&nbsp;role&nbsp;to&nbsp;semantic&nbsp;argument&nbsp;c2&nbsp;</span>--&gt;<br>
+<span class="xmlverb-text">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;runs<br></span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span class="xmlverb-element-name">tok</span>&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<br>
+</div>
+
+
+
+
+<h4>Phrase Structure Tree in Bracketing Style Output Format</h4>
+<pre>(S[id=c1, head=c3, sem_head=c3]  
+   (NP[id=c2] He ) 
+   (VP[id=c3] runs[pred=verb_arg1, arg1=c2] )
+)
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>c1 is the mother of c2 and c3</li>
+<li>c2 is the non-head daughter of c1 and the sister of c3</li>
+<li>c3 is the head daughter of c1 and the sister of c2</li>
+</ul>
+
+<h4>Semantics</h4>
+
+<ul>
+<li>c1 refers to the same thing as its semantic head daughter c3</li>
+<li>c3 is a verbal predicate that takes one argument</li>
+<li>c3 assigns a role, arg1, to its semantic argument c2</li>
+</ul>
+
+
+
+<h1><a name="nouns">2. Nouns</a></h1>
+<h2>Chapter Index</h2>
+<ul>
+ <li><a href="#proper_nouns">Proper Nouns</a></li>
+ <li><a href="#pronouns">Pronouns</a></li>
+<!-- <ul>
+<li><a href="#personal_pronouns">Personal Pronouns</a></li>
+<li><a href="#absolute_possessive_pronouns">Absolute Possessive Pronouns</a></li>
+ </ul> 
+-->
+ <li><a href="#common_nouns">Common Nouns</a></li>
+ <ul>
+   <li><a href="#singular_common_nouns">Singular Common Nouns</a></li>
+   <li><a href="#plural_common_nouns">Plural Common Nouns/Mass Nouns</a></li>
+ </ul>
+ <li><a href="#noun_noun_compounds">Noun-noun Compounds</a></li>
+ <li><a href="#nouns_that_take_sentential_complements">Nouns That Take Sentential Complements</a></li>
+ <li><a href="#temporal_nouns">Temporal Nouns</a></li>
+  <li><a href="#gerunds">Gerunds</a></li>
+  <ul>
+
+    <li><a href="#verbal_gerunds">Verbal Gerunds</a></li>  
+    <li><a href="#nominal_gerunds">Nominal Gerunds</a></li>
+  </ul>
+ <li><a href="#apposition">Apposition</a></li>
+ 
+</ul>
+
+<h2><a name="proper_nouns">Proper Nouns</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John walks</pre>
+
+<h4>Output</h4>
+
+<pre>(S  
+    (NP (NX John[pred=noun_arg0] ) )
+    (VP walks ) )
+</pre>
+
+
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The proper noun ''John'' is assigned the POS label NX.</li>
+  <li>The
+proper noun takes an empty determiner as its argument. Together they
+form a noun phrase, which is assigned the POS label NP.</li>
+  <li>The
+intransitive verb ''walks'' is sister to its only argument, the NP
+''John''. Together they form the sentence ''John walks'', which is
+assigned the POS label S.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>  
+  <li>The proper noun, like any non-gerund nouns, is assigned the predicate "noun_arg0", which means it takes no arguments.
+  </li>
+</ul>
+
+
+<h2><a name="pronouns">Pronouns</a></h2>
+<!--<h3><a name="personal_pronouns">Personal Pronouns</a></h3>-->
+<h4>Example Sentence</h4>
+<pre>He walks</pre>
+
+<h4>Output</h4>
+
+<pre>(S  
+    (NP[id=c1] He[pred=noun_arg0] )
+    (VP walks ) )
+</pre>
+
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The personal pronoun ''He'' makes a noun phrase by itself and hence is  assigned the POS label NP.</li>
+  <li>The intransitive verb ''walks'' is sister to its only argument, the NP ''He''. Together they form the sentence ''He walks''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>  
+  <li>The pronoun is assigned the predicate "noun_arg0", which means it takes no arguments.
+  </li>
+</ul>
+
+
+<!--
+<h3><a name="absolute_possessive_pronouns">Absolute Possessive Pronouns</a></h3>
+<h4>Example Sentence</h4>
+<pre>Mine fails</pre>
+
+<h4>Output</h4>
+
+<pre>(S  
+    (NP[id=c1] Mine )
+    (VP fails[pred=verb_arg1, arg1=c1] ) )
+</pre>
+
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The absolute possessive pronoun ''Mine'' makes a noun phrase by itself and is  assigned the POS label NP.</li>
+
+</ul>
+-->
+
+
+<h2><a name="common_nouns"></a>Common Nouns</h2>
+<h3><a name="singular_common_nouns">Singular Common Nouns</a></h3>
+See <a href="#articlesdemonstrativesandquantifiers">Determiners:Articles, Demonstratives and Quantifiers</a>.
+
+<h3><a name="plural_common_nouns">Plural Common Nouns/Mass Nouns</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Birds fly</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP[id=c39] (NX Birds[pred=noun_arg0] ) )
+     (VP fly ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The plural common noun ''birds'' is  assigned the POS label NX.</li>
+  <li>The plural common noun forms a  noun phrase, which is assigned the POS label NP, with no daughters.</li>
+  <li>The intransitive verb ''fly'' is sister to its only argument, the NP ''Birds''. Together they form the sentence ''Birds fly''. </li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>  
+  <li>The noun is assigned the predicate "noun_arg0", which means it takes no arguments.
+  </li>
+</ul>
+
+
+<h2><a name="noun_noun_compounds">Noun-noun Compounds</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Space shuttles explode</pre>
+
+<h4>Output</h4>
+<pre> 
+(S   (NP
+         (NX 
+             (NP Space[pred=noun_arg1, arg1=c30015] )
+             (NX[id=c30015] (NX shuttles ) )
+     (VP explode ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The modifying noun ''space'' is  assigned the POS label NP.</li>
+  <li>The modifying noun is sister to the head noun ''shuttles''. Together they form a nominal, which is assigned the POS label NX.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot (arg1) of the modifying noun is assigned
+  the reference marker (c30015) of the head noun.</li>
+</ul>
+
+ <h2><a name="nouns_that_take_sentential_complements">Nouns That Take Sentential Complements</a></h2>
+<h4>Example Sentence</h4>
+<pre>The fact that John loves Mary is true.</pre>
+
+<h4>Output</h4>
+<pre>
+(S  
+    (NP
+        (DP The )
+        (NX 
+            (NX fact[pred=noun_arg2, arg2=c30454] )
+            (CP[id=c30454] 
+                (CX[id=c30455] that[pred=comp_arg1, arg1=c30456, head=c30455, sem_head=c30456] )
+                (S[id=c30456]
+                              (NP (NX John ) )
+                              (VP 
+                                  (VX loves )
+                                  (NP (NX Mary ) ) ) ) ) ) )
+    (VP 
+        (VX is )
+        (ADJP true ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The complementizer ''that'' is assigned the POS label CX.</li>
+<li>The complementizer is sister to the sentence ''John loves Mary''. Together they form the sentential complement ''that John loves Mary'', which is assigned the POS label CP.</li>
+  <li>The sentential complement is sister to the noun ''fact''. Together they form the nominal ''fact that John loves Mary''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot (arg2) of the head noun ''fact'' is
+  assigned the reference marker (c30454) of the sentential complement ''that John loves Mary''.</li>
+<!--why arg2-->
+  <li>The only argument slot (arg1) of the complementizer ''that'' is
+  assigned the event variable (c30456) of the sentence ''John loves Mary''.</li>
+</ul>
+
+<h2><a name="temporal_nouns">Temporal Nouns</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John dies this afternoon</pre>
+
+<h4>Output</h4>
+<pre>
+(S  
+   (NP (NX John ) )
+   (VP 
+       (VP[id=c49888] dies )
+       (NP 
+           (DP this )
+           (NX afternoon[pred=noun_arg1, arg1=c49888] ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The temporal noun ''this afternoon'' is  assigned the POS label NP.</li>
+  <li>The temporal noun is sister to the VP ''dies''. Together they form the VP ''dies this afternoon''.</li>
+ </ul>
+
+<h4>Semantics</h4>
+<ul>  
+  <li>The only argument slot of the temporal noun is assigned the event variable (c49888) of the VP ''dies'', which it modifies.
+  </li>
+</ul>
+
+
+<!--See <a href="#timeadverbialswithprepositions">Unsorted Entries:Time:Time Adverbials with Prepositions</a>.-->
+
+<h2><a name="gerunds">Gerunds</a></h2>
+
+<h3><a name="verbal_gerunds">Verbal Gerunds</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Abandoning children increased</pre>
+
+<h4>Output</h4>
+<pre>(S  
+    (NP[id=c2790]
+        (NX
+              (NX Abandoning[pred=verb_arg12, arg1=unk, arg2=c2793] )
+              (NP[id=c2793] (NX children ) ) ) )
+    (VP increased ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+  <li>The verb ''abandoning'' in the gerund is assigned the POS label NX.</li>
+  <li>The verb is sister to its object NP argument ''children''. Together they form the gerund, which is assigned the POS label NX.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The abandoner role (arg1) of the verb in the gerund is assigned an unknown value.</li>
+  <li>The things abandoned role (arg2) of the verb in the gerund is
+  assigned the reference marker (c2793) of its object NP argument.</li>
+</ul>
+
+<h3><a name="nominal_gerunds">Nominal Gerunds</a></h3>
+See <a href="#gerundswithpossessivesubjects">Determiners:Possessives:Gerunds with a Possessive Subjects</a>.
+
+<h3><a name="apposition">Apposition</a></h3>
+
+<!--<h4>Example Sentence</h4>
+<pre>Bush, the president, comes</pre>-->
+
+<h4>Example Sentence</h4>
+<pre>John (my brother) left.</pre>
+
+<h4>Output</h4>
+<pre>
+(S 
+     (NP[id=c245]
+                  (NP[id=c246] (NX John ) )
+                  (PN
+                      (PN
+                          (PN ([pred=lparen_arg123, arg1=c246, arg2=c250, arg3=c255] )
+                          (NP[id=c250] 
+                                   (DP my )
+                                   (NX brother ) ) ) 
+                      (PN[id=c255] ) ) ) )
+     (VP 
+         
+         (VP[id=c255] left[pred=verb_arg1, arg1=c245] ) ) ) 
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The parentheses that sets off the explanatory text  ''my brother'' from the other parts of the sentence are assigned the POS label PN.</li>
+<li>The left parenthesis that sets off the explanatory text  ''my brother'' from the noun phrase ''John'' is sister to the explanatory text.Together they form a constituent, which is assigned the POS label PN.</li>
+<li>The constituent formed by the left parenthesis and the explanatory text is sister to the right parenthesis. Together they form the parenthetical phrase "(my brother)", which is assigned the POS label PN.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The first argument slot (arg1) of the left parenthesis is assigned
+the reference marker (c246) of the noun phrase ''John'', which is sister to the parenthetical phrase ''(my brother)''.</li>
+<li>The second argument slot (arg2) of the left parenthesis is
+assigned the reference marker (c250) of the explanatory text in the parentheses.</li>
+<li>The third argument slot (arg3) of the left parenthesis is assigned
+the reference marker (c254) of the right parenthesis.</li>
+<li>The agent role (arg1) of the main verb ''left'' is assigned the
+reference marker (c245) of the higher noun phrase.</li>
+</ul>
+
+
+
+<h1><a name="determiners">3. Determiners</a></h1>
+<h2>Chapter Index</h2>
+<ul>
+ <li><a href="#articlesdemonstrativesandquantifiers">Articles, Demonstratives and Quantifiers</a></li>
+
+
+<li><a href="#possessives">Possesives</a></li>
+<ul>
+<li><a href="#possessiveadjectives">Possessive Adjectives</a></li>
+<li><a href="#possessiveapostrophe">Possessive Apostrophes</a></li>
+<li><a href="#gerundswithpossessivesubjects">Gerunds with Possessive Subjects</a></li>
+</ul>
+
+
+
+</ul>
+
+<h3><a name="articlesdemonstrativesandquantifiers">Articles, Demonstratives and Quantifiers</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>A man walks</pre>
+
+<h4>Output</h4>
+<pre>(S  
+    (NP 
+        (DP A[pred=det_arg1, arg1=c1547] )
+        (NX[id=c1547] man ) )
+    (VP  walks ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The determiner ''A'' is assigned the POS label DP.</li>
+  <li>The common noun ''man'' is assigned the POS label NX.</li>
+  <li>The determiner is sister to the common noun. Together they form the noun phrase ''A man'', which is assigned the POS label NP.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot (arg1) of the determiner is assigned the
+  reference marker (c1547) of the common noun ''man''.</li>
+ 
+</ul>
+
+
+<h2><a name="possessives">Possessives</a></h2>
+
+<h3><a name="possessiveadjectives">Possessive Adjectives</a></h3>
+
+Same as <a href="#articlesdemonstrativesandquantifiers">Articles, Demonstratives and Quantifiers</a>
+
+<h3><a name="possessiveapostrophes">Possessive Apostrophes</a></h3>
+<h4>Example Sentence</h4>
+<pre>Mary's husband hates John</pre>
+
+<h4>Output</h4>
+<pre>
+(S  
+    (NP 
+        (DP 
+            (NP[id=c33502] (NX Mary ) ) 
+            (DX 's[pred=poss_arg12, arg1=c33505, arg2=c33502] ) )
+        (NX[id=c33505] husband ) )
+    (VP 
+        (VX hates )
+        (NP (NX John ) ) ) )
+</pre> 
+
+<h4>Syntax</h4>
+<ul>
+  <li>The apostrophe is assigned the POS label DX.</li>
+  <li>The apostropphe is sister to the proper noun ''Mary''.  Together
+  they form the possessive ''Mary's'', which is assigned the POS label DP.</li>
+  <li>The possessive is sister to the head noun ''husband''. Together they form the NP ''Mary's husband''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The possessed role (arg1) of the apostrophe is assigned the
+  reference marker (c33505) of the head noun.</li>
+<li>The possessor role (arg2) of the apostrophe is assigned the
+  reference marker (c33502) of the proper noun ''Mary''.</li>
+</ul>
+
+
+
+
+<h3><a name="gerundswithpossessivesubjects">Gerunds with Possessive Subjects</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Your walking me pleases me</pre>
+
+<h4>Output</h4>
+<pre>(S  (NP 
+        (DP[id=c2] Your )
+        (NX
+            (NX walking[pred=verb_arg12, arg1=c2] )
+            (NP me )
+    (VP 
+        (VX pleases )
+        (NP me ) )
+</pre> 
+
+<h4>Syntax</h4>
+<ul>
+  <li>The verb phrase ''walking me'' is sister to the possessive
+''Your''. Together they form the gerund phrase ''your walking me'',
+which is assigned the POS label NP.</li>
+  <li>The verb phrase ''walking me'' in the gerund phrase ''your walking me'' is assigned the POS label ''NP''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The reference marker (c2) of the possessive is assigned the
+  walker role (arg1) by the verb ''walking'' in the gerund phrase.</li>
+</ul>
+
+
+
+<h1><a name="verbs">4. Verbs</a></h1>
+
+<h2>Chapter Index</h2>
+
+
+<ul>
+
+<li><a href="#intransitive_verbs">Intransitive Verbs</a></li>
+<li><a href="#transitive_verbs">Transitive Verbs</a></li>
+<li><a href="#ditransitive_verbs">Ditransitive Verbs</a></li>
+<ul>
+  <li><a href="#unshifted">Unshifted Ditransitive Constructions</a></li>
+  <li><a href="#shifted">Dative-shifted Ditransitive Constructions</a></li>
+</ul>
+
+
+<li><a href="#verbsthattakesententialcomplements">Verbs That Take Sentential Complements</a></li>
+<li><a href="#verbsthattakesententialsubjectts">Verbs That Take Sentential Subjects</a></li>
+<li><a href="#smallclauses">Small Clauses</a></li>
+<ul>
+<li><a href="#vpnpnp">V NP NP</a></li>
+<li><a href="#vpnpadjp">V NP ADJP</a></li>
+<li><a href="#vpnpvp">V NP VP</a></li>
+</ul>
+
+<li><a href="#verbsthattakeinfinitivalcomplements">Verbs That Take Infinitival Complements</a></li>
+<ul>
+<li><a href="#subjectcontrolverbs">Subject Control Verbs</a></li>
+<!--<li><a href="#subjectraisingverbs">Subject Raising Verbs</a></li>-->
+<li><a href="#objectcontrolverbs">Object Control Verbs</a></li>
+<!--<li><a href="#objectraisingverbs">Object Raising Verbs</a></li>-->
+</ul>
+<li><a href="#participleconstruction">Participle Construction</a></li>
+</ul>
+
+<h2><a name="intransitive_verbs">Intransitive Verbs</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John walks</pre>
+
+<h4>Output</h4>
+
+<pre>(S  
+    (NP[id=c1] (NX John ) )
+    (VP walks[pred=verb_arg1, arg1=c1, tense=present] ) )
+</pre>
+
+
+<h4>Syntax</h4>
+
+<li>The intransitive verb ''walks'' is assigned the POS label VP.</li>
+<li>The intransitive verb is sister to its subject argument, the NP
+''John''. Together they form the sentence ''John walks'', which is
+assigned the POS label S.</li>
+<li>The main verb is marked for present tense.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The walker role (arg1) of the verb is assigned the reference
+marker (c1) of the subject. </li>
+</ul>
+
+
+<h2><a name="transitive_verbs">Transitive Verbs</a></h2>
+<h4>Example Sentence</h4>
+<pre>John loves Mary</pre>
+
+
+<h4>Output</h4>
+<pre> (S  
+     (NP[id=c1] (NX John ) )
+     (VP 
+         (VX loves[pred=verb_arg12, arg1=c1, arg2=c5] )
+         (NP[id=c5] (NX Mary) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The transitive verb ''loves'' is assigned the POS label VX.</li>
+<li>The transitive verb is sister to its object argument, the NP
+''Mary''. Together they form the verb phrase ''loves Mary'', which is
+assigned the POS label VP.</li>
+<li>The verb phrase is sister to its subject argument, ''John''. Together they form the sentence ''John loves Mary''.  </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The lover role (arg1) of the verb is assigned the reference marker
+(c1) of the subject. </li>
+<li>The loved role (arg2) of the verb is assigned the reference marker
+(c5) of the object.</li>
+</ul>
+
+<h2><a name="ditransitive_verbs">Ditransitive Verbs</a></h2>
+
+<h3><a name="unshifted">Unshifted Ditransitive Constructions</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John gives a flower to Mary</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP (NX John ) )
+     (VP 
+         (VX 
+             (VX gives[pred=verb_arg123, arg3=c1582, arg2=c1585] )
+             (NP[id=c1582] (DP a )
+                           (NX flower ) )
+         (PP[id=c1585] 
+                       (PX to[pred=dtv_arg2, arg2=c1587] )
+                       (NP (NX[id=c1587] Mary ) ) ) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The ditransitive verb is sister to its direct object argument, the
+NP ''a flower''. Together they form the verb phrase ''gives a flower'',
+which is assigned the POS label VX.</li>
+<li>The verb phrase ''gives a flower'' is sister to its prepositional
+phrase argument, ''to Mary''. Together they form the verb
+phrase ''gives a lower to Mary'', which is assigned the POS label VP.</li>
+</ul>
+
+<h4>Semantics</h4>
+
+<ul>
+<li>The thing given role (arg3) of the verb is assigned the reference
+marker (c1582) of the direct object.</li>
+<li>The entity given to role (arg2) of the verb is assigned the
+reference marker (c1585) of the prepositional phrase containing the
+indirect object.</li>
+<li>The only argument slot of the preposition that heads the
+prepositional phrase object is assigned the reference marker (c1587) of
+the indirect object</li>
+</ul>
+
+
+<h3><a name="shifted">Dative-shifted Ditransitive Constructions</a></h3>
+<h4>Example Sentence</h4>
+<pre>John gives Mary a flower.</pre>
+
+
+<h4>Output</h4>
+<pre> (S  (NP (NX John ) )
+     (VP 
+         (VX 
+             (VX gives[pred=verb_arg123, arg2=c74, arg3=c76] )
+             (NP[id=c74] (NX Mary ) ) )
+         (NP[id=c76] 
+                     (DP a)
+                     (NX flower ) ) ) )
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The ditransitive verb is sister to its indirect object argument,
+the NP ''Mary''. Together they form the verb phrase ''gives Mary'',
+which is assigned the POS label VX.</li>
+<li>The verb phrase ''gives Mary'' is sister to its direct object
+argument, ''a flower''. Together they form the ditransitive verb phrase
+''gives Mary a flower'', which is assigned the POS label VP.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The entity given to role (arg2) of the verb is assigned the
+reference marker (c74) of the indirect object.</li>
+<li>The thing given role (arg3) of the verb is assigned the reference
+marker (c76) of the direct object.</li>
+</ul>
+
+<h2><a name="verbsthattakesententialcomplements">Verbs That Take Sentential Complements</a></h2>
+<h4>Example Sentence</h4>
+<pre>John discovers that Mary marries Bill</pre>
+
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VX discovers[pred=verb_arg12, arg2=c2814] )
+         (CP[id=c2814] 
+           (CX that[pred=comp_arg1,arg1=c2816] )
+           (S[id=c2816]  
+             (NP (NX Mary ) )
+                 (VP 
+                   (VX marries )
+                   (NP (NX Bill) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The complementizer ''that'' is sister to its argument, the S ''Mary
+marries Bill''. Together they form the sentential complement ''that
+Mary marries Bill'', which is assigned the POS label CP.</li>
+<li>The sentential complement ''that Mary marries Bill'' is sister to
+the main verb. Together they form the VP ''discovers that Mary marries
+Bill''. </li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The thing found role (arg2) of the verb is assigned the event
+variable of the sentential complement (c2814). </li>
+<li>The proposition role (arg1) of the complementizer is assigned the
+event variable of the embedded sentence (c2816).</li>
+</ul>
+
+<h2><a name="verbsthattakesententialsubjects">Verbs That Take Sentential Subjects</a></h2>
+<h4>Example Sentence</h4>
+<pre>That Mary leaves Bill encourages John</pre>
+
+
+<h4>Output</h4>
+<pre>
+(S  
+   (CP[id=c5] 
+              (CX That[pred=comp_arg1,arg1=c7] )
+              (S[id=c7]  
+                        (NP (NX Mary ) )
+                        (VP 
+                            (VX leaves )
+                            (NP (NX Bill) ) ) ) )
+   (VP 
+       (VX motivatees[pred=verb_arg12, arg1=c5] )
+       (NP (NX John ) ) ) ) 
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The complementizer ''That'' is sister to its argument, the S ''Mary
+leaves Bill''. Together they form the sentential subject ''that
+Mary leaves Bill'', which is assigned the POS label CP.</li>
+<li>The sentential complement ''That Mary leaves Bill'' is sister to
+the VP ''motivates John. Together they form the S ''That Mary leaves Bill motivates John''. </li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The motivation role (arg1) of the verb is assigned the event
+variable of the sentential subject (c5). </li>
+</ul>
+
+
+<h2><a name="smallclauses">Small Clauses</a></h2>
+<h3><a name="vpnpnp">V NP NP</a></h3>
+<h4>Example Sentence</h4>
+<pre>Mary considers John a fool</pre>
+
+
+<h4>Output</h4>
+<pre> 
+(S  
+     (NP (NX Mary ) )
+     (VP 
+         (VX
+             (VX considers[pred=verb_arg123, arg2=c9833, arg3=c9835] )
+             (NP[id=c9833] (NX John ) ) )
+         (NP[id=9835] 
+             (NP (DP a )
+                 (NX fool ) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The main verb ''considers'' is sister to its first NP argument ''John''. Together they form the verb phrase ''considers John'', which is
+ assigned the POS label VX.</li>
+<li>The second NP complement ''a fool '' is sister to 
+the verb phrase ''considers John''. Together they form the VP ''considers John a fool''. </li>
+
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The entity under consideration role (arg2) of the main verb
+''consider'' is assigned the reference marker (c9833) of the first NP complement. </li>
+<li>The secondary predicate role (arg3) of the main verb ''considers''
+is assigned the reference marker (c9835) of the second NP complement ''a fool''.</li>
+</ul>
+
+<h3><a name="vpnpadjp">V NP ADJP</a></h3>
+<h4>Example Sentence</h4>
+<pre>Mary considers John foolish</pre>
+
+
+<h4>Output</h4>
+<pre> 
+(S  
+     (NP (NX Mary ) )
+     (VP 
+         (VX
+             (VX  considers[pred=verb_arg123, arg2=c9833, arg3=c9835] )
+             (NP[id=c9833] (NX John ) ) )
+         (ADJP[id=c9835] foolish[pred=adj_arg1, arg1=c9833] ) ) )
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The adjectival complement ''foolish'' is sister to the verb phrase ''considers John''. Together they form the VP ''considers John foolish''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The only argument slot (arg1) of the adjective ''foolish'' is
+assigned the reference marker (c9833) of the NP complement.</li>
+</ul>
+
+
+<h3><a name="vpnpvp">V NP VP</a></h3>
+<h4>Example Sentence</h4>
+<pre>John sees Mary steal his money</pre>
+
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VX
+             (VX sees[pred=verb_arg123, arg2=c9833, arg3=c9835] )
+             (NP[id=c9833] (NX Mary ) ) )
+         (VP[id=c9835]
+             (VX steal[pred=verb_arg12, arg1=c9833] )
+             (NP (DP his )
+                 (NX money ) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The lower verb ''steal'' is sister to its object argument, the NP ''his 
+money''. Together they form the verbal complement ''steal his money'', which is assigned the POS label VP.</li>
+<li>The main verb ''sees'' is sister to its NP argument, ''Mary''. Together they form the verb phrase ''sees Mary'', which is
+ assigned the POS label VX.</li>
+<li>The verbal complement ''steal '' is sister to 
+the verb phrase ''sees Mary''. Together they form the VP ''sees Mary steal his money''. </li>
+
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The thief role (arg1) of the lower verb ''steal'' is assigned the reference marker of the NP argument sentential complement (c9833). </li>
+<li>The thing viewed role (arg2) of the main verb ''sees'' is assigned
+the reference marker (c9833) of the NP ''Mary''.</li>
+<li>The attribute of the thing viewed role (arg3) of the main verb
+''sees'' is assigned the event variable (c9835) of the verbal complement  ''steal his money''.</li>
+</ul>
+
+<h2><a name="verbsthattakeinfinitivalcomplements">Verbs That Take Infinitival Complements</a></h2>
+<!--<h4>Example Sentence</h4>
+<pre>Mary wants to dump John.</pre>
+
+
+<h4>Output</h4>
+<pre> (S  
+     (NP[id=c6487] (NX Mary ) )
+     (VP 
+         (VX  wants[pred=verb_arg12, arg2=c6491] )
+         (VP[id=c6491] 
+           (VX to[pred=aux_arg12, arg1=c6487, arg2=c6493] )
+           (VP[id=c6493]  
+               (VX dump )
+               (NP (NX John) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The particle ''to'' is  assigned the POS label VX.</li>
+<li>The particle is sister to its argument, the VP ''dump John''.
+Together they form the to-infinitive ''to dump John'', which is
+assigned the POS label VP.</li>
+<li>The to-infinitive is sister to the main verb. Together they form the VP''wants to dump John''.  </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The thing wanted role (arg2) of the main verb is assigned the event variable (c6491) of the infinitival complement . </li>
+<li>The action role (arg2) of the particle ''to'', which is treated as
+an auxiliary verb, is assigned the event variable (c6493) of the VP
+''dump John''.</li>
+<li>The agent role (arg1) of the particle ''to'' is assigned the reference marker (c6487) of the subject ''Mary'' of the main verb.</li>
+</ul>
+
+-->
+
+
+<h3><a name="subjectcontrolverbs">Subject Control Verbs</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John tries to approach Mary</pre>
+
+
+<h4>Output</h4>
+<pre>
+ (S  
+    (NP[id=c1] (NX John) )
+    (VP
+        (VX tries[pred=verb_arg12, arg1=c1, arg2=c5] )
+        (CP[id=c5] 
+                   (CX to[pred=comp_arg1, arg1=c7] )
+                   (VP[id=c7] 
+                              (VX approach[pred=verb_arg12, arg1=c1] )
+                              (NP(NX Mary ) ) ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+
+
+<ul>
+<li>The subject control verb ''tries'' is assigned the POS label VX.</li>
+<li>The complementizer ''to'' is assigned the POS label CX.</li>
+<li>The complementizer is sister to its verb phrase complement, ''approach Mary'', which is assigned the POS label VP.   Together they form the infinitival complement of the control verb. </li>
+<li>The infinitival complement of the control verb is assigned the POS label CP.</li>
+<li>The control verb is sister to its infinitival complement, the CP ''to approach Mary''. Together they form the verb phrase ''tries to approach Mary'', which is assigned the POS label VP.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The agent role (arg1) of the subject control verb is assigned the reference marker (c1) of the subject. </li>
+<li>The action role (arg1) of the complementizer ''to'' is assigned the event variable (c7) of the VP ''approach Mary''. </li>
+<li>The agent role (arg1) of the verb ''approach'' introduced by the complementizer ''to'' is assigned the reference marker (c1) of the subject of the subject control verb.</li>
+</ul>
+
+<!--<h3><a name="subjectraisingverbs">Subject Raising Verbs</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John continues to approach Mary</pre>
+
+
+<h4>Output</h4>
+<pre>
+ (S  
+    (NP[id=c1] (NX John) )
+    (VP
+        (VX continues[pred=verb_arg1, arg1=c5] )
+        (VP[id=c5] 
+                   (VX to[pred=aux_arg1, arg1=c1, arg2=c7] )
+                   (VP[id=c7] 
+                              (VX approach[pred=verb_arg12, arg1=c1] )
+                              (NP(NX Mary ) ) ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+
+
+<ul>
+<li>The subject raising verb ''continues'' is assigned the POS label VX.</li>
+<li>The complementizer is sister to its verb phrase complement, ''approach Mary'', which is assigned the POS label VP.   Together they form the infinitival complement of the raising verb. </li>
+<li>The subject raising verb is sister to its infinitival complement, the VP ''to approach Mary''. Together they form the verb phrase ''continues to approach Mary'', which is assigned the POS label VP.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The thing continuing role(arg1) of the subject raising verb is assigned the reference marker (c5) of the infinitival complement. </li>
+<li>The agent role(arg1) of the complementizer ''to'' is assigned the reference marker (c1) of the subject of the raising verb. </li>
+<li>The action role(arg2) of the complementizer ''to'' is assigned in the event variable (c7) of the VP ''aproach Mary''. </li>
+</ul>-->
+
+
+<h3><a name="objectcontrolverbs">Object Control Verbs</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Mary persuades John to become an entrepreneur.
+</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  
+     (NP[id=c32016] (NX Mary ) )
+     (VP 
+          (VX 
+              (VX persuades[pred=verb_arg123, arg1=c32016, arg2=c32021, arg3=c32023] )
+              (NP[id=c32021] (NX John ) ) )
+          (CP[id=c32023] 
+              (CX to[pred=comp_arg1, arg1=c32025] )
+              (VP[id=c32025] 
+                  (VX[id=c32027] become[pred=verb_arg12, arg1=c32021] )
+                  (NP (DP an )
+                      (NX entrepreneur ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The ditransitive verb ''persuades'' is sister to its NP complement, ''John''. Together they form the verb phrase ''persuadeses John'', which is assigned the POS label VX. </li>
+<li>The verb phrase ''persuades John'' is sister to its infinitival complement ''to become an entrepreneur'', which is assigned the POS label CP. Together they form the  verb phrase ''persuadess John to become an entrepreneur'', which is assigned the POS label VP. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The impelled agent role (arg2) of the object control verb ''persuades'' is assigned the reference marker (c32021) of its object ''John''.
+</li>
+<li>The impelled action role (arg3) of the object control verb ''persuades'' is assigned the reference marker (c32023) of its infinitival complement ''to become an entrepreneur''.
+</li>
+<li>The entity changing role (arg1) of the verb ''become'' introduced by the complementizer ''to'' is assigned the reference marker (c32021) of the object of the object control verb ''persuades''.
+</li>
+<li>The action role (arg1) of the complementizer ''to'' is assigned in the event variable (c32025) of the VP ''become an entrepreneur''. </li>
+</ul>
+
+<!--
+
+<h3><a name="objectraisingverbs">Object Raising Verbs</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Mary believes John to be an entrepreneur.
+</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  
+     (NP[id=c32016] (NX Mary ) )
+     (VP 
+          (VX 
+              (VX believes[pred=verb_arg12, arg1=c32016, arg2=c32023] )
+              (NP[id=c32021] (NX John ) ) )
+          (VP[id=c32023] 
+              (VX to[aux_arg12, arg1=c32021, arg2=32025] )
+              (VP[id=c32025] 
+                  (VX[id=c32027] be[pred=verb_arg12, arg1=c32021] )
+                  (NP (DP an )
+                      (NX entrepreneur ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The ditransitive verb ''believes'' is sister to its NP complement, ''John''. Together they form the verb phrase ''believes John'', which is assigned the POS label VX. </li>
+<li>The verb phrase ''believes John'' is sister to its infinitival complement ''to be an entrepreneur'', which is assigned the POS label VP. Together they form the  verb phrase ''believes John to be an entrepreneur'', which is assigned the POS label VP. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The belief role (arg2) of the object raising verb ''belief'' is assigned the reference marker (c32023) of its infinitival complement ''to be an entrepreneur''.
+</li>
+<li>The topic role (arg1) of the copular verb ''be'' introduced by the  complementizer ''to'' is assigned the reference marker (c32021) of the object of the object raising verb ''believe''.
+</li>
+<li>The agent role(arg1) of the complementizer ''to'' is assigned the reference marker (c32021) of the object of the object raising verb. </li>
+<li>The action role(arg2) of the complementizer ''to'' is assigned in the event variable (c32025) of the VP ''be an entrepreneur''. </li>
+</ul>
+-->
+<h2><a name="participleconstructions">Participle Constructions</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Having stolen John's money, Mary left John.
+</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  
+     (VP
+         (VX Having[pred=verb_mod_arg12, mod=c32202, arg1=c32205, arg2=c32194] )
+         (VP[id=c32194] 
+                        (VX stolen )
+                        (NP 
+                            (DP 
+                                (NP John )
+                                (DX 's ) )
+                            (NX money ) ) ) )
+     (S[id=c32202]
+                   (PN , )
+                   (S
+                      (NP[id=c32205] (NX Mary ) )
+                      (VP 
+                          (VX left )
+                          (NP (NX John ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The aspectual verb ''Having'' is sister to its VP complement, ''stolen John's money''. Together they form the fronted perfect participle ''Having stolen John's money'', which is assigned the POS label VP. </li>
+<li>The fronted perfect particple ''Having stolen John's money'' is
+sister to the main clause ''Mary left John''. Together they form the sentence ''Having stolen John's money, Mary left John.''. 
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The agent role (arg1) of the aspectual verb ''Having'' is assigned the reference marker (c32205) of the subject ''Mary'' of the main clause.
+</li>
+<li>The modifiee role (mod) of the aspectual verb ''Having'' is assigned the reference marker (c32202) of the main clause.
+</li>
+</ul>
+
+
+
+
+
+<h1><a name="auxiliaries">5. Auxiliaries</a></h1>
+
+<h2>Chapter Index</h2>
+
+
+<ul>
+
+<li><a href="#modals">Modals</a></li>
+<li><a href="#aspects">Aspectual Verbs</a></li>
+<li><a href="#passives">Passive Auxiliaries</a></li>
+<li><a href="#dummies">Dummies</a></li>
+</ul>
+
+
+<h2><a name="modals">Modals</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John can walk</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP[id=c121] (NX John) )
+     (VP  
+         (VX can[aux=modal, pred=aux_arg12, arg1=c121, arg2=c125] )
+         (VP[id=c125] walk[pred=verb_arg1, arg1=c121] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The modal verb ''can'' is assigned the POS label VX and marked as
+a modal verb (aux=modal).</li>
+<li>The modal verb is sister to the main verb ''walk''. Together they
+form the verb phrase ''can walk'', which is assigned the POS label VP.</li>
+<li>The verb phrase ''can walk'' is sister to its subject argument, ''John''. Together they form the sentence ''John can walk''.  </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The agent role (arg1) of the modal verb is assigned the reference marker (c121) of the subject. </li>
+<li>The modal verb also assigns the action role (arg2) to the event variable (c125) of its verb phrase argument. </li>
+<li>The walker role (arg1) of the main verb is assigned the reference marker (c121) of the subject of the modal verb.</li>
+</ul>
+
+<h2><a name="aspects">Aspectual Verbs</a></h2>
+<h3><a name="progressives">Progressives</a></h3>
+<h4>Example Sentence</h4>
+<pre>John is sleeping.</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP (NX John ) )
+     (VP 
+         (VX is[aux=be] )
+         (VP sleeping[tense=present, aspect=progressive] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The aspectual verb ''is'' is assigned the same POS label as modal verbs.</li>
+<li>The aspectual verb is marked as an inflected form of the auxiliary
+be (aux=be). </li>
+<li>The aspectual verb is unmarked for tense.</li>
+<li>The main verb ''sleeping'' is marked for progessive aspect.</li>
+<li>The main verb is marked for present tense.</li>
+</ul>
+
+<h3><a name="progressives">Perfectives</a></h3>
+<h4>Example Sentence</h4>
+<pre>John has slept</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP (NX John ) )
+     (VP 
+         (VX has[aux=have] )
+         (VP slept[tense=present, aspect=perfect] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The aspectual verb ''has'' is marked as an inflected form of the
+auxiliary have (aux=have). </li>
+<li>The main verb ''slept'' is marked for perfect aspect.</li>
+</ul>
+
+<h3><a name="perfect_progressive">Perfect Progressives</a></h3>
+<h4>Example Sentence</h4>
+<pre>John has been sleeping</pre>
+<h4>Output</h4>
+<pre>
+(S  
+   (NP (NX John ) )
+   (VP 
+       (VX has[aux=have] )
+       (VP 
+           (VX been[aux=been] )
+           (VP sleeping[tense=present, aspect=perfect-progressive] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The aspectual verb ''has'' is marked as an inflected form of the
+auxiliary have (aux=have). </li>
+<li>The aspectual verb ''been'' is marked as an inflected form of the
+auxiliary be (aux=be). </li>
+<li>The main verb ''sleeping'' is marked for perfect-progressive aspect.</li>
+</ul>
+
+
+<h2><a name="passives">Passive Auxiliaries</a></h2>
+<h4>Example Sentence</h4>
+<pre>John is poisoned</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP[id=c7260] (NX John ) )
+     (VP 
+         (VX is[aux=be] )
+         (VP poisoned[voice=passive, arg1=unk, arg2=c7260] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The passive auxiliary ''is'' is marked as an inflected form of the auxiliary be. </li>
+<li>The main verb ''poisoned'' is marked for passive voice.</li>
+</ul>
+
+
+<h4>Semantics</h4>
+<ul>
+<li>The killer role (arg1) of the main verb is unknown.</li>
+<li>The corpse role (arg2) of the main verb is assigned the reference marker (c7260) of the grammatical subject.</li>
+</ul>
+
+<h2><a name="dummies">Dummies</a></h2>
+<h4>Example Sentence</h4>
+<pre>John did not sleep</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  (NP[id=c7290] (NX John))
+     (VP 
+         (VX 
+             (VX did[aux=do, arg1=c7290, arg2=c7296] )
+             (ADVP not[pred=adj_arg1, arg1=c7296] )
+         (VP[id=c7296] sleep[arg1=7290] ) )  
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The dummy ''did'' is marked as an inflected form of the dummy auxiliary do. </li>
+<li>The word sequence ''did not'' is part of a VP but it does not form a constituent. </li>
+<li>The word sequence ''did not'' is sister to the intransitive verb ''sleeping''. Together they form the verb phrase ''did not sleep'', which is assigned the POS label VP.</li>
+
+</ul>
+
+
+<h4>Semantics</h4>
+<ul>
+<li>The agent role (arg1) of the main verb is unknown.</li>
+<li>The patient role (arg2) of the main verb is assigned the reference marker (c7260) of the grammatical subject.</li>
+</ul>
+
+
+<h1><a name="prepositionsandparticles">6. Prepositions and Particles</a></h1>
+
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#prepositions">Prepositions</a></li>
+<!--<ul><li>
+Prepositions that take verbal complements</li>gerund?
+<li>Predicative modifier</li>as a xx?
+</ul>-->
+<li><a href="#particles">Particles</a></li>
+</ul>
+
+
+<h2><a name="prepositions">Prepositions</a></h2>
+<h3><a name="prepositionsthattakenpcomplements">Prepositions that Take NP Complements</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>He talks to Mary</pre>
+
+<h4>Output</h4>
+<pre> (S  (NP[id=c26] He )
+     (VP 
+         (VP[id=c28] talks[pred=verb_arg1, arg1=c26] )
+         (PP 
+             (PX to[pred=prep_arg12, arg1=c28, arg2=c31] ) 
+             (NP[id=c31] (NX Mary ) ) ) ) ) 
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The preposition ''to'' is assigned the POS label PX.</li>
+<li>The preposition is sister to its object argument, the NP ''Mary''.
+Together they form the prepositional phrase ''to Mary'', which is
+assigned the POS label PP.</li>
+<li>The prepositional phrase is sister to its modifiee, the intransitive verb ''talks''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The event variable (c28) of the verb phrase ''walks'' is assigned
+to the subject argument slot (arg1) of the preposition. </li>
+<li>The object argument slot (arg2) of the preposition is assigned the reference marker (c31) of the object noun phrase ''Mary''.</li>
+
+</ul>
+
+
+<h2><a name="particles">Particles</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John makes up the story</pre>
+<h4>Output</h4>
+<pre> (S (NP[id=10] (NX John ) )
+    (VP 
+        (VX 
+            (VX[id=c14] makes[pred=verb_arg12,arg1=c10,arg2=c16] )
+            (PRT up[pred=adj_arg1,arg1=c14] ) )
+        (NP[id=c16] 
+                    (DP the )
+                    (NX story ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The particle ''up'' is assigned the POS label PRT.</li>
+<li>The particle is sister to its modifiee, the transitive verb
+''makes''. Together they form the transitive two-word verb ''makes
+up'', which is assigned the POS label VX.</li>
+<li>The two-word verb is sister to its object argument, the noun phrase
+''the story''. Together they form the verb phrase ''makes up the
+story''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The only argument slot(arg1) of the particle is assigned the event variable (c14) of the transitive verb ''makes''. </li>
+<li>The creation role (arg2) of the transitive verb ''makes'' is
+assigned the reference marker (c16) of the object noun phrase ''the
+story''.</li>
+</ul>
+
+<h1><a name="adjectives">7. Adjectives</a></h1>
+<h2>Chapter Index</h2>
+<ul>
+ <li><a href="#attributiveadjectives">Attributive Adjectives</a></li>
+<li><a href="#predicativeadjectives">Predicative Adjectives</a></li>
+<li><a href="#comparativesandsuperlatives">Comparatives and Superlatives</a></li>
+<ul>
+<li><a href="#comparatives">Comparatives</a></li>
+<li><a href="#superlatives">Superlatives</a></li>
+</ul>
+<li><a href="#extraposedsententialcomplements">Adjectives with Extraposed Sentential Complements</a></li>
+ <li><a href="#adjectivesthattakeinfinitivalcomplements">Adjectives That Take Infinitival Complements</a></li>
+</ul>
+
+<h2><a name="attributiveadjectives">Attributive Adjectives</a></h2>
+<h4>Example Sentence</h4>
+<pre>Mary loves a white man</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX Mary ) )
+     (VP 
+         (VX loves
+         (NP
+             (DP a[pred=det_arg11,arg1=c6683] )
+             (NX[id=c6683]
+                 (ADJP white[pred=adj_arg1, arg1=c6685] )
+                 (NX[id=c6685] man ) ) ) ) ) )
+</pre>
+
+ 
+
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The attributive adjective ''white'' is assigned the POS label ADJP.</li>
+  <li>The
+attributive adjective is sister to the common noun ''man''. Together
+they form the nominal, ''white man'', which is assigned the POS label NX.</li>
+  <li>The nominal is sister to the DP ''a''. Together they form the noun phrase ''a white man''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adjective is assigned the reference marker (c6685) of the head noun ''man''.</li>
+</ul>
+
+
+<h2><a name="predicativeadjectives">Predicative Adjectives</a></h2>
+See <a href="#adjectival_predicates">Copulas: Predicative Sentences: Adjectival Predicates</a>.
+
+<h2><a name="comparativesandsuperlatives">Comparatives and Superlatives</a></h2>
+
+<h3><a name="comparatives">Comparatives</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John is older than Mary</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VX is )
+         (ADJP  
+               (ADJP[id=c7680] older )
+               (PP
+                   (PX than[pred=prep_arg12, arg1=c7680, arg2=c7683] )
+                   (NP[id=c7683] (NX Mary ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>''than'' is assigned the POS label PX.</li>
+  <li>''than'' is sister to its object, the NP ''Mary''. Together they form a than-phrase, which is assigned the POS label PP.</li>
+  <li>The than-phrase is sister to the adjective ''older''. Together they form the adjective phrase ''older than Mary''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The argument slot corresponding to the subject of ''than'' is assigned the reference marker (c7680) of the adjective ''older''.</li>
+  <li>The argument slot corresponding to the object of ''than'' is assigned the reference marker (c7683) of the noun phrase ''Mary''.</li>
+
+</ul>
+
+<h3><a name="superlatives">Superlatives</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John is the richest man</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VX is )
+         (NP   
+             (DP the )
+             (NX
+                 (ADJP richest[pred=adj_arg1, arg1=c8018] )
+                 (NX[id=c8018] man ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The superlative adjective ''richest'' is sister to the head
+noun ''man''. Together they form a nominal, which is assigned the POS
+label NX.</li>
+  <li>The nominal is sister to the determiner ''the''. Together they form the noun phrase ''the richest man''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the superlative adjective
+''richest'' is assigned the reference marker (c8018) of the head noun
+''man''.</li>
+</ul>
+
+<h2><a name="extraposedsententialcomplements">Adjectives with Extraposed Sentential Complements</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>It is obvious that John is a fool</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  
+     (NP It[pred=it_arg1, arg1=c8018] )
+     (VP 
+         (VX
+             (VX is )
+             (ADJP obvious[pred=adj_arg1, arg1=c8018] )
+         (CP[id=c8018]
+             (CX that )
+             (S
+                (NP John )
+                (VP
+                    (VX is )
+                    (NP 
+                        (DP a )
+                        (NX fool ) ) ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adjective ''obvious'' is sister to the copular verb 
+noun ''is''. Together they form a verb phrase , which is assigned the POS
+label VX.</li>
+  <li>The verb phrase is sister to the sentential complement  ''that John is a fool''. Together they form the verb phrase ''is obvious that John is a fool''.</li>
+<li>The verb phrase ''is obvious that John is a fool '' is sister to the referential ''it''. Together they form the sentence ''It is obvious that John is a fool''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adjective ''obvious''
+is assigned the event variable (c8018) of the sentential complement
+''that John is a fool''.</li>
+  <li>The only argument slot of the referential ''it''
+is assigned the event variable (c8018) of the sentential complement
+''that John is a fool''.</li>
+</ul>
+
+<h2><a name="adjectivesthattakeinfinitivalcomplements">Adjectives That Take Infinitival Complements</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>John is able to walk</pre>
+
+<h4>Output</h4>
+<pre>
+ (S  
+     (NP[id=c46339] (NX John ) )
+     (VP 
+         (VX is )
+         (ADJP   
+             (ADJX able[pred=adj_arg12, arg1=c46339, arg2=c46344] )
+             (CP[id=c46344]
+                            (CX to )
+                            (VP walk[arg1=c46339] ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adjective ''able'' is assigned the POS label ADJX.
+  <li>The adjective ''able'' is sister to its infinitival complement ''to walk'', which is assigned the POS label CP. Together they form the adjectival phrase ''able to walk'' , which is assigned the POS ADJP.</li>
+ </ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The argument slot(arg2) corresponding to the complement of the adjective
+''able'' is assigned the event variable (c46344) of the infinitive 
+''to walk''.</li>
+</ul>
+
+
+<h1><a name="adverbs">8. Adverbs</a></h1>
+<h2>Chapter Index</h2>
+<ul>
+ <!--<li>Predicative adverbs</li>example?-->
+
+ <li><a href="#adverbsofmanner">Adverbs That Postmodify Verbs</a></li>
+ <li><a href="#adverbsoffrequency">Adverbs That Premodify Verbs</a></li>
+ <li><a href="#adverbsofdegree">Adverbs That Premodify Adjectives</a></li>
+<li><a href="#adverbsofcomment">Sentence-initial Adverbs</a></li>
+
+<!-- <li>Predicative modifier</li>example?-->
+<!-- <li>Comparatives and Superatives</li>doneinadjective?-->
+</ul>
+
+<h2><a name="adverbsofmanner">Adverbs That Postmodify Verbs</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John loves Mary deeply</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VP[id=c7750] 
+             (VX loves )
+             (NP (NX Mary ) ) )  
+         (ADVP deeply[pred=adj_arg1, arg1=c7750] ) ) )
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adverb of manner ''deeply'' is  assigned the POS label ADVP.</li>
+  <li>The adverb of manner is sister to the VP ''loves Mary''. Together they form another VP.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adverb of manner is assigned the event variable (c7750) of the VP ''loves Mary''.</li>
+
+</ul>
+
+<h2><a name="adverbsoffrequency">Adverbs That Premodify Verbs</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Mary rarely sees John</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX Mary ) )
+     (VP 
+         (ADVP rarely[pred=adj_arg1, arg1=c8093] )
+         (VP[id=c8093] 
+             (VX sees )
+             (NP (NX John ) ) ) ) )  
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adverb of frequency ''rarely'' is sister to the VP ''sees John''. Together they form another VP.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adverb of frequency is assigned the event variable (c8093) of the VP ''sees John''.</li>
+
+</ul>
+
+<h2><a name="adverbsofdegree">Adverbs That Premodify Adjectives</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Mary marries a very rich man</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX Mary ) )
+     (VP 
+         (VX marries )
+         (NP
+             (DP a )
+             (NX
+                 (ADJP 
+                       (ADVP very[pred=adj_arg1, arg1=c8677] )
+                       (ADJP[id=c8677] rich )
+                 (NX man ) ) ) ) ) )
+
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adverb of degree ''very'' is sister to the ADJP ''rich''. Together they form the ADJP ''very rich''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adverb of degree is assigned the reference marker (c8677) of the ADJP ''rich''.</li>
+
+</ul>
+
+<h2><a name="adverbsofcomment">Sentence-initial Adverbs</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Unfortunately, John marries Mary</pre>
+
+<h4>Output</h4>
+<pre> (S (ADVP Unfortunately[pred=adj_arg1, arg1=c8764] )
+    (S[id=c8764] 
+       (PN ,)
+       (S 
+          (NP (NX John ) )
+          (VP 
+              (VX marries )
+              (NP (NX Mary ) ) ) ) ) ) 
+
+
+</pre>
+
+<h4>Syntax</h4>
+
+<ul>
+  <li>The adverb of comment ''Fortunately'' is sister to the S
+'', John marries Mary''. Together they form another S ''Unfortunately,
+John marries Mary''.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+  <li>The only argument slot of the adverb of comment is assigned the event variable (c8764) of the S '', John marries Mary''.</li>
+
+</ul>
+
+
+
+<h1><a name="copulas">9. Copulas</a></h1>
+
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#predicative_sentences">Predicative Sentences</a></li>
+<ul>
+  <li><a href="#adjectival_predicates">Adjectival Predicates</a></li>
+  <li><a href="#prepositional_predicates">Prepositional Predicates</a></li>
+  <li><a href="#clausal_predicates">Clausal Predicates</a></li>
+</ul>
+<li><a href="#identity_copula_sentences">Identity Copula Sentences</a></li>
+<li><a href="#expletive_there_construction">Expletive-there Construction</a></li>
+</ul>
+
+<h2><a name="predicative_sentences">Predicative Sentences</a></h2>
+
+
+<h3><a name="adjectival_predicates">Adjectival Predicates</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John is strange.</pre>
+
+<h4>Output</h4>
+<pre> (S 
+    (NP[id=c1] (NX John) )
+    (VP 
+        (VX is[pred=verb_arg12,arg1=c1,arg2=c5] )
+        (ADJP[id=c5] strange[pred=adj_arg1,arg1=c1] ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The copular verb ''is ' is assigned the POS label VX.</li>
+<li>The adjective ''strange'' is assigned the POS label ADJP.</li>
+<li>The copular verb is sister to its predicative complement, the ADJP
+''strange''. Together they form the verb phrase ''is strange'', which
+is assigned the POS label VP.</li>
+<li>The verb phrase is sister to the subject noun phrase ''John''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The topic role (arg1) of the copular verb ''is'' is assigned the
+reference marker (c1) of the subject noun phrase ''John''. </li>
+<li>The comment role (arg2) of the copular verb is assigned the
+reference marker (c5) of its predicative complement, the adjective
+''strange''.</li>
+<li>The predicator role (arg1) of the adjective ''strange'' is
+assigned the rerence marker (c1) of the subject noun phrase ''John''. </li>
+</ul>
+
+
+<h3><a name="prepositional_predicates">Prepositional Predicates</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John is in China.</pre>
+
+</h4><h4>Output</h4>
+<pre> (S 
+    (NP (NX[id=c1] John ) )
+    (VP 
+        (VX is[pred=verb_arg12,arg1=c1,arg2=c5] )
+        (PP[id=c5] 
+                   (PX in[pred=prep_arg12,arg1=c1,arg2=c7] )
+                   (NP[id=c7] (NX China ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The copular verb is sister to its predicative complement, the PP
+''in China''. Together they form the verb phrase ''is in China'', which
+is assigned the POS label VP.
+</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The comment role (arg2) of the copular verb is assigned the
+reference marker (c5) of the prepositional phrase ''in China''.</li>
+<li>The subject argument slot of the preposition ''in'' is assigned
+the reference marker (c1) of the subject noun phrase ''John''. </li>
+</ul>
+
+<h3><a name="clausal_predicates">Clausal Predicates</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>The plan is that you write the report</pre>
+
+<h4>Output</h4>
+<pre>
+(S  
+   (NP 
+       (DP The )
+       (NX plan ) )
+   (VP 
+       (VX is[pred=verb_arg12, arg2=c2814] )
+       (CP[id=c2814] 
+                     (CX that[pred=comp_arg1,arg1=c2816] )
+                     (S[id=c2816]  
+                                  (NP you )
+                                  (VP 
+                                      (VX write )
+                                      (NP 
+                                          (DP the )
+                                          (NX report ) ) ) ) ) ) )
+
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The complementizer ''that'' is sister to its argument, the S ''you write the report''. Together they form the sentential complement ''that
+you write the report'', which is assigned the POS label CP.</li>
+<li>The sentential complement ''that you write the report'' is sister to
+the copular verb ''is''. Together they form the VP ''is that you write the report''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The comment role (arg2) of the copular verb ''is'' is assigned the event variable of the sentential complement (c2814). </li>
+<li>The proposition role (arg1) of the complementizer is assigned the event variable of the embedded sentence (c2816).</li>
+</ul>
+
+
+<h2><a name="identity_copula_sentences">Identity Copular Sentences</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Jesus is Christ.</pre>
+
+<h4>Simplified output</h4>
+<pre> (S  
+     (NP[id=c8] (NX Jesus ) )
+     (VP 
+          (VX is[pred=verb_arg12, arg1=c8, arg2=c12] )
+          (NP[id=c12] (NX Christ ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The copular verb is sister to its equative complement, the NP
+''Christ''. Together they form the verb phrase ''is Christ'', which is
+assigned the POS label VP.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The topic role (arg1) of the copular verb is assigned the
+reference marker (c8) of the subject noun phrase ''Jesus''.</li>
+<li>The comment role (arg2) of the copular verb is assigned the
+reference marker (c12) of the object noun phrase ''Christ''.</li>
+</ul>
+
+<h2><a name="expletive_there_construction">Expletive-there Construction</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>There is a man dying.</pre>
+
+
+<h4>Output</h4>
+<pre>
+(S 
+   (NP There )
+   (VP 
+       (VX is )
+       (NP 
+           (DP a )
+           (NX
+               (NX[id=c44] man )
+               (VP dying[pred=verb_arg1, arg1=c44] ) ) ) ) )
+
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The expletive pronoun ''there'' is assigned the POS label NP.</li>
+<li>Tentatively, ENJU assigns a single constituent as the sister of the copular noun in the expletive-there construction. The single constituent is assigned the POS label NP.</li>
+<li>Tentatlively, ENJU treats the final VP as a modifier attached to the nominal ''man''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The deceased role (arg1) of the final VP is assigned the reference marker (c44) of the preceding noun ''man''. </li>
+</ul>
+
+
+
+
+<h1><a name="relatives">10. Relative Clauses</a></h1>
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#nonsubject_wh_relatives">Nonsubject Wh-relatives</a></li>
+<li><a href="#that_less_relatives">That-less Relatives</a></li>
+<li><a href="#subject_wh_relatives">Subject Wh-relatives</a></li>
+<li><a href="#free_relatives">Free Relatives</a></li>
+<li><a href="#infinitival_relative_clauses">Infinitival Relative Clauses</a></li>
+<li><a href="#reduced_relative_clauses">Reduced Relative Clauses</a></li>
+
+<li><a href="#subject_extraction">Subject Extraction</a></li>
+<li><a href="#cleft_sentences">Cleft Sentences</a></li>
+<ul>
+  <li><a href="#it-clefts">It-clefts</a></li>
+  <li><a href="#pseudoclefts">Pseudoclefts</a></li>
+</ul>
+</ul>
+
+
+<h2><a name="nonsubject_wh_relatives">Nonsubject Wh-relatives</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John is the man who Mary loves</pre>
+
+<h4>Output</h4>
+<pre>(S 
+   (NP (NX John ) )
+   (VP 
+       (VX is )
+       (NP 
+           (DP the )
+           (NX 
+               (NX[id=c37] man )
+               (S-REL 
+                  (NP-REL who[pred=relative_arg1, arg1=c37] )
+                  (S-TRACE 
+                           (NP[id=c41] (NX Mary ) )
+                           (VP-TRACE loves[pred=verb_arg12, arg1=c41, arg2=c37] ) ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The relative pronoun ''who'' is assigned the POS label (cat) NP .</li>
+<li>The embedded transitive verb ''loves'' forms a slashed verb phrase, which is assigned the POS label VP, with no daughters. </li>
+<li>The slashed verb phrase is sister to the subject noun phrase
+''Mary''. Together they form the slashed sentence ''Mary loves', which
+is assigned the POS label S.</li>
+<li>The slashed sentence is sister to the relative pronoun. Together
+they form the relative clause ''who Mary loves'', which is assigned the
+POS label S.</li>
+<li>The relative clause is sister to the head noun ''man''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The only argument slot of the relative pronoun is assigned the
+reference marker (c37) of the head noun ''man''. </li>
+<li>The loved role (arg2) of the embedded transitive verb ''loves'' is
+relativized. It is assigned the reference marker (c37) of the head noun .</li>
+</ul>
+
+
+
+
+<h2><a name="that_less_relatives">That-less Relatives</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John is the man Mary loves.</pre>
+<h4>Output</h4>
+<pre>(S 
+   (NP (NX John ) )
+   (VP 
+       (VX is )
+       (NP 
+           (DP the )
+           (NX 
+               (NX man )
+               (S-REL (S-TRACE 
+                               (NP (NX Mary ) )
+                               (VP-TRACE loves ) ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The slashed sentence ''Mary loves'' forms a relative clause, which is assigned the POS label S, with no daughters.</li>
+</ul>
+
+
+
+
+
+
+
+<h2><a name="subject_wh_relatives">Subject Wh-relatives</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John is the man who loves Mary.</pre>
+
+<h4>Output</h4>
+<pre>(S 
+   (NP (NX John ) )
+   (VP 
+       (VX is )
+       (NP 
+           (DP the)
+           (NX[id=c8] 
+                      (NX man )
+                      (S-REL 
+                             (NP-REL who )
+                             (VP 
+                                 (VX loves[pred=verb_arg12,arg1=c8] )
+                                 (NP (NX Mary ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The embedded verb phrase ''loves Mary'' is sister to the relative
+pronoun ''who''. Together they form the relative clause ''who loves
+Mary'', which is assigned the POS label S.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The lover role (arg1) of the embedded transitive verb ''loves'' is
+relativized. It is assigned the reference marker (c8) of the head noun
+''man''.
+</li>
+</ul>
+
+<h2><a name="free_relatives">Free Relatives</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>I see what I eat.</pre>
+
+<h4>Output</h4>
+<pre>(S 
+   (NP I ) 
+   (VP 
+       (VX see[pred=verb_arg12, arg2=c2491] )
+       (NP[id=c2489] (S-FREL
+                        (NP-FREL[id=c2491] what )
+                        (S-TRACE
+                          (NP[id=c2493] I)
+                          (VP-TRACE eat[pred=verb_arg12, arg1=c2493, arg2=c2491] ) ) ) ) ) )
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The relative clause ''what I eat'' forms a noun phrase without a head noun.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The reference marker of ''what'' (c2491) is assigned the thing
+viewed role (arg2) by the main verb ''see''.</li>
+<li>The target role (arg2) of ``eat'' is assigned the reference marker
+(c2491) of ''what''.
+</li>
+</ul>
+<h2><a name="infinitival_relative_clauses">Infinitival Relative Clauses</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>The book to be read is lost</pre>
+
+<h4>Output</h4>
+<pre>
+(S 
+   (NP 
+       (DP The )
+       (NX
+           (NX[id=c46155] book )
+           (CP 
+               (CX to ) 
+               (VP
+                   (VX be )
+                   (VP read[pred=verb_arg12, arg1=unk, arg2=c46155] ) ) ) ) )
+   (VP 
+       (VX is )
+       (VP lost ) ) )
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The infinitival relative clause ''to be read'' is assigned the POS label CP.</li>
+<li>The infinitival relative clause ''to be read'' is sister to the head noun ''book''. Together they form the nominal ''book to be read'', which is assigned the POS label NX.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The book role (arg2) of ``read'' is assigned the reference marker
+(c46155) of ''book''.
+</li>
+</ul>
+
+
+<h2><a name="reduced_relative_clauses">Reduced Relative Clauses</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Children killed in the street are orphans</pre>
+<h4>Output</h4>
+<pre>
+(S 
+   (NP[id=c92] 
+       (NX
+           (NX[id=c94] children )
+           (VP 
+               (VP killed[pred=verb_arg12, arg2=c94] )
+               (PP 
+                   (PX in )
+                   (NP 
+                       (DP the )
+                       (NX street ) ) ) ) ) )
+   (VP 
+       (VX are[pred=verb_arg12, arg1=c92] )
+       (NP (NX orphans ) ) ) )
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>Tentatively ENJU treats reduced relative clause as an NP containing a nominal and an embedded verb phrase that postmodifies the nominal.</li>
+<li>The nominal ''children'' is sister to the VP ''killed in the street'', which postmodifies it. Together they formed the nominal ''children killed in the street'', which is assigned the POS label NX.</li>
+<li>The nominal ''children killed in the street'' forms a NP by itself.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The corpse role (arg2) of the embedded verb ''killed'' is assigned the reference marker (c94) of the nominal ''children''.</li>
+<li>The topic role (arg1) of ``are'' is assigned the reference marker
+(c92) of the NP ''children in the street''.
+</li>
+</ul>
+
+
+<h2><a name="subject_extraction">Subject Extraction</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>I wonder who you think loves her.</pre>
+
+
+<h4>Output</h4>
+<pre>
+(S 
+   (NP I ) 
+   (VP 
+       (VX wonder )
+       (NP (S-FREL
+              (NP-FREL[id=c46256] who )
+              (S-TRACE 
+                       (NP you )
+                       (VP-TRACE 
+                                 (VX-TRACE think[pred=verb_arg12, arg1=c46258, arg2=c46261] )
+                                 (VP[id=c46261] 
+                                                (VX loves[pred~verb_arg12, arg1=c46256] )
+                                                (NP her )
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The VP ''loves her'' is sister to the verb ''think'', which is assigned the POS label VX-TRACE, for taking the gap supposed to be filled by the extracted subject of its VP argument from its VP argument. The VP ''loves her'' and the VX-TRACE ''think'' form the VP-TRACE ''think loves her''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The lover role(arg1) of the most embedded verb ''loves'' is assigned the reference marker(c46256) of the relative pronoun ''who''.
+</li>
+</ul>
+
+
+<h2><a name="cleft_sentences">Cleft Sentences</a></h2>
+
+<h3><a name="it-clefts">It-clefts</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>It is Mary that John loves.</pre>
+
+<h4>Simplified output</h4>
+<pre> (S 
+    (NP[id=c9798] It )
+    (VP 
+        (VX is[pred=verb_arg12, arg1=c9798, arg2=c9801] )
+        (NP 
+            (NX 
+                (NX Mary )
+                (S-REL 
+                       (NP-REL that[pred=relative_arg1, arg1=c9803] )
+                       (S-TRACE 
+                                (NP[id=c9807] (NX John ) )
+                                (VP-TRACE loves[pred=verb_arg12, arg1=c9803, arg2=c9807 ) ) ) ) ) ) ) )
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The expletive pronoun ''it'' is assigned the POS label NP.</li>
+<li>The object of the copula is a noun phrase modified by a relative
+clause, which is assigned the POS label NP-REL. The noun phrase is
+formed by the proper noun ''Mary'' and the the that-relative ''that
+John loves''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The loved role (arg2) of the embedded transitive verb ''love'' is
+assigned the reference marker (c9807) of the noun phrase ''Mary''.</li>
+</ul>
+
+
+<h3><a name="pseudoclefts">Pseudoclefts</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>What Mary loves is money.</pre>
+
+
+<h4>Simplified output</h4>
+<pre>
+ (S 
+    (NP (S-FREL
+           (NP-FREL[id=c3] What )
+           (S-TRACE 
+                    (NP (NX Mary ) )
+                    (VP-TRACE loves[pred=verb_arg12,arg2=c3] ) ) ) ) )
+    (VP 
+       (VX is[pred=verb_arg12, arg1=c3 )
+       (NP (NX money ) ) ) )
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>The embedded verb ''loves'', which contains an object gap,  is assigned the POS label VP-TRACE.</li>
+<li>The embedded verb is sister to its subject ''Mary''. Together they form the gapped sentence ''Mary loves'', which is assigned the POS label S-TRACE.</li>
+<li>The gapped sentence is sister to the relative pronoun ''what''. Together they form the relative clause ''What Mary loves''.</li>
+<li>The relative clause is sister to the VP ''is money''. Together they form the pseudocleft ''What Mary loves is money''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The loved role (arg1) of the embedded  verb ''loves'' is assigned the reference marker(c3) of the relative pronoun ''What''.</li>
+<li>The topic role (arg1) of the corpular  verb ''is'' is assigned the reference marker(c3) of the relative pronoun ''What''.</li>
+</ul>
+
+
+
+
+<h1><a name="connectives">11. Connectives</a></h1>
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#coordinating_conjunctions">Coordinating Conjunctions</a></li>
+<ul><li><a href="#two_conjuncts">The Case of Two Conjuncts</a></li>
+  <li><a href="#three_conjuncts">The Case of Three Conjuncts</a></li>
+</ul>
+<li><a href="#subordinating_conjunctions">Subordinating Conjunctions</a></li>
+<!--<li><a href="#correlative_conjunctions">Correlative Conjunctions</a></li>-->
+</ul>
+
+
+<h2><a name="coordinating_conjunctions">Coordinating Conjunctions</a></h2>
+<h3><a name="two_conjuncts">The Case of Two Conjuncts</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John loves Mary and Mary loves John.</pre>
+
+<h4>Output</h4>
+<pre>(S-COOD 
+        (S[id=c3026] 
+                     (NP (NX John ) )
+                     (VP 
+                         (VX loves )
+                         (NP (NX Mary ) ) ) )
+        (COOD 
+              (CONJP and[pred=coord_ard12, arg1=c3026, arg2=c3035] )
+              (S[id=c3035] 
+                           (NP (NX Mary ) )
+                           (VP (VX loves )
+                               (NP (NX John ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The coordinating conjunction ''and'' is assigned the POS label CONJP.</li>
+<li>The coordinating conjunction is sister to the right conjunct,
+which, in this case, is a sentence. The right conjunct and the
+coordinating conjunction forms a constituent, ''and Mary loves John'',
+which is assigned the POS label COOD.</li>
+<li>The left conjunct, which is also a sentence in this case, is sister
+to the constituent formed by the coordinating conjunction and the
+right conjunct. Together they form the coordinated sentence ''John
+loves Mary and Mary loves John'', which is assigned the POS label
+S-COOD.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The first argument slot (arg1) of the coordinating conjunction is
+assigned the event variable (c3026) of the left conjunct. </li>
+<li>The second argument slot (arg2) of the coordinating conjunction is
+assigned the event variable (c3035) of the right conjunct. </li>
+</ul>
+
+
+
+
+<h3><a name="three_conjuncts">The Case of Three Conjuncts</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>They walk, I run and you crawl.</pre>
+<h4>Output</h4>
+<pre>(S-COOD 
+        (S[id=4255] 
+                    (NP They )
+                    (VP walk ) )
+        (COOD 
+              (CONJP , [pred=coord_ard12, arg1=c4255, arg2=c4260] )
+              (S-COOD[id=4260] 
+                               (S[id=4261] 
+                                           (NP I)
+                                           (VP run ) )
+                               (COOD 
+                                     (CONJP and )
+                                     (S
+                                        (NP you)
+                                        (VP crawl ) ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>A comma is assigned the POS label CONJP.</li>
+<li>The coordinating conjunction is sister to the right conjunct. The
+right conjunct and the coordinating conjunction form the constituent
+''and you crawl'', which is assigned the POS label COOD.</li>
+<li>The middle conjunct is sister to the constutiuent formed by the
+coordinating conjunction and the right conjunct. Together they form the
+coordinated sentence ''I walk and you crawl'', which is assigned the
+POS label S-COOD.</li>
+<li>The coordinated sentence is sister to the comma. Together they form
+the constituent '', I run and you crawl'', which is assigned the POS
+label COOD.</li>
+<li>The left conjunct is sister to the constituent formed by the
+coordinating conjunction and the coordinated sentence. Together they
+form the coordinated sentence ''They walk, I run and you crawl'', which
+is assigned the POS label S-COOD
+</li></ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>The first argument slot (arg1) of the comma is assigned the event variable (c4255) of the left conjunct. </li>
+<li>The second argument slot (arg2) of the comma is assigned the event
+variable (c4260) of the coordinated sentence formed by the middle
+conjunct and the constituent formed by the cocordinating conjunciton
+and the right conjunct. </li>
+</ul>
+
+<h2><a name="subordinating_conjunctions">Subordinating Conjunctions</a></h2>
+<h3><a name="sentence_initial_subordinate_clause">The Case of Sentence Initial Subordinate Clause</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>When John has money, Mary loves him</pre>
+
+<h4>Output</h4>
+<pre>
+(S 
+   (SCP 
+        (SCX When[pred=conj_arg12, arg1=c4824, arg2=c4817] )
+        (S[id=c4817] 
+                     (NP (NX John ) )
+                     (VP 
+                         (VX has )
+                         (NP (NX money ) ) ) ) )
+   
+   (S[id=c4824] 
+                (PN , )
+                (S[id=c4826]
+                   (NP (NX Mary ) )
+                   (VP 
+                       (VX loves )
+                       (NP him ) ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The subordinating conjunction ''when'' is assigned the POS label SCX.</li>
+<li>The subordinating conjunction is sister to its clausal argument.
+The subordinating conjunction and its clausal argument form the
+subordinate clause ''When John has money'', which is assigned the POS
+label SCP.</li>
+<li>The comma that sets off the subordinated clause from the main clause is assigned the POS label PN.</li>
+<li>The comma is sister to the main clause. The comma and the main clause form a constituent, which is assigned the POS label ''S''.</li>
+<li>The constituent formed by the main clause and the comma ''Mary loves
+him'' is sister to the subordinated clause ''When John has money''. Together they form the sentence ''When John has money, Mary 
+loves him''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The first argument slot(arg1) of the subordinating conjunction is
+assigned the event variable (c4824) of the main clause ''Mary loves
+him''.
+</li>
+<li>The second argument slot (arg2) of the subordinating conjunction is
+assigned the event variable (c4817) of the subordinate clause ''John has money''.
+</li>
+</ul>
+
+<h3><a name="sentence_final_subordinate_clause">The Case of Sentence Final Subordinate Clause</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>John loved Mary when she was young</pre>
+
+<h4>Output</h4>
+<pre>(S 
+   (NP (NX John ) )
+   (VP (VP[id=c4977] 
+                     (VX loved )
+                     (NP (NX Mary) ) ) ) )
+       (SCP 
+            (SCX when[pred=conj_arg12, arg1=c4977, arg2=c4983] )
+            (S[id=c4983] 
+                         (NP she )
+                         (VP 
+                             (VX was )
+                             (NP (NX young ) ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The subordinate clause is sister to the head verb phrase ''loved
+Mary'' of the main clause. Together they form the verb phrase ''loved
+Mary when she was young''.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The first argument slot (arg1) of the subordinating conjunction is
+assigned the event variable (c4977) of the head verb phrase of main
+clause ''loved Mary''.
+</li>
+<li>The second argument slot (arg2) of the subordinating conjunction is
+assigned the event variable (c4983) of the subordinate clause ''when she
+was young''.
+</li>
+</ul>
+
+<!--<h2><a name="correlative_conjunctions">Correlative Conjunctions</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>And Bill will marry Mary.</pre>-->
+
+<h1><a name="interrogatives">12. Interrogatives</a></h1>
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#yesnoquestions">Yes/No Questions</a></li>
+<li><a href="#questioningsubjectpositions">Questioning Subject Positions</a></li>
+<li><a href="#questioningobjectpositions">Questioning Object Positions</a></li>
+<li><a href="#questioningotherpositions">Questioning Other Positions</a></li>
+
+
+</ul>
+
+
+
+<h2><a name="yesnoquestions">Yes/No Questions</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Will John marry Mary</pre>
+
+<h4>Output</h4>
+<pre>
+(S-Q
+     (VX 
+         (VX will )
+         (NP (NX John ) ) )
+     (VP 
+         (VX marry )
+         (NP (NX Mary ) ) ) )
+ 
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The word sequence ''will John'' is part of an interrogative sentence but it does not form a constituent. It is assigned the POS label VX. </li>
+<li>The non-constituent ''will John'' is sister to the verb phrase ''marry Mary''. Together they form the interrogative sentence ''will John marry Mary', which is assigned the POS label S-Q.</li>
+</ul>
+
+
+<h2><a name="questioningsubjectpositions">Questioning Subject  Positions</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Who loves Mary</pre>
+<!-- flat ternary? any rule?-->
+
+<!--<h4>Current Output</h4>
+<pre>
+(S 
+   (NP Who[id=c13880] )
+   (VP 
+       (VX loves[pred=verb_arg12, arg1=c13880] )
+       (NP (NX Mary ) ) ) )
+</pre>-->
+
+
+<h4>Output</h4>
+<pre>
+(S-WH
+     (NP-WH Who[id=c13880] )
+     (VP 
+         (VX loves[pred=verb_arg12, arg1=c13880] )
+         (NP (NX Mary ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The wh-word ''Who'' is assigned the POS label NP-WH.
+<li>The wh-word ''Who'' is sister to the head verb phrase ''loves Mary''. Together they form the interrogative sentence ''Who loves Mary'', which is assigned the POS label S-WH.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The lover role (arg1) of the head verb ''loves'' is assigned the reference marker (c13880) of the wh-word ''Who''.
+</li>
+</ul>
+
+
+<h2><a name="questioningobjectpositions">Questioning Object Positions</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Who does Mary love?</pre>
+
+<h4>Output</h4>
+<pre>
+(S-INV-Q-WH
+     (NP-WH Who[id=c10593] )
+     (S-INV-Q-TRACE
+                (VX 
+                    (VX does )
+                    (NP (NX Mary ) ) )
+                (VP-TRACE love[pred=verb_arg12, arg2=c10593] ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The main verb of the interrogative sentence forms a slashed verb phrase, which is assigned the POS label VP, with no daughters. </li>
+<li>The word sequence ''does Mary'' is part of a slashed sentence but it does not form a constituent. It is assigned the POS label VX. </li>
+<li>The slashed verb phrase is sister to the non-constituent ''does Mary''. Together they form the slashed sentence ''does Mary love'', which is assigned the POS label S-INV-Q-TRACE.</li>
+<li>The slashed sentence is sister to the wh-word. Together they form the interrogative sentence ''Who does Mary love?'', which is assigned the POS label S-INV-Q-WH.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The loved role (arg2) of the main verb ''love'' is assigned the
+reference marker (c10593) of the wh-word.</li>
+</ul>
+
+
+
+
+<h2><a name="questioningotherpositions">Questioning Other  Positions</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>When will John marry Mary</pre>
+
+<h4>Suggested Output</h4>
+<pre>
+(S-INV-Q-WH
+     (ADJP-WH When[pred=adj_arg1, arg1=c10593] )
+     (S-Q[id=c10593]
+                (VX 
+                    (VX will )
+                    (NP (NX John ) ) )
+                (VP 
+                    (VX marry )
+                    (NP (NX Mary ) ) )
+ 
+  ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The wh-word ''When'' is assigned the POS label ADJP-WH, with no daughters. </li>
+<li>The interrogative sentence ''will John marry Mary'' is sister to the wh-word. Together they form the interrogative sentence ''When will John marry Mary?'', which is assigned the POS label S-INV-Q-WH.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The only argument slot (arg1) of the wh-word ''When'' is assigned
+the reference marker (c10593) of the interrogative sentence ''will John marry Mary''.</li>
+</ul>
+
+
+
+
+<h1><a name="constructionsofinterest">13. Constructions of Interest</a></h1>
+<h2>Chapter Index</h2>
+
+
+<ul>
+<li><a href="#topicalization">Topicalization</a></li>
+<li><a href="#imperatives">Imperatives</a></li>
+<li><a href="#inversion">Inversion</a></li>
+<li><a href="#quotation">Quotation</a></li>
+<li><a href="#titles">Titles</a></li>
+<li><a href="#tough">Tough Constructions</a></li>
+<li><a href="#pied_piping">Pied-piping</a></li>
+</ul>
+
+<h2><a name="topicalization">Topicalization</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Mary, John loves.</pre>
+
+<h4>Output</h4>
+<pre>(S 
+     (NP[id=c10593] (NX Mary )
+     (S-TRACE
+         (PN , )
+         (S-TRACE
+                  (NP (NX John ) )
+                  (VP-TRACE loves[pred=verb_arg12, arg2=c10593] ) ) ) ) ) 
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The main verb of the topicalized sentence forms a slashed verb phrase, which is assigned the POS label VP, with no daughters. </li>
+<li>The slashed verb phrase is sister to the subject noun phrase
+''John''. Together they form the slashed sentence ''John loves', which
+is assigned the POS label S-TRACE.</li>
+<li>The slashed sentence is sister to the comma that sets off the
+slashed sentence from the topic ''Mary''. Together they form another
+S-TRACE.</li>
+<li>The higher S-TRACE is sister to the topic, ''Mary''. Together they
+form the topicalized sentence ''Mary, John loves.'', which is assigned
+the POS label S.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The loved role (arg2) of the main verb ''loves'' is assigned the
+reference marker (c10593) of the topic.</li>
+</ul>
+
+<h2><a name="imperatives">Imperatives</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Pass me the salt.</pre>
+
+
+
+
+<h4>Output</h4>
+<pre>
+(S-IMP 
+       (VX 
+           (VX 
+               (VX pass[pred=verb_arg123, arg1=unk, arg2=c44832, arg3=c44833] )
+               (NP[id=c44832] me ) )
+           (NP[id=c44833] 
+                          (DP the )
+                          (NX salt ) ) ) )
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The head verb ''pass'' is sister to its indirect object, the NP ''me''. Together they formed the verb phrase ''pass me'', which is assigned the POS label VX. </li>
+<li>The verb phrase is sister to its direct object, the NP ''the salt''. Together they form the imperative sentence ''Pass me the salt'.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The giver role(arg1) of the verb ''pass'' is assigned an unknown value.</li>
+</ul>
+
+<h2><a name="inversion">Inversion</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Hardly does anyone like John.</pre>
+
+
+<h4>Suggested Output</h4>
+<pre>
+(S-INV 
+   (ADV Hardly[pred=adj_arg1, arg1=c14487] )
+   (S-INV[id=c14487]
+                     (VX 
+                         (VX does )
+                         (NP (NX anyone ) ) )
+                     (VP (VX love )
+                         (NP (NX John ) ) ) ) ) 
+
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The word sequence ''does anyone'' is part of a inverteded sentence but it does not form a constituent. It is assigned the POS label VX. </li>
+<li>The non-constituent ''does anyone'' is sister to the verb phrase ''love John''. Together they formed the inverted sentence ''does anyone love John'', which is assigned the POS label S-INV. </li>
+<li>The inverted sentence is sister to the adverb ''Hardly''. Together they form the inverted sentence ''Hardly does anyone love John'.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The only argument slot (arg1) of the adverb ''Hardly'' is assigned
+the reference marker (c14487) of the inverted sentence ''does anyone love John''.</li>
+</ul>
+
+<h2><a name="quotation">Quotation</a></h2>
+<!--
+<h3><a name="quotationafterquotingverb">Quotation after Quoting Verb</a><h3>
+<h4>Example Sentence</h4>
+<pre>John says, ''I love you.''</pre>
+
+
+<h4>Output</h4>
+<pre>
+(S 
+   (NP (NX John ) ) 
+   (VP 
+       (VP
+          (VX says[pred=verb_arg12, arg2=c158] )
+          (S[id=c158]
+                      (PN '')
+	              (S 
+               	         (NP I ) 
+                         (VP 
+                             (VX love )
+                             (NP (NX you ) ) ) ) ) )
+       (PN '' ) ) )
+</pre>
+<h4>Syntax</h4>
+<ul>
+<li>ENJU does not take care of the assignmenThe word sequence ''does anyone'' is part of a inverteded sentence but it does not form a constituent. It is assigned the POS label VX. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The only argument slot (arg1) of the adverb ''Hardly'' is assigned
+the reference marker (c14487) of the inverted sentence ''does anyone love John''.</li>
+</ul>
+
+-->
+
+<!--
+<h4>Output</h4>
+<pre>
+
+
+(S
+   (S 
+      (NP (NX John ) )
+      (VP
+          (VX 
+              (VX says )
+              (PN , )
+          (S 
+             (PN " )
+             (S 
+                (NP I ) 
+                (VP 
+                    (VX love )
+                    (NP (NX you ) ) ) ) ) ) )
+   (PN " ) )
+</pre>
+-->
+
+
+
+<h4>Example Sentence</h4>
+<pre>''I love you,''John says</pre>
+
+<h4>Output</h4>
+<pre>
+(S 
+   (S[id=c231] 
+               (PN '' )
+               (S
+                  (NP I ) 
+                  (VP 
+                      (VP 
+                          (VP
+                              (VX love )
+                              (NP (NX you ) ) )
+                          (PN , ) )
+                 (PN '' ) ) 
+   (S-TRACE 
+            (NP[id=c244] (NX John ) )
+            (VP-TRACE says[pred=verb_arg12, arg1=c244, arg2=c231] ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The quoting verb ''says'' is assigned the POS label VP-TRACE.</li>
+<li>The quotating verb is sister to its subject NP ''John''. Together they form the gapped sentence ''John says'', which is assigned the POS label S-TRACE.</li>
+<!-- <li>ENJU does not take care of the assignment of positions to quotation marks.</li> -->
+<li>The quotation ''I love you,'' is assigned the POS label S.
+<li>The gapped sentence ''John says'' is sister to the quotation ''I love you,''. Together they form the sentence ''''I love you,''John says''.</li>
+
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The utterance role (arg2) of the quoting verb ''says'' is assigned
+the event variable (c231) of the quotatoin ''''I love you,''''.</li>
+</ul>
+
+
+<!--
+<h4>Output</h4>
+<pre>
+(S 
+   (PN " ) 
+   (S 
+      (S
+         (S   
+            (S 
+               (NP I ) 
+               (VP 
+                   (VX love )
+                   (NP (NX you ) ) ) ) 
+            (PN , ) )
+         (PN " ) ) 
+      (S-TRACE 
+               (NP (NX John ) )
+               (VP-TRACE says ) ) ) )
+</pre>
+
+
+
+
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The main verb of the topicalized sentence forms a slashed verb phrase, which is assigned the POS label VP, with no daughters. </li>
+<li>The slashed verb phrase is sister to the subject noun phrase ''John''. Together they form the slashed sentence ''John loves', which is assigned the POS label S-TRACE.</li>
+<li>The slashed sentence is sister to the comma that sets off the slashed sentence from the topic ''Mary''. Together they form another S-TRACE.</li>
+<li>The higher S-TRACE is sister to the topic, ''Mary''. Together they form the topicalized sentence ''Mary, John loves.'', which is assigned the POS label S.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+
+<li>The theme role(arg2) of the main verb ''loves'' is assigned the reference marker(c10593) of the topic.</li>
+-->
+
+<h2><a name="titles">Titles</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Mary's ''My Love Story'' is published</pre>
+
+
+<h4>Suggested Output</h4>
+<pre>
+(S
+   (NP
+       (DP 
+           (NP (NX Mary ) )
+           (DP 's ) )
+       (NX 
+           (NP ''My )
+           (NX 
+               (NP Love )
+               (NX Story'' ) ) ) ) 
+   (VP 
+       (VX is )
+       (VP published ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The last word ''Story'' of the title ''My Love Story'' and the close quotation mark is treated as one token and assigned the POS label NX.</li>
+<li>The first word ''My'' of the title ''My Love Story'' and the close quotation mark is treated as one token and assigned the POS label NP.</li>
+<li>The remaining  word ''Love'' of the title ''My Love Story'' is assigned the POS label NP.</li>
+<li>The word sequence ''''Love Story'''' is part of the title ''My Love Story''  but it does not form a constituent. It is assigned the POS label NX. </li>
+<li>The non-constituent ''Love Story'' is sister to the NP ''My''. Together they formed the title ''''My Love Story'''', which is assigned the POS label NX. </li>
+<li>The title is sister to the possessive ''Mary's''. Together they form the noun phrase ''Mary's ''My Love Story''.</li>
+</ul>
+
+
+
+<h2><a name="tough">Tough Construction</a></h2>
+
+
+<h4>Example Sentence</h4>
+<pre>Mary is easy to please.</pre>
+
+<h4>Output</h4>
+<pre>(S
+   (NP[id=c112] (NX Mary ) )
+   (VP
+       (VX is )
+       (ADJP 
+             (ADJX easy[pred=adj_arg12, arg1=c112, arg2=c118] )
+             (CP-TRACE[id=c118] 
+                       (CX to )
+                       (VP-TRACE please[pred=verb_arg12, arg1=unk, arg2=c112 ) ) ) ) ) ) 
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The lower verb phrase ''please'' forms a slashed verb phrase by itself.</li>
+<li>The lower verb phrase is sister to the particle ''to''. Together
+they form the slashed to-infinitive, which is assigned the POS label
+CP-TRACE.</li> 
+<li>The slashed to-infinitive is sister to the tough-class adjective
+''easy'', which is assigned the POS label ADJX. Together they form the
+adjectival phrase ''easy to please', which is assigned the POS label
+ADJP.</li>
+<li>The adjectival phrase is sister to the copular verb ''is''. Together they form the verb phrase ''is easy to please''.</li>
+<li>The verb phrase is sister to the subject, ''Mary''. Together they
+form the tough movement sentence ''Mary is easy to please'', which is
+assigned the POS label S.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The extra argument slot (arg2) of the tough-class adjective ''easy''
+is assigned the reference marker (c118) of the slashed to-infinitive.</li>
+<li>The patient role (arg2) of the lower verb phrase ''please'' is
+assigned the reference marker (c112) of the subject of the copular verb
+''Mary''.</li>
+<li>The agent role (arg1) of the lower verb phrase ''please'' is assigned an unknown value.</li>
+</ul>
+<h2><a name="pied_piping">Pied-piping</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>Which car does she like?</pre>
+
+<h4>Output</h4>
+<pre>
+(S-Q 
+     (NP[id=c43585] 
+                    (DP Which[pred=det_arg1, arg1=c43587] )
+                    (NX[id=c43587] car ) )
+     (S-Q-TRACE 
+                (VX 
+                    (VX does )
+                    (NP he )
+                (VP-TRACE like[pred=verb_arg12, arg2=c43585] ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The wh-word ''Which'' is assigned the POS label DP.
+<li>The wh-word ''Which'' is sister to the noun ''car''. Together they form the NP ''Which car''.</li>
+<li>The transitive verb ''like'' forms a slashed verb phrase, which is assigned the POS label VP-TRACE, with no daughters. </li>
+<li>The word sequence ''does he'' is part of a slashed sentence but it does not form a constituent. It is assigned the POS label VX. </li>
+<li>The fragment ''does he'' is sister to the slashed verb phrase ''like''. Together they formed the slashed sentence ''does he like'', which is assigned the POS label S-Q-TRACE.</li>
+<li>The fronted NP ''Which car'' is sister to the slashed sentence ''does he like''. Together they form the question ''Which car does he like?'', which is assigned the POS label S-Q.</li>
+</ul>
+
+
+<h4>Semantics</h4>
+<ul>
+<li>The only argument slot(arg1) of the wh-word ''which'' is assigned the reference marker(c43587) of its nominal argument ''car''.
+<li>The object of affection role(arg2) of the head verb ''like'' of the slashed sentence is assigned the reference marker (c43585) of the fronted noun phrase  ''Which car''.
+</li>
+</ul>
+
+
+<h1><a name="punctuations">14. Punctuations</a></h1>
+<h2>Chapter Index</h2>
+
+
+
+
+<ul>
+<li><a href="#sentencefinalpunctuations">Sentence Final Punctuations</a></li>
+<li><a href="#midsentencepunctuations">Mid-sentence Punctuations</a></li>
+<ul><li><a href="#unpairedmidsentencepunctuations">Unpaired Mid-sentence Punctuations</a></li>
+<li><a href="#pairedmidsentencepunctuations">Paired Mid-sentence Punctuations</a></li>
+</ul>
+</ul>
+
+<h2><a name="sentencefinalpunctuations">Sentence Final Punctuations</a>
+
+</h2><h4>Example Sentence</h4>
+<pre>John loves Mary.</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP (NX John ) )
+     (VP 
+         (VX loves )
+         (NP (NX Mary ) ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>Sentence final punctuations are deleted.</li>
+</ul>
+<h2><a name="midsentencepunctuations">Mid-sentence Punctuations</a>
+</h2>
+
+<h3><a name="unpairedmidsentencepunctuations">Unpaired Mid-sentence Punctuations</a>
+</h3>
+
+See <a href="#subordinating_conjunctions">Connectives:Subordinating Conjunctions</a>.
+
+<h3><a name="pairedmidsentencepunctuations">Paired Mid-sentence Punctuations</a></h3>
+
+See <a href="#apposition">Nouns:Apposition</a>.
+
+
+<h1><a name="unsorted">15. Unsorted Entries</a></h1>
+<h2>Chapter Index</h2>
+
+
+<ul>
+
+<li><a href="#time">Time</a></li>
+<ul>
+<li><a href="#timeadverbialswithoutprepositions">Time Adverbials with Prepositions</a></li>
+<li><a href="#timeadverbialswithoutprepositions">Time Adverbials without Prepositions</a></li>
+</ul>
+<li><a href="#numbers">Numbers</a></li>
+<ul>
+<li><a href="#prenominalnumberals">Prenominal Numerals</a></li>
+<li><a href="#numeralsnotfollowedbyaheadnoun">Numerals Not Followed by a Head Noun</a></li>
+</ul>
+<li><a href="#symbols">Symbols</a></li>
+</ul>
+
+
+
+<h2><a name="time">Time</a></h2>
+<h3><a name="timeadverbialswithoutprepositions">Time Adverbials without Prepositions</a>
+
+
+</h3><h4>Example Sentence</h4>
+<pre>Now John loves Mary.</pre>
+
+<h4>Output</h4>
+<pre>(S
+   (ADVP Now[pred=adj_arg1, arg1=c367] ) 
+   (S[id=c367]  
+               (NP (NX John ) )
+               (VP 
+                   (VX loves )
+                   (NP (NX Mary) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The time adverbial ''Now'' is assigned the POS label ADVP.</li>
+<li>The time adverbial is sister to the S ''John loves Mary''. Together they form another S.</li>
+</ul>
+
+<h4>Semantics</h4>
+<ul>
+<li>
+The only argument slot of the time adverbial is assigned the reference
+marker (c367) of the S ''John loves Mary''.</li>
+</ul>
+
+
+<h3><a name="timeadverbialswithprepositions">Time Adverbials with Prepositions</a>
+
+
+</h3><h4>Example Sentence</h4>
+<pre>John dumps Mary in June.</pre>
+
+<h4>Output</h4>
+<pre> (S  
+     (NP[id=c1] (NX John ) )
+     (VP  
+         (VP[id=c357] 
+                      (VX dumps )
+                      (NP (NX Mary) ) ) 
+         (PP
+            (PX in[pred=prep_arg12, arg1=c357, arg2=c363] )
+            (NP[id=c363] (NX June ) ) ) ) )
+</pre>
+
+<h4>Syntax</h4>
+<ul>
+<li>The temporal noun ''June'' is assigned the POS label NP.</li>
+<li>The temporal noun is sister to the preposition ''in''. Together they form the time adverbial ''in June'', which is assigned the POS label PP.</li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The argument slot corresponding to the subject of ''in'' is
+assigned the reference marker (c357) of the main verb phrase ''dumps Mary''.</li>
+<li>The argument slot corresponding to the object of ''in'' is
+assigned the reference marker (c363) of the temporal noun.</li>
+</ul>
+
+<h2><a name="numbers">Numbers</a></h2>
+
+<h3><a name="prenominalnumberals">Prenominal Numerals</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>Toyota gains 2 percents</pre>
+
+<h4>Output</h4>
+<pre>(S 
+     (NP (NX Toyota ) )
+     (VP 
+         (VX gains )
+         (NP (NX 
+                 (ADJP 2[pred=adj_arg1, arg1=c1519] )
+                 (NX[id=c1519] percents ) ) ) ) ) 
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The numeral ''2'' is assigned the POS label ADJP. </li>
+<li>The numeral is sister to the head noun ''percents''. Together they form the nominal ''2 percents''. </li>
+</ul>
+<h4>Semantics</h4>
+<ul>
+<li>The only argument slot (arg1) of the numeral is assigned the
+reference marker (c1519) of the head noun.</li>
+</ul>
+
+<h3><a name="numeralsnotfollowedbyaheadnoun">Numerals Not Followed by a Head Noun</a></h3>
+
+<h4>Example Sentence</h4>
+<pre>One is enough</pre>
+
+<h4>Output</h4>
+<pre>(S 
+     (NP (NX One ) )
+     (VP 
+         (VX is )
+         (ADVP enough ) ) )
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The numeral ''One'', which modifies an omitted head noun, is assigned the POS label NX. </li>
+</ul>
+
+<h2><a name="symbols">Symbols</a></h2>
+<h4>Example Sentence</h4>
+<pre>Toyota gains 2 %.</pre>
+
+<h4>Output</h4>
+<pre>(S 
+     (NP (NX Toyota ) )
+     (VP 
+         (VX gains )
+         (NP (NX 
+                 (ADJP 2 )
+                 (NX % ) ) ) ) 
+</pre>
+
+
+<h4>Syntax</h4>
+<ul>
+<li>The percent symbol, which occupies the head noun position of the object noun phrase ''2 %'', is assigned the POS label NX. </li>
+<li>The percent symbol is sister to the numeral ''2''. Together they form the object noun phrase. </li>
+</ul>
+
+
+<h1><a name="conversion">16. Converting the XML Style Output to the Bracketing Style Output</a></h1>
+
+<h2><a name="manual">Manual Conversion</a></h2>
+
+<h4>Example Sentence</h4>
+<pre>John loves Mary and Mary loves John.</pre>
+
+<h4>XML Output</h4>
+
+
+<div class="xmlverb-default">
+&lt;<span class="xmlverb-element-name">sentence</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">s0</span>" <span class="xmlverb-attr-name">parse_status</span>="<span class="xmlverb-attr-content">success</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c0</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">S</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content">COOD</span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c1</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c1</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">coord_left</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c1</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">S</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c4</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c4</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">subj_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c2</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c3</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c3</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">empty_spec_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c3</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t0</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t0</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t0</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">N</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">NNP</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">john</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[D&amp;lt;N.3sg&amp;gt;]_lxm</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">noun_arg0</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;John<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c4</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">VP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c5</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c5</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">head_comp</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c5</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">VX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t1</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t1</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t1</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">V</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">VBZ</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">love</span>" <span class="xmlverb-attr-name">tense</span>="<span class="xmlverb-attr-content">present</span>" <span class="xmlverb-attr-name">aspect</span>="<span class="xmlverb-attr-content">none</span>" <span class="xmlverb-attr-name">voice</span>="<span class="xmlverb-attr-content">active</span>" <span class="xmlverb-attr-name">aux</span>="<span class="xmlverb-attr-content">minus</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[NP.nom&amp;lt;V.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">verb_arg12</span>" <span class="xmlverb-attr-name">arg1</span>="<span class="xmlverb-attr-content">c2</span>" <span class="xmlverb-attr-name">arg2</span>="<span class="xmlverb-attr-content">c6</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loves<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c6</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c7</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c7</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">empty_spec_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c7</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t2</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t2</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t2</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">N</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">NNP</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">mary</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[D&amp;lt;N.3sg&amp;gt;]_lxm</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">noun_arg0</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mary<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c8</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">COOD</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c9</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c9</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">coord_right</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c9</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">CONJP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t3</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t3</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t3</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">CONJ</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">CC</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">and</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[V.decl&amp;lt;CONJP&amp;gt;V.decl]</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">coord_arg12</span>" <span class="xmlverb-attr-name">arg1</span>="<span class="xmlverb-attr-content">c1</span>" <span class="xmlverb-attr-name">arg2</span>="<span class="xmlverb-attr-content">c10</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c10</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">S</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c13</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c13</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">subj_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c11</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c12</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c12</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">empty_spec_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c12</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t4</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t4</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t4</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">N</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">NNP</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">mary</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[D&amp;lt;N.3sg&amp;gt;]_lxm</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">noun_arg0</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mary<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c13</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">VP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c14</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c14</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">head_comp</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c14</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">VX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t5</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t5</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t5</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">V</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">VBZ</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">love</span>" <span class="xmlverb-attr-name">tense</span>="<span class="xmlverb-attr-content">present</span>" <span class="xmlverb-attr-name">aspect</span>="<span class="xmlverb-attr-content">none</span>" <span class="xmlverb-attr-name">voice</span>="<span class="xmlverb-attr-content">active</span>" <span class="xmlverb-attr-name">aux</span>="<span class="xmlverb-attr-content">minus</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[NP.nom&amp;lt;V.bse&amp;gt;NP.acc]_lxm-singular3rd_verb_rule</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">verb_arg12</span>" <span class="xmlverb-attr-name">arg1</span>="<span class="xmlverb-attr-content">c11</span>" <span class="xmlverb-attr-name">arg2</span>="<span class="xmlverb-attr-content">c15</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loves<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text">&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c15</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NP</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">c16</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">c16</span>" <span class="xmlverb-attr-name">schema</span>="<span class="xmlverb-attr-content">empty_spec_head</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">cons</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">c16</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">NX</span>" <span class="xmlverb-attr-name">xcat</span>="<span class="xmlverb-attr-content"></span>" <span class="xmlverb-attr-name">head</span>="<span class="xmlverb-attr-content">t6</span>" <span class="xmlverb-attr-name">sem_head</span>="<span class="xmlverb-attr-content">t6</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;<span class="xmlverb-element-name">tok</span> <span class="xmlverb-attr-name">id</span>="<span class="xmlverb-attr-content">t6</span>" <span class="xmlverb-attr-name">cat</span>="<span class="xmlverb-attr-content">N</span>" <span class="xmlverb-attr-name">pos</span>="<span class="xmlverb-attr-content">NNP</span>" <span class="xmlverb-attr-name">base</span>="<span class="xmlverb-attr-content">john</span>" <span class="xmlverb-attr-name">lexentry</span>="<span class="xmlverb-attr-content">[D&amp;lt;N.3sg&amp;gt;]_lxm</span>" <span class="xmlverb-attr-name">pred</span>="<span class="xmlverb-attr-content">noun_arg0</span>"&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;John<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">tok</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+&nbsp;&nbsp;</span>&lt;/<span class="xmlverb-element-name">cons</span>&gt;<span class="xmlverb-text"><br>
+</span>&lt;/<span class="xmlverb-element-name">sentence</span>&gt;<br>
+</div>
+
+<h4>Steps</h4>
+<ol>
+<li>Replace element tags with (&nbsp;)s.<br>
+<pre> 
+(
+  (
+    ( ( John ) ) <a name="subordinating_conjunctions">Subordinating Conjunctions</a></h2>
+    ( 
+      ( loves ) 
+      ( ( Mary ) ) ) ) 
+  ( 
+    ( and ) 
+      ( 
+        ( ( Mary ) ) 
+        (
+          ( loves ) 
+          ( ( John ) ) ) ) ) )
+</pre>
+</li>
+<li>For every CONS element:</li>
+<ol type="i">
+<li>Retrieve its CAT value ($CAT_VALUE).</li>
+<li>Put $CAT_VALUE after the opening bracket corresponding to the opening CONS tag.</li>
+<li>If the XCAT value of the CONS element is non-empty:</li>
+  <ol type="a"><li>Put a separator &#8216;-&#8217; and the XCAT value ($XCAT_VALUE) after $CAT_VALUE
+<br>
+<pre>(S-COOD
+    (S 
+       (NP (NX John ) ) 
+       (VP 
+           (VX loves ) 
+           (NP (NX Mary ) ) ) ) 
+    (COOD
+           (CONJP and )
+           (S 
+             (NP (NX Mary ) ) 
+             (VP
+                 (VX loves ) 
+                 (NP (NX John ) ) ) ) ) )
+</pre>
+</li>
+</ol>
+<li>Print a &#8216;[&#8217; after $CAT_VALUE-$XCAT_VALUE.</li>
+<li>Print &#8216;id=&#8217;.</li>
+<li>Retrieve its ID value ($ID_VALUE).</li>
+<li>Put $ID_VALUE after &#8216;id=&#8217;. </li>
+<!--<li>Put a space and  &lsquo;head=&rsquo; after $ID_VALUE.</li>
+<li>Retrieve its HEAD value ($HEAD_VALUE).</li>
+<li>Put $HEAD_VALUE after  &lsquo;head=&rsquo;.</li>
+<li>Put a space and  &lsquo;sem_head=&rsquo; after $HEAD_VALUE.</li>
+<li>Retrieve its SEM_HEAD value ($SEM_HEAD_VALUE).</li>
+<li>Put $SEM_HEAD_VALUE after  &lsquo;sem_head=&rsquo;.</li>-->
+<li>Print a &#8216;]&#8217;.<br>
+<pre>(S-COOD[id=c0]
+    (S[id=c1]
+       (NP[id=c2] (NX[id=c3] John ) ) 
+       (VP[id=c4] 
+                  (VX[id=c5] loves ) 
+                  (NP[id=c6] (NX[id=c7] Mary ) ) ) ) 
+    (COOD[id=c8]
+        (CONJP[id=c9] and ) 
+        (S[id=c10]
+                (NP[id=c11] (NX[id=c12] Mary ) ) 
+                (VP[id=c13] 
+                            (VX[id=c14] loves ) 
+                            (NP[id=c15] (NX[id=c16] John ) ) ) ) ) )
+</pre>
+</li>
+</ol>
+<li>For every TOK element, if the ARG1 value of the TOK element is non-empty:</li>
+<ol type="i"><li>Print a &#8216;[&#8216; after the word enclosed by the TOK tags</li>
+   <li>Retrieve its PRED value ($PRED_VALUE)</li>
+  <li>Put $PRED_VALUE after the &#8216;[&#8216; .</li>
+ <li>Retrieve its ARG1 value ($ARG1_VALUE)</li>
+ <li>Put a space and $ARG1_VALUE after $PRED_VALUE. </li>
+<li>If the ARG2 value of the TOK element is non-empty:</li>
+<ol type="a">
+  <li>Retrieve its ARG2 value ($ARG2_VALUE)</li>
+  <li>Put a space and $ARG2_VALUE after $ARG1_VALUE.</li>
+</ol>
+<li>If the ARG3 value of the TOK element is non-empty:</li>
+<ol type="a">
+  <li> Retrieve its ARG3 value ($ARG3_VALUE)</li>
+  <li>Put a space and $ARG3_VALUE after $ARG2_VALUE.</li>
+</ol>
+<li>Print a &#8216;]&#8216; after the word enclosed by the TOK tags<br>
+<pre>(S-COOD[id=c0]
+    (S[id=c1]
+        (NP[id=c2] (NX[id=c3] John ) )
+        (VP[id=c4]
+            (VX[id=c5] loves[pred=verb_arg12 arg1=c2 arg2=c6] ) 
+            (NP[id=c6] (NX[id=c7] Mary ) ) ) )
+    (COOD[id=c8]
+        (CONJP[id=c9] and[pred=coord_arg12 arg1=c1 arg2=c10] )
+        (S[id=c10]
+            (NP[id=c11]
+                (NX [id=c12] Mary ) ) 
+            (VP[id=c13]
+                (VX[id=c14] loves[pred=verb_arg12 arg1=c11 arg2=c15] )
+                (NP[id=c15] (NX[id=c16] John ) ) ) ) ) )
+</pre>
+</li>
+</ol>
+</ol>
+
+<!-- 
+<h2><a name="automatic">Automatic Conversion</a></h2>
+
+<h4>ENJU Command</h4>
+<pre>enju -XXX
+</pre>
+<h4><a href="">XSL Stylesheet for Converting XML Style Output to Bracketing Style Output</a></h4>
+The stylesheet can be used for checking XML output against this document during development.  
+-->
+
+
+<hr>
+<address></address>
+<!-- hhmts start -->
+
+
+
+<!-- hhmts end -->
+</pre></pre></ul></body></html>

@@ -1,0 +1,159 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Predicate argument structures</title>
+</head>
+
+
+
+<body>
+<h1>Predicate argument structures</h1>
+
+<a href="pas.ja.html">Japanese version</a>
+
+
+
+<p>
+Semantics in ENJU is represented by predicate-argument structures. The type is defined in the file "grammar/types.lil"．
+
+<p>
+Predicate-argument structures are assigned to the CONT feature of signs. A predicate-argument structure is represented by the following feature structure:
+
+<p>
+<table border>
+<tr><th>feature name<th>description
+<tr><td>HOOK<td>the core of the semantics of the parsed phrase
+<tr><td>RELS<td>list of structures that modify the HOOK
+</table>
+
+<p>
+Take the noun phrase "a pretty girl" as an example，the semantic representation of "girl" is assigned to the
+HOOK feature whereas the representation of the modification of "girl" by "pretty" as a relation is assigned to the RELS feature．
+
+<p>
+Values assigned to HOOK and RELS are of the type 'relation'．
+'relation' has the following two subtypes．
+
+<p>
+<table border>
+<tr><th>type name<th>description
+<tr><td>?unknown_relation<td>represent an unknown entity (such as the subject of a particle)
+<tr><td>pred_relation<td>The relation is introduced by a word that forms part of the parsed phrase. The value assigned to the PRED feature is of the type 'lex_entry' and  corresponds to the lexical entry of the word.
+</table>
+
+<p>
+The predicate argument structure of a word is represented by subtypes of the type 'pred_relation'．Depending on the number of arguments taken by the word, a subtype of 'pred_relation' may carry the following features, which are assigned the 'relation's corresponding to the arguments taken by the word.
+
+
+<p>
+<table border>
+<tr><th>feature name<th>description
+<tr><td>ARG1<td>subjects of verbs, modifees of adjectives and prepositions
+<tr><td>ARG2<td>objects of verbs and prepositions, indirect objects of ditransitive verbs
+<tr><td>ARG3<td>direct objects of ditransitive verbs
+<tr><td>ARG4<td>The third object of a verb
+<tr><td>ARG5<td>The fourth object of a verb
+<tr><td>MODARG<td>modifiees not assigned to ARG1, like those appear in noun-noun compounds, temporal nouns and gerunds．
+</table>
+
+<p>
+The following subtypes of the 'pred_relation' type is defined:
+<p>
+<table border>
+<tr><th>type name<th>description
+<tr><td>noun_relation<td>a head noun
+<tr><td>noun_arg1_relation<td>a noun that takes one argument
+<tr><td>noun_mod_relation<td>a noun-noun compound or a temporal noun
+<tr><td>noun_mod_arg1_relation<td>a temporal noun that takes a sentential complement
+<tr><td>aux_relation<td>an auxiliary verb
+<tr><td>aux_mod_relation<td>to as a particle?
+<tr><td>verb_arg1_relation<td>an intransitive verb
+<tr><td>verb_arg12_relation<td>a transitive verb or a verb that takes a sentential complement
+<tr><td>verb_arg123_relation<td>a verb that takes two np objects or a verb that takes one np object and one sentential complement
+<tr><td>verb_arg1234_relation<td>a verb that takes three np objects or sentential complements
+<tr><td>verb_mod_arg1_relation<td>an intransitive verb attached to a modifiee
+<tr><td>verb_mod_arg12_relation<td>a transitive verb attached to a modifiee
+<tr><td>verb_mod_arg123_relation<td>a verb with three objects and a modifier
+<tr><td>verb_mod_arg1234_relation<td>a verb with four objects and a modifier 
+<tr><td>adj_relation<td>adjectives and adverbs
+<tr><td>adj_arg1_relation<td>adjectives and adverbs that are attached to a  modifiee
+<tr><td>adj_arg12_relation<td>adjectives and adverbs that are attached to a modifiee and take a complement
+<tr><td>adj_arg123_relation<td>adjectives and adverbs that are attached to a modifiee and take two complement
+<tr><td>conj_relation<td>conjunctions
+<tr><td>conj_arg1_relation<td>subordinating conjunctions that take one argument
+<tr><td>conj_arg12_relation<td>subordinating conjunctions that take two arguments
+<tr><td>coordination_relation<td>coordinating conjunctions
+<tr><td>det_mod_relation<td>predeterminers
+<tr><td>det_arg1_relation<td>determiners(articles)
+<tr><td>det_arg12_relation<td>'s
+<tr><td>prep_relation<td>prepositions
+<tr><td>prep_arg12_relation<td>prepositions that take an objects or are attached to a modifiee
+<tr><td>prep_arg123_relation<td>prepositions that take two objects or modifees
+<tr><td>prep_arg1234_relation<td>prepositions that take three objects or modifees
+<tr><td>pl_relation<td>particles
+<tr><td>punct_relation<td>punctuations
+<tr><td>left_paren_relation<td>left parentheses
+<tr><td>right_paren_relation<td>right parentheses
+<tr><td>comp_relation<td>complementizers
+<tr><td>comp_for_relation<td>for as a complementizer
+<tr><td>relative_relation<td>relative pronouns
+</table>
+
+<p>
+A predicate argument structure of ENJU necessarily introduces one pred relation for each word. Even words that carry no meaning like copular verbs or relative pronouns are assigned a pred relation. Some applications may need such empty relation. If your application have no use of such empty relations, you can extract only the non-empty relations from a predicate argument structures of ENJU.  
+
+
+
+
+<p>
+The predicate argument structure of "a pretty girl" carrying some of the mentioned features is given below:
+
+<p>
+<table class="fs">
+<tr><td class="lprn" rowspan="3">
+    <td>hpsg_cont
+    <td class="rprn" rowspan="3">
+<tr><td><table class="fs">
+        <tr><td>HOOK <span class="shared_id">1</span>
+            <td class="lprn" rowspan="2">
+            <td><table class="fs">
+                <tr><td>noun_relation
+                <tr><td>PRED "girl"
+                </table>
+            <td class="rprn" rowspan="2">
+        </table>
+<tr><td><table class="fs">
+        <tr><td>RELS &lt;
+            <td><table class="fs">
+                <tr><td class="lprn" rowspan="3">
+                    <td>det_arg1_relation
+                    <td class="rprn" rowspan="3">
+                <tr><td>PRED "a"
+                <tr><td>ARG1 <span class="shared_id">1</span>
+                </table>
+            <td>,
+            <td><table class="fs">
+                <tr><td class="lprn" rowspan="3">
+                    <td>adj_arg1_relation
+                    <td class="rprn" rowspan="3">
+                <tr><td>PRED "pretty"
+                <tr><td>ARG1 <span class="shared_id">1</span>
+                </table>
+            <td>&gt;
+        </table>
+</table>
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

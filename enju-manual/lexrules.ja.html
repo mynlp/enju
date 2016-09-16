@@ -1,0 +1,188 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>語彙規則</title>
+</head>
+
+
+
+<body>
+<h1>語彙規則</h1>
+
+<a href="lexrules.html">English version</a>
+
+<p>
+語彙規則(lexical rule)は、語彙素(lexeme)と呼ばれる語彙項目の基本形から新たな語彙項目を生成するための規則です。
+例えば、動詞の原形から過去形を、名詞の単数形から複数形を作るといった規則が考えられます。
+Enjuにおける語彙規則の種類は、"enju/types.lil"で定義されています。
+また、その実装は"enju-devel/invlexrule.lil", "enju-devel/lexrule.lil"および"enju-devel/lexcommon.lil"で定義されています。
+なお、語彙規則の種類および実装はEnjuの文法に特化したものになっています。
+
+<h2>Enjuの語彙規則の特徴</h2>
+<p>
+Enjuの語彙規則には、通常の語彙素から語彙項目への変換をするものと逆に語彙項目から語彙素への変換をするものの二種類があります。
+これは、コーパス指向文法開発の欠点をカバーし、より多くの語彙項目を獲得するための工夫です。
+コーパスから得られた語彙項目のほとんどは何らかの統語的変化を起こしているので、文法抽出の際にはまず逆方向の語彙規則を適用して語彙素を獲得します。
+最後に、順方向の語彙規則をすべての語彙素に適用して辞書を拡張します。
+この方法をとると、順方向の規則のみを用いるよりも多くの語彙素が得られるため語彙項目も多くなります。
+また、各規則間には半順序関係が定義されており、この順序に従って一つの語彙項目（語彙素）に複数の語彙規則を重ねて適用することができます。
+
+<h2>各ソースファイルの中身</h2>
+
+<table class="menu">
+<tr><td class="menu">enju/types.lil</td>
+    <td class="menu">語彙規則の種類を列挙しています。各規則は'hpsg_lexical_rule'型のsubtypeになっています。</td></tr>
+<tr><td class="menu">enju-devel/invlexrule.lil</td>
+    <td class="menu">逆方向の語彙規則と、これを利用して語彙素を獲得するためのmayzのインタフェースreduce_lexical_template/5を実装しています。</td></tr>
+<tr><td class="menu">enju-devel/lexrule.lil</td>
+    <td class="menu">順方向の語彙規則と、これを利用して語彙素から新たな語彙項目を獲得するためのmayzのインタフェースexpand_lexical_template/5, expand_lexicon/3を実装しています。</td></tr>
+<tr><td class="menu">enju-devel/lexcommon.lil</td>
+    <td class="menu">invlexrule, lexrule両方で使われるインタフェースを実装しています。具体的には、規則の適用順序や述語項構造の書き換え規則、語彙素であるための条件などです。</td></tr>
+</table>
+
+<h2>語彙規則の種類</h2>
+
+<table class="menu">
+<tr><th class="menu" align="center">名前</th><th class="menu" align="center">動作</th><th class="menu" align="cenber">例</th></tr>
+<tr><th class="menu" colspan="3" align="center">動詞の語彙規則</th></tr>
+<tr><td class="menu">singular3rd_verb_rule</td>
+    <td class="menu">動詞の原形から3人称現在単数形を生成します。</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">no_singular3rd_verb_rule</td>
+    <td class="menu">動詞の原形から現在形（3人称単数以外）を生成します。</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">past_verb_rule</td>
+    <td class="menu">動詞の原形から過去形を生成します。</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">prp_verb_rule</td>
+    <td class="menu">動詞の原形から現在進行形を生成します。</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">passive_verb_rule</td>
+    <td class="menu">動詞の原形から過去分詞形（受動態）を生成します。生成された語彙項目は意味上の主語を表すbyで始まる前置詞句をcomplementにとります。</td>
+    <td class="menu">John must <b>love</b> Mary. -> Mary must be <b>loved</b> by John.</td></tr>
+<tr><td class="menu">drop_by_rule</td>
+    <td class="menu">受動態の動詞のcomplementから意味上の主語を示す前置詞句を取り除きます。</td>
+    <td class="menu">Mary is <b>loved</b> by John. -> Mary is <b>loved</b>.</td></tr>
+<tr><td class="menu">perfect_verb_rule</td>
+    <td class="menu">動詞の原形から過去分詞形（現在完了形）を生成します。</td></tr>
+<tr><td class="menu">movement_rule</td>
+    <td class="menu">他動詞の目的語が移動した状態の語彙項目を生成します。</td>
+    <td class="menu">I <b>like</b> apples. -> Apples I <b>like</b>.</td></tr>
+<tr><td class="menu">sentence_movement_rule</td>
+    <td class="menu">補文をとる動詞において、補文が移動した状態の語彙項目を生成します。</td>
+    <td class="menu">John <b>said</b> "Hello." -> "Hello" John <b>said</b>.</td></tr>
+<!-- <tr><td class="menu">rel_clause_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">attendant_prp_rule</td>
+    <td class="menu">従属節の動詞が主節の動詞句にかかり、なおかつ主語を共有している場合の語彙項目を生成します。後にでてくるpc_prp_l_ruleとの違いは、係り先が主節全体か動詞句かという点です。</td>
+    <td class="menu">I failed the exam though <b>trying</b> hard.</td></tr>
+<tr><td class="menu">clause_subject_rule</td>
+    <td class="menu">従属節の動詞が主節の動詞句にかかり、主語を共有していない場合の語彙項目を生成します。実は主節全体が主語になっていますが、文法の制約上記述できないためunknownとなります。</td>
+    <td class="menu">If you buy something just because it is cheap, it is of poor quality and will break straight away, <b>meaning</b> that you have wasted your money.</td></tr>
+%% obsolete -->
+<tr><td class="menu">pc_prp_r_sbj_rule</td>
+    <td class="menu" rowspan="8">pc_*_ruleは分詞構文を扱うための語彙規則で、従属節中の動詞の語彙項目を生成します。3種類の属性によって、8種類に分類されています。
+    <ul>
+    <li>分詞の種類：prpの付いているものが現在分詞、passiveの付いているものが過去分詞形です。
+    <li>主節の位置：rの付いているもの主節が右側、lの付いているものは左側です。
+    <li>主語の有無：sbjの付いているものは従属節に固有の主語があります。それ以外の場合は本来主節と従属節の主語が共有されるはずですが、文法の制約上従属節の動詞は主節全体にかかるので主節の主語を見ることができないため便宜上従属節の主語はunknownとなります。
+    <ul></td>
+    <td class="menu">The weather <b>getting</b> worse, the picnic was cancelled.</td></tr>
+<tr><td class="menu">pc_prp_r_rule</td>
+    <td class="menu"><b>Walking</b> in the park, I run into Hank.</td></tr>
+<tr><td class="menu">pc_prp_l_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_prp_l_rule</td>
+    <td class="menu">I went through my pocket <b>looking</b> for the key.</td></tr>
+<tr><td class="menu">pc_passive_r_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_passive_r_rule</td>
+    <td class="menu"><b>Written</b> in plain English, the book is easy to read.</td></tr>
+<tr><td class="menu">pc_passive_l_sbj_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">pc_passive_l_rule</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">prp_r_adjunct_rule</td>
+    <td class="menu">右側の名詞句を修飾する現在分詞を生成します。この名詞句は動詞の意味上の主語になります。</td>
+    <td class="menu">A man <b>runs</b>. -> a <b>running</b> man</td></tr>
+<tr><td class="menu">prp_l_adjunct_rule</td>
+    <td class="menu">左側の名詞句を修飾する現在分詞を生成します。この名詞句は動詞の意味上の主語になります。</td>
+    <td class="menu">A man <b>runs</b> in the park. -> a man <b>running</b> in the park</td></td></tr>
+<tr><td class="menu">passive_l_adjunct_rule</td>
+    <td class="menu">左側の名詞句を修飾する過去分詞を生成します。この名詞句は動詞の意味上の目的語になります。</td>
+    <td class="menu">He <b>broke</b> the window. -> the window <b>broken</b> by him</td></tr>
+<tr><td class="menu">passive_r_adjunct_rule</td>
+    <td class="menu">右側の名詞句を修飾する過去分詞を生成します。この名詞句は動詞の意味上の目的語になります。</td>
+    <td class="menu">He <b>broke</b> the window. -> the <b>broken</b> window</td></tr>
+<tr><td class="menu">imperative_rule</td>
+    <td class="menu">命令形を生成します。</td></tr>
+<tr><td class="menu">yn_question_rule</td>
+    <td class="menu">疑問文中の助動詞を生成します。</td>
+    <td class="menu">I <b>can</b> swim. -> <b>Can</b> you swim?</td></tr>
+<tr><td class="menu">gerund_rule</td>
+    <td class="menu">動名詞を生成します。</td>
+    <td class="menu"></td></tr>
+<!--- <tr><td class="menu">modal_rule</td>
+    <td class="menu">助動詞の過去形を生成します。</td>
+    <td class="menu"></td></tr> --->
+<tr><td class="menu">dative_shift_rule(*)</td>
+    <td class="menu">与格移動を行います。</td>
+    <td class="menu">He <b>gave</b> her the book. -> He <b>gave</b> the book to her.</td></tr>
+<tr><td class="menu">inversion_rule</td>
+    <td class="menu">(sentence_movement がかかった状態などから)主語と動詞の順序を入れ替えます。</td>
+    <td class="menu">"Hello", John <b>said</b>. -> "Hello", <b>said</b> John.</td></tr>
+<tr><td class="menu">insertion_l_rule</td>
+    <td class="menu">補文をとる動詞において、主語と動詞のが補文に挟まれた状態の語彙項目を生成します。左側の補文が主辞になります。</td>
+    <td class="menu">He <b>said</b>, "The president resigned because of the problem". -> "The president resigned" he <b>said</b>, "because of the problem."</td></tr>
+<tr><td class="menu">insertion_r_rule</td>
+    <td class="menu">補文をとる動詞において、主語と動詞のが補文に挟まれた状態の語彙項目を生成します。右側の補文が主辞になります。</td>
+    <td class="menu">He <b>said</b> "The president resigned". -> "The president" he <b>said,</b> "resigned."</td></tr>
+<!--- <tr><td class="menu">empty_insertion_rule(*)</td>
+    <td class="menu">上と似た現象で、補文がまるごと主語と動詞の前に来ている場合の語彙項目を生成します。</td>
+    <td class="menu">John <b>said</b>, "Hello." -> "Hello", John <b>said</b>.</tr> --->
+<!--- <tr><td class="menu">particle_move_rule</td>
+    <td class="menu">動詞の目的語と不変化詞(particle)の順序を入れ替えます。</td>
+    <td class="menu">He gave up the game. -> He gave it up.</td></tr> --->
+<tr><td class="menu">subject_extraction_rule</td>
+    <td class="menu">補文をとる動詞において、補文の中に動詞句が埋め込まれた状態の語彙項目を生成します。</td>
+    <td class="menu">I <b>think</b> John loves Mary. -> Who do you <b>think</b> loves Mary?</td></tr>
+<tr><td class="menu">extraposition_sbj_rule</td>
+    <td class="menu">主語を外置した状態の語彙項目を生成します。</td>
+    <td class="menu">That dogs bark <b>annoys</b> people. -> It <b>annoys</b> people that dogs bark.</td></tr>
+<tr><td class="menu">extraposition_obj_rule</td>
+    <td class="menu">目的語を外置した状態の語彙項目を生成します。</td>
+    <td class="menu">I <b>believe</b> the problem to be obvious. -> I <b>believe</b> it to be obvious that the problem is not easy.</td></tr>
+<tr><th class="menu" colspan="3" align="center">名詞の語彙規則</th></tr>
+<tr><td class="menu">plural_noun_rule</td>
+    <td class="menu">名詞の単数形から複数形を生成します。</td>
+    <td class="menu"></td></tr>
+<tr><td class="menu">noun_adjective_rule</td>
+    <td class="menu">右側の名詞を修飾するような名詞を生成します。</td>
+    <td class="menu"><b>automobile</b> factory</td></tr>
+<tr><th class="menu" colspan="3" align="center">前置詞の語彙規則</th></tr>
+<tr><td class="menu">content_extraction_rule</td>
+    <td class="menu">前置詞句中の名詞句が移動した状態の語彙項目を生成します。</td>
+    <td class="menu">I <b>stayed</b> at the hotel. -> At which hotel did you <b>stay</b>?</td></tr> 
+<tr><th class="menu" colspan="3" align="center">形容詞副詞の語彙規則</th></tr>
+<tr><td class="menu">comparative_rule</td>
+    <td class="menu">比較級の語彙項目を生成します。</td></tr> 
+<tr><td class="menu">superative_rule</td>
+    <td class="menu">最上級の語彙項目を生成します。</td></tr> 
+</table>
+<p>
+語彙規則は基本的にすべての単語に同じように適用されますが、(*)を付けた規則については特殊なケースとみなし、コーパス内で規則の適用が観測された動詞にのみ適用されます。
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,155 @@
+%/**
+  * @module    = mayz:deriv2lexseq
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2010-01-20 15:46:00 yusuke>
+  * @cvs       = $Id: deriv2lexseq.lil,v 1.4 2010-01-20 06:46:30 yusuke Exp $
+  * @desc      = Interface for FOM models
+%*/
+
+%%----------------------------------------------------------------------------
+%% Usage Example:
+%%   lilfes -l enju/grammar -l mayz/deriv2lexseq \
+%%          -e ':- run("DATA/Enju.lexicon", "DATA/Enju.templates", "DATA/02-21.derivbank").'
+%%----------------------------------------------------------------------------
+
+:- module("mayz:deriv2lexseq").
+
+:- module_interface.
+run <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+
+:- ensure_loaded("derivtypes").
+:- ensure_loaded("lexicon").
+:- ensure_loaded("parser").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Inverted template DB: sign -> template name FST mapping
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'*inv_template_db*' <- [pred].
+
+invert_loop <- [pred].
+invert_loop($Iter) :-
+    db_find($Iter, '*template*'($Key, $Val)),
+    db_insert('*inv_template_db*'($Val, $Key)),
+    fail.
+invert_loop($Iter) :-
+    \+ db_next($Iter, _),
+    !.
+invert_loop($Iter) :-
+    db_next($Iter, $Next),
+    invert_loop($Next).
+
+invert_template_db <- [pred].
+invert_template_db :-
+    stderr_stream($StdErr),
+    format($StdErr, "Inverting template DB .. ", []),
+    db_open('*inv_template_db*'(key_fs, array_value)),
+    db_first('*template*'(_, _), $Iter),
+    invert_loop($Iter),
+    format($StdErr, "done\n", []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Derivation -> lexical entry list
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+'*derivbank*' <- [pred].
+
+load_derivbank <- [pred].
+load_derivbank($FileName) :-
+	db_open('*derivbank*'(key_inthash, array_value)),
+	stderr_stream($StdErr),
+	format($StdErr, "loading derivbank (~s) ..", [$FileName]),
+	db_load($FileName, '*derivbank*'(_, _)),
+	writeln_string($StdErr, "done").
+
+derivation_to_termlist <- [pred].
+derivation_to_termlist_dtrs <- [pred].
+derivation_to_termlist_dtrs([], $X, $X).
+derivation_to_termlist_dtrs([$Dtr|$Dtrs], $TermListHd, $TermListTl) :-
+    derivation_to_termlist($Dtr, $TermListHd, $TermListMid),
+    derivation_to_termlist_dtrs($Dtrs, $TermListMid, $TermListTl).
+
+derivation_to_termlist(derivation_internal & DERIV_DTRS\$DerivDtrs, $TermListHd, $TermListTl) :-
+    derivation_to_termlist_dtrs($DerivDtrs, $TermListHd, $TermListTl).
+derivation_to_termlist(derivation_terminal & $Term, [$Term | $Tl], $Tl).
+
+correct_lexical_template <- [pred].
+%% First try to find the correct template name in the lexicon DB
+correct_lexical_template(TERM_WORD\$Word & LEXTEMPLATE_SIGN\$CorrectSign, $Tmpl) :-
+    lookup_lexicon($Word, $TmplList),
+    member($Tmpl, $TmplList),
+    lookup_template($Tmpl, $Sign),
+    equivalent($Sign, $CorrectSign),
+    !.
+%% Unknown word-template association or unknown template: try inverted template DB
+correct_lexical_template(LEXTEMPLATE_SIGN\$Sign, $Tmpl) :-
+    db_find('*inv_template_db*'($Sign, $Tmpl)),
+    !.
+
+termlist_to_tuplelist <- [pred].
+termlist_to_tuplelist([], []) :- !.
+termlist_to_tuplelist([$Term | $TermList], [$Tuple | $TupleList]) :-
+	$Term = TERM_WORD\$Word,
+    word_to_strlist($Word, $WordFeatures),
+    word_to_lookup_keys($Word, $Keys),
+    (correct_lexical_template($Term, $Tmpl) ->
+        %lexical_template_to_string($Tmpl, $TmplName)
+        $TmplName = $Tmpl
+		;
+        $TmplName = "UNK"),
+    flatten_list([$WordFeatures, [$TmplName], $Keys], $Tuple),
+	termlist_to_tuplelist($TermList, $TupleList),
+    !.
+termlist_to_tuplelist(_, _) :-
+    format(1, "termlist_to_tuplelist failed\n", []),
+    fail.
+
+print_tuples <- [pred].
+print_tuples($StdOut, []) :-
+	format($StdOut, "\n", []).
+print_tuples($StdOut, [$Tuple | $Rest]) :-
+    formattostr("\t", $Tab),
+    join($Tuple, $Tab, $Line),
+	format($StdOut, "~s\n", [$Line]),
+	print_tuples($StdOut, $Rest).
+
+deriv_to_lexseq <- [pred].
+deriv_to_lexseq($StdOut, $Deriv, _) :-
+	derivation_to_termlist($Deriv, $TermList, []),
+	termlist_to_tuplelist($TermList, $TupleList),
+	print_tuples($StdOut, $TupleList),
+	!.
+deriv_to_lexseq(_, _, $ID) :-
+    format(1, "~d: deriv_to_lexseq failed\n", [$ID]),
+    fail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Main loop
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+loop <- [pred].
+loop($Iter, $Out) :-
+	db_find($Iter, '*derivbank*'($ID, $Val)),
+	deriv_to_lexseq($Out, $Val, $ID),
+	fail.
+loop($Iter, _) :-
+	\+ db_next($Iter, _),
+	!.
+loop($Iter, $Out) :-
+	db_next($Iter, $Next),
+	loop($Next, $Out).
+
+run($LexiconName, $TemplatesName, $DerivbankName) :-
+    import_lexicon($LexiconName),
+    import_templates($TemplatesName),
+    invert_template_db,
+	load_derivbank($DerivbankName),
+	db_first('*derivbank*'(_, _), $Iter),
+	stdout_stream($StdOut),
+	loop($Iter, $StdOut).

@@ -1,0 +1,56 @@
+BODY {
+    color: #000000;
+}
+
+H1 {
+    width 98%;
+    border-style: solid;
+    border-color: black;
+    border-width: 1px 0 1px;
+    padding: 6px;
+}
+
+H2 {
+    width: 98%;
+    font-weight: bold;
+    color: #000000;
+    background-color: #ccffcc;
+    padding: 2px 2px 2px 0.5em;
+    border-top: 1px solid #ddffdd;
+    border-left: 1px solid #ddffdd;
+    border-right: 1px solid #99cc99;
+    border-bottom: 1px solid #99cc99;
+/*
+    border: 1px none #8888f8;
+	margin-top: 5px;
+    margin-bottom: 10px;
+*/
+}
+
+H3 {
+    text-decoration: underline;
+}
+
+H4 {
+}
+
+PRE {
+    background-color: #ffffdd;
+    margin: 0 2em 0 2em;
+    padding: 0 1em 0 1em;
+}
+
+
+.xmlverb-default          { color: #333333; background-color: #ffffff;
+                            font-family: monospace }
+.xmlverb-element-name     { color: #990000 }
+.xmlverb-element-nsprefix { color: #666600 }
+.xmlverb-attr-name        { color: #660000 }
+.xmlverb-attr-content     { color: #000099; font-weight: bold }
+.xmlverb-ns-name          { color: #666600 }
+.xmlverb-ns-uri           { color: #330099 }
+.xmlverb-text             { color: #000000; font-weight: bold }
+.xmlverb-comment          { color: #006600; font-style: italic }
+.xmlverb-pi-name          { color: #006600; font-style: italic }
+.xmlverb-pi-content       { color: #006666; font-style: italic }
+

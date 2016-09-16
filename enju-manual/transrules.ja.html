@@ -1,0 +1,255 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>コーパスの変形</title>
+</head>
+
+
+
+<body>
+<h1>コーパスの変形</h1>
+
+<a href="transrules.html">English version</a>
+
+<p>
+Enju の文法開発では，
+まず Penn Treebank の構文木を変形して HPSG 構文木に似た形の木にします．
+この変形は　mayz の treetrans ツールを利用し，下記のコマンドによって行われます．
+（treetrans ツールについて詳しくは
+<a href="../../manual/treetrans.ja.html">mayz のマニュアル</a>を参照して下さい．）
+
+<table border=1>
+<tr><td colspan=2>treetrans ルールモジュール 入力ファイル 出力データベース
+<tr><td>ルールモジュール<td>構文木を変換するパターンルール (lilfes ファイル)
+<tr><td>入力ファイル<td>入力の treebank (テキスト形式)
+<tr><td>出力データベース<td>出力の treebank (lildb 形式)
+</table>
+
+<p>
+Enju の文法開発の場合，
+入力ファイルの各行には Penn Treebank の各構文木が書かれています．
+つまり入力ファイルの一行は次のようなテキストです．
+
+<small>
+<blockquote>
+<pre>
+(S (NP-SBJ Ms./NNP Haag/NNP) (VP plays/VBZ (NP Elianti/NNP)) ./.)
+</pre>
+</blockquote>
+</small>
+
+treetrans は上のようなテキストを読み込み，
+構文木を "mayz/treetypes.lil" で定義された素性構造に格納します．
+その後，ルールモジュールに書かれたルールに従って素性構造を変形したり付加情報をつけたりして，
+構文木の変形を行います．
+変形後の構文木(<a href="transformed.xhtml">例</a>)は
+lildb 形式のデータベースに格納され出力されます．
+
+<p>
+実際の処理は次の順序で行われます．
+<ol>
+   <li><a href="#input-trees">構文木の入力</a>
+   <li><a href="#preprocess">前処理</a>
+   <li><a href="#transform">パターンルールによる変換</a>
+</ol>
+
+
+<h2><a name="input-trees">構文木の入力</a></h2>
+
+<p>
+この段階では，
+テキスト形式の構文木を読み込んでその木を表す素性構造を作ります．
+具体的には，
+treetrans ツールから呼ばれるインターフェース述語 <tt>input_parse_tree/2</tt> によって作業が行われます．
+述語 <tt>input_parse_tree/2</tt> を，構文木一個分のテキストが渡されたら対応する素性構造を返すように定義してください．
+
+<p>
+Enju 文法では入力 treebank として Penn Treebank を用いているので，
+<tt>input_parse_tree/2</tt> の実体は
+Penn Treebank のために定義された述語 <tt>input_ptb_parse_tree/2</tt> です．
+この述語は mayz で提供されており，"mayz/treeio.lil" で定義されています．
+述語 <tt>input_ptb_parse_tree/2</tt> では，
+入力された木の形をほとんど変えずに素性構造にします．
+しかし葉ノードについてのみ，変更を加えるためのインターフェース述語
+<tt>ptb_empty_category/1</tt>，<tt>ptb_delete_pos/1</tt>，
+<tt>ptb_morph/6</tt> が用意されています．
+これらの述語を使い，葉ノードには次のような順序で変更が加えられます．
+
+<ol>
+   <li>葉ノードが述語 <tt>ptb_empty_category/1</tt> で指定された POS なら，
+   空範疇の素性構造 ('tree_empty' 型) を対応させる．
+   <li>葉ノードの POS が述語 <tt>ptb_delete_pos/1</tt> で指定されたものなら，その葉ノードに対応する素性構造は作らない．
+   <li>葉ノードの単語文字列と POS を述語　<tt>ptb_morph/6</tt> に与え，
+返ってきたステミング結果をノードに書き込む．
+</ol>
+
+<p>
+Enju文法の場合，葉ノードの変更に関して次のことを指定しています．
+実装は "enju-devel/transmain.lil" にあります．
+
+<ul>
+   <li>葉ノードの POS が "-NONE-" なら，空範疇を対応させる．
+   <li>葉ノードの POS が "." なら，その葉ノードに対応する素性構造は作らない．これらの POS は構文解析で無視する POS と共通．
+   <li>ステミング処理は，構文解析でのステミングと同じ処理を行う．
+</ul>
+
+
+<h2><a name="preprocess">前処理</a></h2>
+
+<p>
+この段階では，パターンルールの適用前に構文木の素性構造を整形する処理を行います．
+
+<p>
+具体的には，
+構文木のノードを深さ優先で見ていき，各ノードに対して整形処理をしていきます．
+整形処理は，
+インターフェース述語 <tt>delete_tree/1</tt>，<tt>nonterminal_mapping/2</tt>，
+<tt>preterminal_mapping/4</tt>，<tt>preterminal_projection/2</tt> 
+を用いて，次のような順序で行われます．
+
+<ol>
+   <li>今見ているノード以下の部分木 ('tree' 型) と述語 <tt>delete_tree/1</tt> に指定された部分木が単一化できたら，その部分木を削除する．
+   <li>今見ているノードの非終端記号が述語 <tt>nonterminal_mapping/2</tt> に指定されていたら，指定の変更を加える．
+   <li>今見ているノードが葉ノードならば，
+   <ol type="a">
+      <li>ノードの単語文字列と前終端記号が述語 <tt>preterminal_mapping/4</tt> で指定されたものなら，指定の変更を加える．
+      <li>指定されていない場合で，
+今のノードの前終端記号が述語 <tt>preterminal_projection/2</tt> に指定されていた場合は，
+指定の非終端記号のノードを今のノードの上に加える．
+   </ol>
+</ol>
+
+<p>
+Enju の場合，整形処理に関して次のように指定しています．
+実装は "enju-devel/transmain.lil" にあります．
+<ul>
+   <li>部分木の削除は行わない．
+   <li>非終端記号のうちいくつかは変更する．(例: "NAC" は "NP" へ変更)
+   <li>単語文字列と前終端記号のうちいくつかは変更する．(例: "%/NN" は "%/%" へ変更)
+   <li>葉ノードの上に中間ノードを加えることはない．
+</ul>
+
+これは例えば次のように指定されています．
+
+<small>
+<blockquote>
+<pre>
+nonterminal_mapping("NAC", "NP").
+preterminal_mapping("%", "NN", "%", "%").
+</pre>
+</blockquote>
+</small>
+
+
+<h2><a name="transform">パターンルールによる変換</a></h2>
+
+<p>
+この段階では，パターンルールを適用し構文木の変形を行います．
+変形した構文木は出力データベースに格納されます．
+
+<p>
+Enju の場合，変形後の構文木を HPSG 構文木と似た形の木にすることが目的なので，
+パターンルールには次のようなものが含まれています．
+
+<ul>
+   <li>Penn Treebank のエラーの修正．
+   例えば(PP ***/RP XXX) を (PP ***/IN XXX)にする．
+   <li>"than" 句の構造の明示化．
+つまり (... than/IN XXX) という構造を (... (PP than/IN XXX:argument)) という構造にする．
+   <li>各中間ノードについてその Head の決定．
+   <li>主辞を中心とした二分木への変形．
+   <li>ノードに対して文法規則の割り当て．
+例えば (X Y:arg Z:head) に対して Head-Subject schema を割り当てる．
+</ul>
+
+<p>
+変換のためのパターンルールは，インターフェース述語
+<tt>tree_transform_class/3</tt>，<tt>tree_ignore/2</tt>，
+<tt>tree_transform_rule/3</tt>，<tt>tree_subst_pattern/3</tt>，
+<tt>tree_unify/2</tt>，<tt>tree_match_pattern/2</tt>
+によって定義します．
+まずパターンルールを宣言するため，
+述語 <tt>tree_transform_class/3</tt> で名前，木のノードへの適用順序，
+適用後の振る舞いを定義します．
+パターンルールは宣言された順に実行されます．
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_class(+$Name, +$Direction, +$Strict)</tt>
+<tr><td><tt>+$Name</tt><td>パターンルールの名前
+<tr><td><tt>+$Direction</tt><td>パターンルールの適用順序
+        <ul>
+	  <li>"topdown": 上のノードから下のノードへ適用する
+	  <li>"bottomup": 下のノードから上のノードへ適用する
+	  <li>"rootonly": 構文木の根ノードにだけ適用する
+<tr><td><tt>+$Strict</tt><td>適用後の振る舞い
+        <ul>
+          <li>"strict": ルール適用が失敗したら，構文木の変換を失敗させる
+          <li>"weak": ルール適用が失敗しても無視して次のルール処理に移る
+          <li>"exhaustive": ルール適用が成功しても，失敗するまで繰り返し適用する
+	</ul>
+</table>
+
+<p>
+パターンルールの処理内容は，述語 <tt>tree_ignore/2</tt>，
+<tt>tree_transform_rule/3</tt>，<tt>tree_subst_pattern/3</tt>，
+<tt>tree_unify/2</tt>，<tt>tree_match_pattern/2</tt>
+を用いて指定します．これらの述語を使い，ルールの処理は次のように行われます．
+
+<ol>
+   <li>今見ている部分木が，述語 <tt>tree_ignore/2</tt> で指定された部分木と単一化できるなら，削除する．
+   <li>今見ている部分木が，述語 <tt>tree_transform_rule/3</tt> で定義された条件を満たすなら，述語が返す部分木で置換する．
+   <li>今見ている部分木が，述語 <tt>tree_subst_pattern/3</tt> で指定されたパターンとマッチするなら，述語が返す出力パターンで置換する．
+   <li>今見ている部分木と述語 <tt>tree_unify/2</tt> で指定された部分木を単一化する．
+   <li>今見ている部分木を述語 <tt>tree_match_pattern/2</tt>で指定されたパターンとマッチさせる．
+</ol>
+
+上記の述語による処理が1回でも成功すると，ルール適用が成功したと見なされます．
+つまり 1. が成功すれば，2. 以降は行われません．
+最後の述語まで失敗すると，パターンルールが失敗したことになります．
+
+
+<p>
+Enju の場合，次のようにパターンルールが定義されています．
+このルールは "than" 句の構造を明示化するパターンルール，
+つまり (... than/IN XXX) という構造を (... (PP than/IN XXX:argument)) と
+いう構造に変換するパターンルールです．
+
+<small>
+<blockquote>
+<pre>
+tree_transform_class("than", "topdown", "weak").
+tree_subst_pattern("than",
+		   TREE_NODE\$Node & TREE_DTRS\$Dtrs,
+		   TREE_NODE\$Node & TREE_DTRS\$NewDtrs) :-
+    $Dtrs = [$Left & tree_any & ANY_TREES\[_|_],
+	     $Than & tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+	     $Right & tree & TREE_NODE\HEAD_MARK\argument],
+    $NewDtrs = [$Left,
+		TREE_NODE\(SYM\"PP" & FUNC\[] & ID\[] & HEAD_MARK\modifier_non_empty) &
+		TREE_DTRS\[$Than, $Right]].
+</pre>
+</blockquote>
+</small>
+
+<p>
+変換が終わった段階で，
+構文木の各ノード TREENODE\SCHEMANAME\ 素性が正しい値であるよう注意してください．
+この素性は，そのノードの娘ノードに適用したスキーマ名であるとされ，
+次の処理，辞書抽出で使われます．
+
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

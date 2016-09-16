@@ -1,0 +1,48 @@
+Enju - an HPSG parser for English
+
+Copyright (c) 2005-2014, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+
+Enju on windows requires:
+  Visual C++ 2013 or above
+  zlib
+  bzlib
+  boost 1.55.0
+
+To install Enju:
+1. make yacc.cc and lex.cc on linux
+  $ cd ll
+  $ libtoolize --force --automake; aclocal; autoheader; automake --add-missing --foreign; autoconf
+  $ ./configure
+  $ cd src
+  $ make yacc.cc lex.cc
+
+2. replace the line terminators to CRLF
+  $ unix2dos `find | egrep '\.(h|cpp|cc)$'`
+
+3. copy the source tree to a Windows machine
+
+4. get, compile, and put external libraries as follows:
+  enju/windows/bin/bzip2.dll
+  enju/windows/bin/zlib1.dll
+  enju/windows/Debug/bzip2.dll
+  enju/windows/Debug/zlib1.dll
+  enju/windows/ext/boost_1_55_0
+  enju/windows/ext/boost_1_55_0/stage/lib/libboost_regex-vc120-mt-s-1_55.lib
+  enju/windows/ext/boost_1_55_0/stage/lib/libboost_regex-vc120-mt-sgd-1_55.lib
+
+  (Boost should be compiled with "runtime-link=static" option.)
+
+5. copy enju data files to enju/DATA
+
+6. load enju/windows/vc/vc.sln on Visual C++
+
+7. build the solution 'vc'
+
+8. copy the data and script files by
+  $ cd enju/windows
+  $ install.bat
+
+9. run enju
+  $ cd enju/windows
+  $ enju.bat

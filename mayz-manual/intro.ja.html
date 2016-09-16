@@ -1,0 +1,54 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-intro.css">
+<title>MAYZ ツールキットって何？</title>
+</head>
+
+
+
+<body>
+<h1>MAYZ ツールキットって何？</h1>
+
+<a href="intro.html">English version</a>
+
+<p>
+MAYZ ツールキットは，コーパス指向の文法開発を支援するツールを提供しま
+す．コーパス指向の文法開発とは，大規模な lexicalized grammar を効率良
+く開発するための手法です．通常の文法開発では，各単語の文法的性質を記述
+した lexicon を手作業で作りますが，コーパス指向の手法では，lexicon を
+作成する前に，まず derivation bank (derivbank) を作成します．Derivbank 
+とは，いわゆる treebank と同じようなもので，実際の文がどのように解析さ
+れるべきか，その構造を注釈付けしたコーパスです．このとき，その注釈はター
+ゲットの文法理論が要求する文法的制約(principles)を満たさなければなりま
+せん．文法的制約を満たした注釈が付けられた文(derivation)が与えられると，
+lexicon はそこから自動的に抽出することができます．
+
+<p>
+MAYZ ツールキットは，derivbank の作成を手助けしたり，lexicon の抽出を
+行ないます．また，得られた文法の確率モデルを作成するためのツールも提供
+します．ユーザは，注釈付けのためのパターンルールと文法理論の一般的文法
+制約を記述するだけで，大規模な文法を作成することができます．また，確率
+モデルの feature を取り出すパターンを記述するだけで，確率モデルを作る
+こともできます．
+
+<p>
+さらに，作成した文法を使って構文解析を行うための汎用パーザ(Unification
+Parser, UP)もパッケージに含まれています．このパーザは確率モデルを使っ
+たビームサーチをサポートしています．ツールキットを使って作成した文法を
+すぐにアプリケーションで利用することができます．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

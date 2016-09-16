@@ -1,0 +1,269 @@
+%/**********************************************************************
+  * @module    = mayz:treeio
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @desc      = Reading PTB-style parse trees
+  **********************************************************************
+%*/
+
+:- module("mayz:treeio").
+
+:- module_interface.
+
+:- ensure_loaded("treetypes").
+
+%% interface for 'input_ptb_parse_tree/2'
+
+ptb_empty_category <- [pred].
+%% ptb_preprocess_word <- [pred].
+%% ptb_preprocess_pos <- [pred].
+ptb_delete_pos <- [pred].
+
+ptb_morph <- [pred].
+
+%% predicate for inputting PTB-style parse trees
+%input_ptb_parse_tree <- [pred].
+
+%% predicate to parse S-expression
+parse_s_expression <- [pred].
+
+%% predicate to parse ptb-style bracketed sentence
+parse_ptb_bracketed_sentence <- [pred].
+
+%% predicate to unify coindexing nodes
+unify_coindexing_nodes <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/debug").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% input PTB-style parse trees
+%%
+%% This program assumes:
+%% 1. S-expression where the first element of a list expresses a 
+%%    non-terminal symbol
+%% 2. POSs of words are expressed as "word/POS"
+%% 3. "(", ")", "{", "}" are written as "-LRB-", "-RRB-", "-LCB-",
+%%    "-RCB-"
+%% 4. Backslash may be used to escape "/" (not necessary)
+%% 5. PropBank-style annotation may be added to nonterminal symbols
+%%    after "//"
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% bracketed sentence -> lilfes-style list
+
+lisp_to_lilfes_sub <- [pred].
+lisp_to_lilfes_sub([], $WORD, $LIST, []) :-
+    ($WORD = [] ->
+     $LIST = [] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR]).
+lisp_to_lilfes_sub([32|$CHARLIST], $WORD, $LIST, $REST) :-  % space
+    !,
+    ($WORD = [] ->
+     $LIST = $RESTLIST ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([10|$CHARLIST], $WORD, $LIST, $REST) :-  % return
+    !,
+    ($WORD = [] ->
+     $LIST = $RESTLIST ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([40|$CHARLIST], $WORD, $LIST, $REST) :-  % left paren
+    !,
+    lisp_to_lilfes_sub($CHARLIST, [], $SUBLIST, $CHARLIST1),
+    ($WORD = [] ->
+     $LIST = [$SUBLIST|$RESTLIST] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR, $SUBLIST|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST1, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([41|$CHARLIST], $WORD, $LIST, $CHARLIST) :-  % right paren
+    !,
+    ($WORD = [] ->
+     $LIST = [] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR]).
+lisp_to_lilfes_sub([$CHAR|$CHARLIST], $WORD, $LIST, $REST) :-  % default
+    lisp_to_lilfes_sub($CHARLIST, [$CHAR|$WORD], $LIST, $REST).
+
+%%parse_string <- [pred].
+parse_s_expression($STRING, $LIST) :-
+    strtolist($STRING, $CHARLIST),
+    lisp_to_lilfes_sub($CHARLIST, [], $LISTS, []),
+    member($LIST, $LISTS).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% lilfes-style list -> internal structure
+
+parse_propbank_label <- [pred].
+parse_propbank_label($Str, PROP_ID\$ID & PRED_NAME\$Pred & PRED_SEM_ID\$SemID) :-
+    regex_match("^rel/(.+)\.(.+)-(.+)$", $Str, [_, $Pred, $SemID, $IDStr]),
+    strtoint($IDStr, $ID),
+    !.
+parse_propbank_label($Str, PROP_ID\$ID & ARG_POS\$ArgPos) :-
+    regex_match("^(.+)-(.+)$", $Str, [_, $ArgPos, $IDStr]),
+    strtoint($IDStr, $ID),
+    !.
+parse_propbank_label($Str, _) :-
+    error_message("Illegal propbank label: ~s\n", [$Str]),
+    fail.
+parse_propbank_labels <- [pred].
+parse_propbank_labels([], []).
+parse_propbank_labels([$Str|$StrList], [$Prop|$PropList]) :-
+    parse_propbank_label($Str, $Prop),
+    parse_propbank_labels($StrList, $PropList).
+
+parse_empty_category <- [pred].
+parse_empty_category($Anc, $Sym, tree_empty & TREE_NODE\(SYM\$Sym & FUNC\[] & COIND\$CoInd & EMPTY_WORD\$Word)) :-
+    regex_match("^([^-=]+)([-=].+)*$", $Anc, [_, $Word|_]),
+    regex_match("[^-=]+", ["g"], $Anc, [_|$Labels]),
+    ($Labels = [$Int] ->
+     strtoint($Int, $Ind),
+     $CoInd = [$Ind] ;
+     $CoInd = []).
+
+%% parse_modifiers <- [pred].
+%% parse_modifiers([], [], []).
+%% parse_modifiers([$Label|$Labels], $MOD, $IND) :-
+%%     (strtoint($Label, $ID) ->
+%%      $MOD = $NextMOD,
+%%      $IND = [$ID|$NextIND] ;
+%%      $MOD = [$Label|$NextMOD],
+%%      $IND = $NextIND),
+%%     parse_modifiers($Labels, $NextMOD, $NextIND).
+
+parse_modifiers <- [pred].
+parse_modifiers("", [], [], []).
+parse_modifiers($Labels, $Mods, $IDs, $ID2s) :-
+    regex_match("^-([^-=]+)(.*)", $Labels, [_, $Label, $RestLabels]),
+    !,
+    (strtoint($Label, $ID) ->
+     $Mods = $NextMods,
+     $IDs = [$ID|$NextIDs] ;
+     $Mods = [$Label|$NextMods],
+     $IDs = $NextIDs),
+    parse_modifiers($RestLabels, $NextMods, $NextIDs, $ID2s).
+parse_modifiers($Labels, $Mods, $IDs, [$ID2|$ID2s]) :-
+    regex_match("^=([^-=]+)(.*)", $Labels, [_, $Label, $RestLabels]),
+    strtoint($Label, $ID2),
+    parse_modifiers($RestLabels, $Mods, $IDs, $ID2s).
+
+decode_special_strings <- [pred].
+decode_special_strings($Input, $Output) :-
+    (regex_subst("\\", ["g"], "", $Input, $A) -> true ; $Input = $A),
+    (regex_subst("-LRB-", ["g"], "(", $A, $B) -> true ; $A = $B),
+    (regex_subst("-RRB-", ["g"], ")", $B, $C) -> true ; $B = $C),
+    (regex_subst("-LCB-", ["g"], "{", $C, $D) -> true ; $C = $D),
+    (regex_subst("-RCB-", ["g"], "}", $D, $Output) -> true ; $D = $Output).
+
+parse_terminal <- [pred].
+parse_terminal($Str, $Term) :-
+    split($Str, "//", [$Label1|$Props]),
+    decode_special_strings($Label1, $Label),
+    regex_match("^(.+)/(.+)$", $Label, [_, $Input, $InputSym]),
+    parse_propbank_labels($Props, $PropList),
+    (ptb_empty_category($InputSym) ->
+     parse_empty_category($Input, $InputSym, $Term)
+     ;
+     copy($InputSym, $InputPOS),
+     \+ ptb_delete_pos($InputPOS),
+%%      ptb_preprocess_pos($InputPOS, $POS),
+%%      ptb_preprocess_word($Input, $Surface),
+     ptb_morph($Input, $InputPOS, $Surface, $POS, $Base, $BasePOS),
+     $Word = (INPUT\$Input &
+	      SURFACE\$Surface &
+	      INPUT_POS\$InputPOS &
+	      POS\$POS &
+	      BASE\$Base &
+	      BASE_POS\$BasePOS),
+     copy($POS, $Sym),
+     $Term = (tree_term &
+	      TREE_NODE\(SYM\$Sym &
+			 FUNC\[] &
+			 WORD\$Word &
+			 PROP_LIST\$PropList))).
+
+parse_label <- [pred].
+parse_label($Str, $NTS, $MOD, $IND, $IND2, $PropList) :-
+    split($Str, "//", [$Label|$Props]),
+    %%regex_match("[^-=]+", ["g"], $Label, [$NTS|$Labels]),
+    regex_match("^([^-=]+)(.*)$", $Label, [_, $NTS, $Labels]),
+    parse_propbank_labels($Props, $PropList),
+    parse_modifiers($Labels, $MOD, $IND, $IND2).
+
+parse_tree_main <- [pred].
+parse_daughters <- [pred].
+parse_daughters([], []).
+parse_daughters([$Dtr|$Dtrs], $TreeDtrs) :-
+    (parse_tree_main($Dtr, $TreeDtr) ->
+     $TreeDtrs = [$TreeDtr|$NextDtrs] ;
+     $TreeDtrs = $NextDtrs),
+    parse_daughters($Dtrs, $NextDtrs).
+parse_tree_main($Label & string, $Term) :-
+    parse_terminal($Label, $Term).
+parse_tree_main([$Label|$Dtrs], tree_nts & TREE_NODE\(SYM\$NTS & FUNC\$MOD & ID\$IND & ID2\$IND2 & PROP_LIST\$PROP) & TREE_DTRS\$TreeDtrs) :-
+    parse_label($Label, $NTS, $MOD, $IND, $IND2, $PROP),
+    parse_daughters($Dtrs, $TreeDtrs),
+    $TreeDtrs = [_|_].
+
+parse_ptb_bracketed_sentence($List, $Tree) :-
+    parse_tree_main($List, $Tree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Unify coindexing
+
+unify_coindex <- [pred].
+unify_coindex($Index, $Node, $InNodeList, $OutNodeList) :-
+    (assoc($Index, $InNodeList, $Node) ->
+     $InNodeList = $OutNodeList ;
+     $OutNodeList = [($Index, $Node)|$InNodeList]).
+unify_coindex_list <- [pred].
+unify_coindex_list([], _, $NodeList, $NodeList).
+unify_coindex_list([$ID|$IDList], $Node, $InNodeList, $OutNodeList) :-
+    unify_coindex($ID, $Node, $InNodeList, $NextNodeList),
+    unify_coindex_list($IDList, $Node, $NextNodeList, $OutNodeList).
+parse_tree_unify_coindex <- [pred].
+parse_tree_unify_coindex_dtrs <- [pred].
+parse_tree_unify_coindex_dtrs([], $NodeList, $NodeList).
+parse_tree_unify_coindex_dtrs([$Dtr|$Dtrs], $InNodeList, $OutNodeList) :-
+    parse_tree_unify_coindex($Dtr, $InNodeList, $NextNodeList),
+    parse_tree_unify_coindex_dtrs($Dtrs, $NextNodeList, $OutNodeList).
+parse_tree_unify_coindex(tree_nts & TREE_NODE\($Node & ID\$IDList) & TREE_DTRS\$Dtrs,
+			 $InNodeList, $OutNodeList) :-
+    unify_coindex_list($IDList, $Node, $InNodeList, $NextNodeList),
+    parse_tree_unify_coindex_dtrs($Dtrs, $NextNodeList, $OutNodeList).
+parse_tree_unify_coindex(tree_term, $NodeList, $NodeList).
+parse_tree_unify_coindex(tree_empty & TREE_NODE\(COIND\$CoInd & COIND_NODE\$CoIndNodeList),
+			 $InNodeList, $OutNodeList) :-
+    ($CoInd = [$Index] ->
+     $CoIndNodeList = [$CoIndNode],
+     unify_coindex($Index, $CoIndNode, $InNodeList, $OutNodeList) ;
+     $CoIndNodeList = [],
+     $InNodeList = $OutNodeList).
+
+unify_coindexing_nodes($Tree) :-
+    parse_tree_unify_coindex($Tree, [], _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% input PTB-style parse tree main
+
+%% input_ptb_parse_tree($String, $Tree) :-
+%%     parse_string($String, $List),
+%%     parse_tree_main($List, $Tree),
+%%     parse_tree_unify_coindex($Tree, [], _).
+

@@ -1,0 +1,231 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Enju 文法の構造</title>
+</head>
+
+
+
+<body>
+<h1>Enju 文法の構造</h1>
+
+<a href="grammar.html">English version</a>
+
+<p>
+<ul>
+  <li><a href="#sign">Sign の構造</a>
+  <li><a href="#system">システムアーキテクチャ</a>
+  <ul>
+  <li><a href="#preprocess">前処理</a>
+  <li><a href="#lexent_assign">語彙項目の割り当て</a>
+  <li><a href="#cky_parsing">構文解析メイン</a>
+  </ul>
+</ul>
+
+<hr>
+
+<h2><a name="sign">Sign の構造</a></h2>
+
+<p>
+Enju の文法は，Head-driven Phrase Structure Grammar (HPSG) という文法理論に基づいています．
+この文法理論では，言語の構文に関する制約を，型付き素性構造(typed feature structure)で表します．
+型付き素性構造については，<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes">LiLFeS ホームページ</a>の説明を見て下さい．
+
+<p>
+HPSG の大きな特徴として，構文に関する制約のほとんどは単語の辞書項目(語彙項目，lexical entry)に記述し，CFG の文法規則に相当する規則は数を少なく，一般的規則性を記述するにとどめます．
+これは，文がとりうる構造の制約は，大部分が単語によって決定されるという観察からきています．
+
+<p>
+単語，および単語を組み上げた句の統語的制約は，<em>sign</em>というデータ構造で表されます．
+Enju における sign は，基本的に [Pollar and Sag,　1994] および <a href="http://www.delph-in.net/erg/">LinGO English　Resource Grammar (ERG)</a> を参考にしていますが，complex constraint や　Minimal Recursion Semantics (MRS) を使わないように変更，簡単化されています．
+
+<table class="fs">
+<tr><td class="lprn" rowspan="2">
+    <td>PHON: 句がカバーする単語列
+    <td class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+        <td class="lprn" rowspan="2">
+        <td>
+        <table class="fs">
+        <tr><td rowspan="3">LOCAL
+            <td class="lprn" rowspan="3">
+            <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="3">HEAD
+                    <td class="lprn" rowspan="3">
+                    <td>句の主辞(head)から規定される制約
+                    <td class="rprn" rowspan="3">
+                <tr><td>MOD: 修飾先の句の制約
+                <tr><td>POSTHEAD: 後ろから修飾するか否か
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="6">VAL
+                    <td class="lprn" rowspan="6">
+                    <td>句の下位範疇化フレーム
+                    <td class="rprn" rowspan="6">
+                <tr><td>SUBJ: 句が左側にとる句の制約
+                <tr><td>COMPS: 句が右側にとる句の制約
+                <tr><td>SPR: 句が左側にとる限定詞句の制約
+                <tr><td>SPEC: 限定詞の係り先の句の制約
+                <tr><td>CONJ: 並列句にとる句の制約
+                </table>
+            </table>
+            <td class="rprn" rowspan="3">
+        <tr><td>CONT: 述語項構造
+        <tr><td>CONX: <em>現在は使われていません</em>
+        </table>
+        <td class="rprn" rowspan="2">
+        <tr><td>
+            <table class="fs">
+            <tr><td rowspan="3">NONLOCAL
+                <td class="lprn" rowspan="3">
+                <td>長距離依存関係の制約
+                <td class="rprn" rowspan="3">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">INHER
+                    <td class="lprn" rowspan="5">
+                    <td>娘から受け継がれる長距離依存制約
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Wh疑問詞の制約
+                <tr><td>REL: 関係節の先行詞になる句の制約
+                <tr><td>SLASH: 長距離依存関係にある句の制約
+                <tr><td>F_REL: 自由関係詞節の制約
+                </table>
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">TO_BIND
+                    <td class="lprn" rowspan="5">
+                    <td>この句が打ち消す長距離依存制約
+                    <td class="rprn" rowspan="5">
+                <tr><td>QUE: Wh疑問詞の制約
+                <tr><td>REL: 関係節の先行詞になる句の制約
+                <tr><td>SLASH: 長距離依存関係にある句の制約
+                <tr><td>F_REL: 自由関係詞節の制約
+            </table>
+        </table>
+    </table>
+</table>
+
+<p>
+「句の制約」では，実際には細かい文法素性(品詞，agreement, 時制，格など)で，とりうる句の細かい文法的制約を記述しています．
+
+<p>
+CONT素性には，その句の predicate-argument structure が格納されます．
+Predicate-argument structure は，単語の意味的な主語，目的語関係を記述しています．
+従って，文全体を解析した時，そのトップノードの sign の CONT 素性を見ると，文全体の predicate-argument structure を得ることができます．
+
+<p>
+Enju の sign で使われている型，素性は，全て "enju/types.lil" で定義されています．
+詳しい型階層については，そちらを参照して下さい．
+
+<hr>
+
+<h2><a name="system">システムアーキテクチャ</a></h2>
+
+<p>
+Enju では，単一化文法のための汎用パーザ UP (mayz パッケージに含まれている) を利用して構文解析をしています。
+つまり，Enju の文法規則や sign をインタフェース述語によって汎用パーザ UP へ伝え，UP から Enju 文法に従った解析結果を受け取っています．
+UP を使った構文解析は次の図のように行われています．
+</p>
+
+<img src="architecture.ja.png" height=400 alt="文法のアーキテクチャ">
+
+<p>
+上の構文解析処理を，以下では次のステップに分けて説明します．
+<ul>
+  <li><a href="#preprocess">前処理</a>
+  <li><a href="#lexent_assign">語彙項目の割り当て</a>
+  <li><a href="#cky_parsing">構文解析メイン</a>
+</ul>
+
+<h3><a name="preprocess">前処理</a></h3>
+
+<p>
+入力文には，まず品詞タグ付けや形態素解析が行われます．
+なにも指定しないと品詞タガーは stepp，形態素解析器は enju-morph が使われますが，
+それぞれコマンドラインオプション -t，-m で変更することができます．
+</p>
+
+<h3><a name="lexent_assign">語彙項目の割り当て</a></h3>
+
+<p>
+次に，入力文の各単語に適切な語彙項目 (単語に対応する sign) が割り当てられ，その結果が語彙項目ラティスとして出力されます．
+語彙項目ラティスは，上の図のように単語の情報と語彙項目の ID などの組　<tt>extent_lexents</tt> のリストになっています．
+語彙項目の割り当て処理では，まず単語の品詞などをキーとしてデータベース Lexicon を引き，それぞれの単語に割り当て可能な語彙項目を調べます．
+各単語の語彙項目は，尤もらしさを表すスコアとともに語彙項目ラティスとして出力されます．
+</p>
+
+<h3><a name="cky_parsing">構文解析メイン</a></h3>
+
+<p>
+ここでは，語彙項目ラティスに基づいて語彙項目を UP に入力し，文法規則に従って構文解析を行います．
+語彙項目や文法規則はインターフェース述語を使って UP に伝えられています．
+これらのインタフェース述語の実装は "enju/schema.lil" を見てください．
+</p>
+
+<p>
+語彙項目ラティスの各要素から語彙項目を作り，UP に伝えるのはインターフェース述語 <tt>lexical_entry_sign/2</tt> によって行われます．
+この述語では，語彙項目のID をキーにしてデータベース Templates を引き，語彙項目の素性構造を得ます．
+この素性構造は，単語固有の情報が含まれていないテンプレートなので，語彙項目ラティスに記述された単語の情報を付加して (PHON 素性など) 最終的な語彙項目の素性構造が作られます．
+</p>
+
+<p>
+UP に語彙項目が入力された後は，インターフェース述語 <tt>id_schema_binary/5</tt> などで指定された文法規則に従って構文解析が行われます．
+これらのインターフェース述語では，娘の sign から親の sign を作る句構造規則や，娘の意味構造から親の意味構造を作る規則が実装されています．
+UP の構文解析はチャート，エッジと呼ばれるデータ構造を使って行われています．
+</p>
+
+<h4><a name="edge">エッジ</a></h4>
+
+<p>
+エッジは部分的な解析結果を表すデータ構造で，&lt;左ポジション，右ポジション，sign，FOM&gt; の4つの組です．
+ポジションは文中での位置を表すので，エッジは文中の左ポジションから右ポジションまでの句に対応する sign を表しています．4つ組の最後の要素 FOM は，その解析結果の尤もらしさを表すスコアで曖昧性解消のために使われます．
+</p>
+
+<h4><a name="chart">チャート</a></h4>
+
+<p>
+チャートは構文解析状態を保存するデータ構造です．
+チャートは二次元テーブルになっていて，各要素をCKYセルと呼びます．
+入力文s(= w1, w2, w3, .. wn)が入力されたとき，例えば，w1 = "I", w2 = "saw", w3 = "a", w4 = "girl", w5 = "with", w6 = "a", w7 = "telescope" が入力されたとき，チャートは図のようになります．
+</p>
+
+<center>
+<img src="up_chart.png" alt="チャート">
+</center>
+
+<p>
+構文解析は各CKYセルにエッジを格納していくことによって行われます．
+以下，CKY セルは文中の位置 i,j を使ってS[i][j]と表します．
+まず語彙項目が入力されると，一番下の段の S[i][i+1] にエッジが格納されます．
+例えば，S[0][1]には"I"に対応するエッジが格納され，S[1][2]は "saw" に対応するエッジが格納されます．
+文法規則によって娘の sign から親の sign が作られ，構文解析が進んでいくと，チャートの上の段にもエッジが格納されていきます．
+例えば，S[1][3] は "saw a" の エッジ，さらに S[1][4]は "saw a girl" に対応するエッジが入れられます．
+最後に文全体に相当するセル，例の場合 S[0][7] に全体の解析結果のエッジが入ります．
+文全体に対応するエッジのうち，最も FOM が大きいものが解析結果として出力されています．
+</p>
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

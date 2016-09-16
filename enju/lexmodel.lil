@@ -1,0 +1,30 @@
+%/**********************************************************************
+  * @module    =  enju:lexmodel
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: lexmodel.lil,v 1.4 2009-12-03 23:33:11 matuzaki Exp $
+  * @version   =  Time-stamp: <2007-04-18 10:54:47 yusuke>
+  * @desc      =  lexmodel: unigram model with lexicalized features
+  **********************************************************************
+%*/
+
+:- module("enju:lexmodel").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+
+:- module_implementation.
+
+:- ensure_loaded("tools").
+:- ensure_loaded("lillib/debug").
+:- set_debug_mode("enju_fom").
+
+fom_binary(_, _, _, _, _, 0.0).
+
+fom_unary(_, _, _, _, 0.0).
+
+fom_root(_, 0.0).
+
+fom_terminal(_, _, _, 0.0).
+

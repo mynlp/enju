@@ -1,0 +1,17 @@
+%/**********************************************************************
+  * @module    =  enju:fullmask
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: fullmask.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   =  Time-stamp: <2005-10-06 13:19:50 yusuke>
+  * @desc      =  Feature masks for fullmodel
+  **********************************************************************
+%*/
+
+:- module("enju:fullmask").
+
+:- module_interface.
+
+:- ensure_loaded("synmask").
+:- ensure_loaded("semmask").
+

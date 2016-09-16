@@ -1,0 +1,544 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>up: 汎用パーザ</title>
+</head>
+
+
+
+<body>
+<h1>up: 汎用パーザ</h1>
+
+<a href="up.html">English version</a><br>
+
+<p>
+目次<br>
+<a href="#overview">1. 概要</a><br>
+<a href="#how_to">2. UPの使い方</a><br>
+<a href="#word_lattice">3. 単語束とエクステント</a><br>
+<a href="#edge">4. エッジ</a><br>
+<a href="#chart">5. チャート</a><br>
+<a href="#link">6. リンク</a><br>
+<a href="#root_parse_tree">7. ルート条件とパーズツリー</a><br>
+<a href="#fom">8. 曖昧性解消モジュール</a><br>
+<a href="#misc">9. 種々雑多</a><br>
+</p>
+
+<h2><a name="overview">1. 概要</a></h2>
+<p>
+upは文法とテキストを受け取って構文解析を行います．文法の詳細，文法が用
+意しなくてはいけないものなどについては<a href="usegrammar.ja.html">こ
+ちら</a>を参照ください．
+</p>
+
+<p>
+パーザには，解析対象となる一文を文字列 (string) か単語束 (word lattice) として渡すことができます．文字列はparse/1で構文解析されます．単語束はparse_word_lattice/1でパーズされます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parse(+$Sentence)</tt>
+<tr><td>$Sentence<td>パーズ対象の文．型はstring．
+<tr><td colspan=2>$Sentenceをパーズします．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parse_word_lattice(+$WordLattice)</tt>
+<tr><td>$WordLattice<td>パーズ対象の単語束．型はextentのlist．
+<tr><td colspan=2>$WordLatticeをパーズします．
+</table>
+</p>
+
+<p>
+構文解析は次のステップで行われます．
+
+<ol>
+<li> 前処理 (preprocessing)
+<li> 辞書引き (lexicon lookup)
+<li> 構文解析メイン (parse)
+</ol>
+
+下図は構文解析の全体像です．
+
+<center>
+<img src="up_overview.ja.png" alt="概要">
+</center>
+
+parse/1の場合，単語分割，POS解析，形態素解析は，前処理で行われます．
+parse_word_latticeの場合は，これらの解析が行われません．辞書引きでは受
+け取った単語束から辞書をひいて，パーザに対応する素性構造を入力する処理
+を行います．構文解析メインでは文字通り構文解析を行います．
+</p>
+
+<p>
+図にあるように，UP内部には，チャートと呼ばれるデータ構造や，エッジを管
+理するエッジマネージャー，リンクを管理するリンクマネージャー，FOMを管
+理するFOMマネージャーなどのデータ構造があります．詳細は以下で説明して
+いきます．
+</p>
+
+<h2><a name="how_to">2. UPの動かし方</a></h2>
+<p>
+<table border=1>
+<tr><td colspan=2>up [オプション] [-a 引数]
+<tr><td colspan=2>-a 以降の引数は LiLFeS プログラムに渡されます．
+<tr><td colspan=2>オプション
+<tr><td>-L ディレクトリ<td>LiLFeS モジュールのサーチパス
+<tr><td>-W 数<td>単語数の上限
+<tr><td>-E 数<td>エッジ数の上限
+<tr><td>-l ファイル名<td>LiLFeS プログラムをロードする
+<tr><td>-e コマンド<td>LiLFeS コマンドを実行する
+<tr><td>-i<td>インタラクティブモード (LiLFeS プロンプトを表示する)
+<tr><td>-n<td>インタラクティブモードにしない
+<tr><td>-iter<td>Iterative beam thresholding を用いて曖昧性解消を行う
+<tr><td>-fom<td>曖昧性解消を行う
+<tr><td>-nofom<td>曖昧性解消を行わない
+</table>
+</p>
+
+<p>
+-l で指定されたモジュールを読みこみ，パーザを起動します．LiLFeS コマン
+ドが指定されている場合は，それを実行します．インタラクティブモードが指
+定されている場合は，コマンド終了後，LiLFeS のコマンドプロンプトを表示
+します．
+</p>
+
+<p>
+Lexicon などの読み込みや，FOM モデルの初期化などは行ないません．これら
+は，UP のインタフェース <tt>parser_init</tt>を利用してください．
+</p>
+
+
+<h2><a name="word_lattice">3. 単語束とエクステント</a></h2>
+<p>
+parse/1が実行されると，内部ではsentence_to_word_lattice/2によって，文
+字列が単語束に変換され，その後でparse_word_lattice/1と同じ処理を行いま
+す．sentence_to_word_lattice/2によって得られる単語束はextent型のリスト
+と決められていますが，sentence_to_word_latticeの実装は文法依存です．
+extentの定義はparser.lilに次のように与えられています．このextent型のデー
+タ構造をエクステントと呼びます．<br>
+
+<br>
+extent &lt;- [bot] + [left_position\integer(0), right_position\integer(1)].<br>
+<br>
+extent_bracket &lt;- [extent].<br>
+extent_sign_constraint &lt;- [extent] + [sign_constraint\bot(5)]. <br>
+extent_word &lt;- [extent] + [word\bot(5)].<br>
+<br>
+
+extent型の子供が，extent_bracket，extent_sign_constraint，extent_word 
+となるので，それぞれleft_position\，right_position\という素性を持つこ
+とになります．
+</p>
+
+<p>
+left_position\, right_position\にはそれぞれ文における位置を表す整数が
+入ります．この整数のことをここではポジションと呼んでいます．また，左ポ
+ジションと右ポジションによって囲まれる部分を領域と呼びます．文をあらわ
+す文字列sが単語分割によって，w1,w2,w3,w4,w5,...,wnの単語列に分割された
+とき，w1のポジションは左が0で、右が1になります．一般にwiのポジションは
+左がi-1で，右がiになります．直感的には、単語とポジションの対応関係は次
+の図のようになります．
+
+<center>
+<img src="up_position.png" alt="ポジション">
+</center>
+
+単語と単語の間にポジションが対応しており、単語や句が連接しているかどう
+かの判定が簡単になります．例えば、ある単語の右のポジションとある単語の
+左のポジションが同じなら、その二つの単語は連接している、ということにな
+ります．
+</p>
+
+<p>
+extent_wordは，単語に対応するエクステントです．ポジションだけではな
+く，wordの字面や，POS taggerの結果をword\素性の中に格納できます．word\ 
+素性の中にどのような値が入るかは，文法依存になっています．その後の
+lexicon lookupの時にはこのword\素性の値を用いて語彙項目を辞書からひき
+ます。
+</p>
+
+<p>
+構文解析時の句の境界をextent_bracketによって明示的に与えることができま
+す．つまり，extent_bracketで示される領域と交差する構文木は作られません．
+</p>
+
+<p>
+extent_sign_constraintによって，その領域の素性構造に制約を与えることが
+できます．
+</p>
+
+<h2><a name="edge">4. エッジ</a></h2>
+<p>
+エッジには対応する型がありませんが，概念的には，&lt;左ポジション，右ポ
+ジション，サイン，リンクのリスト，FOM&gt;の5つの組で表現されます．ポジ
+ションは前節で説明したとおり，単語の境界位置をあらわします．サインは，
+文法用語で素性構造で記述された句構造のことを指します．つまり，エッジは
+文中のある位置からある位置までに対応するサインをあらわしている，という
+ことになります．また，パーズツリーを構文解析後に復元するための情報がリ
+ンクリストに入っており，曖昧性解消のためのスコア(後述)がFOMにはいって
+います．
+</p>
+<p>
+構文解析中に生成されたエッジには全てIDがつけられており、エッジマネー
+ジャーによってそれらは管理されています．現在生成されているエッジの数は
+get_edge_number(-$Num)で取得できます．エッジIDに対応する位置情報は，
+edge_position(+$ID, -$Left, -$Right)で取得できます．エッジIDに対応する
+サインは，edge_sign(+$ID, -$Sign)で取得できます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_edge_number(-$Num)</tt>
+<tr><td>$Num<td>エッジ数
+<tr><td colspan=2>現在パーザーに蓄えられているエッジの数．次の文が入力するまで有効．全てのエッジIDは0から$Num - 1までの値をとる．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_sign(+$ID, -$Sign)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$Sign<td>サイン
+<tr><td colspan=2>エッジID $IDに対応するエッジに格納されているサインを取得する．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_position(+$ID, -$Left, -$Right)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$Left<td>左位置
+<tr><td>$Right<td>右位置
+<tr><td colspan=2>エッジID $IDに対応するエッジの左位置，右位置を取得する．
+</table>
+</p>
+
+エッジIDは0からエッジ数-1まで，生成順につけられているので，edge_sign,
+edge_positionに0からget_edge_number(-$Num)で得られる$Num-1まで，順にID
+として渡すことで，全てのエッジの情報をみることができます．
+
+<h2><a name="chart">5. チャート</a></h2>
+<p>
+パーザには，チャートと呼ばれる構文解析状態を保存するデータがあります．
+チャートは，二次元テーブルになっていて，各要素をCKYセルと呼びます．入
+力文s(= w1, w2, w3, .. wn)が入力されたとき，例えば，w1 = "I", w2 =
+"saw", w3 = "a", w4 = "girl", w5 = "with", w6 = "a", w7 = "telescope"
+が入力されたとき，チャートは次のようになります．
+
+<center>
+<img src="up_chart.png" alt="チャート">
+</center>
+
+各CKYセルをS[i][j]とあらわしたとき，i,jは文中の位置，すなわちポジショ
+ンをあらわします．S[0][1]には"I"に対応するエッジのIDが格納され，
+S[1][2]には，"saw"に対応するエッジのIDが格納され，S[6][7]には
+"telescope"に対応するエッジのIDが格納されます．単語に対応するCKYセルに
+は以上のようにエッジのIDが格納されます．句に対応するCKYセルにも構文解
+析が行われることによってエッジのIDが格納されていきます．例えば，
+S[0][2]は"I saw" に，S[1][3]は"saw a"に対応し，さらに大きな句である
+S[0][3]は"I saw a"に対応します．つまり，文の長さをnとしたとき，文全体
+に対応するエッジのIDはS[0][n] に格納されます．上記の例だとS[0][7]に文
+全体に対応するエッジのIDが格納されます．
+</p>
+
+チャート上の情報はedge_id_listとtop_edge_id_listでみることができます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_id_list(+$Left, +$Right, -$IDList)</tt>
+<tr><td>$Left<td>CKYセルの左位置
+<tr><td>$Right<td>CKYセルの右位置
+<tr><td>$IDList<td>エッジIDのリスト
+<tr><td colspan=2>左位置が$Left, 右位置が$RightのCKYセルに格納されているエッジIDのリストを返す．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>top_edge_id_list(-$IDList)</tt>
+<tr><td>$IDList<td>エッジIDのリスト
+<tr><td colspan=2>文全体に対応するCKYセル(左位置=0, 右位置=文の長さ)に格納されているエッジIDのリストを返す．
+</table>
+</p>
+
+S[i][j]に格納されたエッジのIDのリストをedge_id_listで取得でき，文全体を表す
+s[0][n]に格納されたエッジのIDのリストはtop_edge_id_listで取得できます．
+</p>
+
+<h2><a name="link">6. リンク</a></h2>
+<p>
+構文解析の際には子供2つに文法規則を適用して，新たに親ができます．例え
+ば，S[0][3]に格納されたエッジとS[3][5]に格納されたエッジに文法適用した
+結果はS[0][5]に格納されます．この際に，同じCKYセル中の複数の等価なサイ
+ンはファクタリングと呼ばれる処理でひとつのサインに縮退されます．ファク
+タリングの処理においては，構文解析後に復元できる情報は切り捨てられるの
+で，構文解析後に復元できるようリンクと呼ばれるデータ構造にそれらの情報
+を格納しています．例えば，子供のサインは切り捨てられる代表的な情報です．
+他にも意味構造なども切り捨てて，全てリンクに格納します．縮退されて複数
+のエッジが一つのエッジになるため，一つのエッジに複数のリンクが対応しま
+す．
+</p>
+
+<p>
+リンクはlink型で表現され，parser.lilに次のように定義されています．<br>
+
+<br>
+link <- [bot] + [SIGN_PLUS\bot (-100)].<br>
+terminal <- [link] + [LEX_NAME\bot (5)].<br>
+nonterminal <- [link] + [APPLIED_SCHEMA\bot (5)].<br>
+nonterminal_binary <- [nonterminal] + [L_DTR\integer(0), R_DTR\integer(1)].<br>
+nonterminal_unary <- [nonterminal] + [U_DTR\integer(0)].<br>
+<br>
+
+terminalはlexical entryに対応するリンクで，nonterminal_binaryは，2分木
+文法規則によって生成されたサインのリンクで，nonterminal_unaryは，1分木
+文法規則によって生成されたサインのリンクになります．APPLIED_SCHEMA\素
+性には適用された文法規則のIDが入り，LEX_NAME\素性には用いられた語彙項
+目のIDが入ります．SIGN_PLUSには切り捨てられたサインが入ります．つまり，
+SIGN_PLUS\の値とエッジのサインを単一化することで元のサインに復元できま
+す．L_DTR\素性には左の子供のエッジIDが入っており，R_DTR\素性には右の子
+供のエッジIDが入っており，U_DTR\には1分木文法規則の子供のエッジIDが入っ
+ています．
+</p>
+
+<p>
+これらリンクは次のedge_link_id_listとedge_linkで取得できます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link_id_list($ID, $LinkIDs)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$LinkIDs<td>リンクIDのリスト
+<tr><td colspan=2>エッジID $IDに対応するエッジに格納されたリンクIDのリストを取得する．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link($ID, $Link)</tt>
+<tr><td>$ID<td>リンクID
+<tr><td>$Link<td>リンク
+<tr><td colspan=2>リンクID $IDに対応するリンクを取得する．
+</table>
+</p>
+
+リンクにもIDがつけられていて，リンクマネージャーにより管理されています．
+リンクIDに対するリンクは，edge_linkで取得でき，エッジに対応するリンク
+は，edge_link_id_listでリンクIDのリストとして取得できます．構文解析後，
+エッジとリンクを相互にたどることによって全パーズツリーを参照することが
+できます．
+</p>
+
+<h2><a name="root_parse_tree">7. ルート条件とパーズツリー</a></h2>
+<p>
+文全体に対応するエッジ (パーズツリーではrootに相当) には文としての条件
+を満たしているかチェックをかけることができます．<a
+href="usegrammar.ja.html">文法の使い方</a>で定義されているroot_signが
+その条件にあたります．top_edge_id_listで取得できるエッジのIDリストのう
+ち，root_signの条件を満たしているものだけを返すroot_edge_id_listが定義
+されています．
+
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>root_edge_id_list(-$IDList)</tt>
+<tr><td>$IDList<td>エッジIDのリスト
+<tr><td colspan=2>文全体に対応するCKYセル(左位置=0, 右位置=文の長さ)に格納されているエッジのうち，root条件を満たすもののIDのリストを返す．
+</table>
+</p>
+
+</p>
+
+<p>
+パーズツリーを自動的に復元する述語も用意されています．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parse_tree(+$ID, -$Tree)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$Tree<td>パーズツリー
+<tr><td colspan=2>エッジID $IDのエッジをルートとするパーズツリーを返す．バックトラックにより，全てのパーズツリーを得ることができる．
+</table>
+</p>
+</p>
+
+<h2><a name="fom">8. 曖昧性解消モジュール</a></h2>
+<p>
+曖昧性解消モジュールを文法側が用意すれば，エッジのFOM (Figure of
+Merit, 値が高いほど正しい構文木であることを示すスコア)をedge_fomで取得
+することができます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_fom(+$ID, -$FOM)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>エッジID $IDのFOMを返す．
+</table>
+</p>
+
+同様にリンクに対するFOMもedge_link_fomで取得できます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>edge_link_fom(+$ID, -$FOM)</tt>
+<tr><td>$ID<td>リンクID
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>リンクID $IDのFOMを返す．
+</table>
+</p>
+
+上記の述語の組み合わせで，パーズツリーのルートに対応するエッジのうち，
+もっともFOMが高いエッジをbest_fom_signで取得できます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>best_fom_sign(-$ID, -$Sign, -$FOM)</tt>
+<tr><td>$ID<td>エッジID
+<tr><td>$Sign<td>サイン
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>パーズツリーのルートに対応するエッジのうちもっともFOMの高いエッジのID，サイン，FOMを返す．
+</table>
+</p>
+
+同様に，もっともFOMが高いパーズツリーをbest_fom_treeで取得することができます．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>best_fom_tree(-$Tree, -$FOM)</tt>
+<tr><td>$Tree<td>パーズツリー
+<tr><td>$FOM<td>FOM
+<tr><td colspan=2>もっともFOMの高いパーズツリーとそれに対するFOMを返す．
+</table>
+</p>
+
+</p>
+
+
+<h2><a name="misc">9. 種々雑多</a></h2>
+<p>
+最後に，upには以下の パーザの動作や状態を知るための以下のインターフェー
+スを紹介します．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>parser_init</tt>
+<tr><td colspan=2><tt>parser_term</tt>
+<tr><td colspan=2>パーザーが初期化されるときおよび終了するときに呼び出されます．文法側から，最大文長，最大エッジ数，Quick Check用のパスなどを設定したい場合は，parser_initに記述しておくと実行されます．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_limit_sentence_length(-$Len)</tt>
+<tr><td colspan=2><tt>set_limit_sentence_length(+$Len)</tt>
+<tr><td>$Len<td>単語数
+<tr><td colspan=2>一文の最大単語数を取得したり，セットします．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_limit_edge_number(-$Num)</tt>
+<tr><td colspan=2><tt>set_limit_edge_number(+$Num)</tt>
+<tr><td>$Num<td>エッジ数
+<tr><td colspan=2>一文解析中の最大エッジ数を取得したり，セットします．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>set_parser_mode(+$Name, +$Val)</tt>
+<tr><td colspan=2><tt>get_parser_mode(+$Name, +$Val)</tt>
+<tr><td>$Name<td>パーザモード名
+<tr><td>$Val<td>パーザモードの値
+<tr><td colspan=2>現在のパーザのモードを取得したり，パーザの振る舞いを変更したりします．現在指定できるモードは，"quick check path"と"enable quick check"の二つだけです．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>set_beam_thresholding_params($Num, $Width)</tt>
+<tr><td>$Num<td> CKYセルの中に残すエッジの数
+<tr><td>$Width<td> ビーム幅
+<tr><td colspan=2>ビームサーチの枝刈りの際，確率値の高いものから順に$Num個のエッジだけが残される．また，CKYセルのエッジの中で一番高い確率値からこの$Widthを引いた値以上の確率値をもつエッジのみ残される．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parse_status($Status)</tt>
+<tr><td>$Status<td> parse結果に対する状態．mayz:parser:parse_success, mayz:parser:preproc_error, mayz:parser:parse_error_too_long, mayz:parser:parse_error_edge_limit, mayz:parser:parse_error_unknownの5種類ある．
+<tr><td colspan=2>parse後に，parseが正常に終了したか，失敗したか，という情報を取得する．parse_successはパーズが正常に終了したことを表す．preproc_errorはプリプロセス中にエラーが生じたことを示している．parse_error_too_longは入力文がset_limit_sentence_length(+$Len)で指定された$Len以上の長さであったことをあらわしている．parse_error_edge_limitはパーズ中にset_limit_edge_number(+$Num)で指定された$Num以上のエッジが生成されたために終了してしまったことを表す．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_sentence($Sentence)</tt>
+<tr><td colspan=2><tt>get_word_lattice($WordLattice)</tt>
+<tr><td>$Sentence<td>文
+<tr><td>$WordLattice<td>束 (=エクステントのリスト)
+<tr><td colspan=2>現在入力されている文，束を返す．次の文が入力するまで有効．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_sentence_length($Len)</tt>
+<tr><td>$Len<td>文長
+<tr><td colspan=2>現在入力されている文の文長(=単語数)を返す．次の文が入力するまで有効．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_analyze_word_time($Time)</tt>
+<tr><td colspan=2><tt>get_analyze_lexent_time($Time)</tt>
+<tr><td colspan=2><tt>get_analyze_parse_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_setup_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_lex_time($Time)</tt>
+<tr><td colspan=2><tt>get_parse_phrase_time($Time)</tt>
+<tr><td colspan=2><tt>get_total_time($Time)</tt>
+<tr><td>$Time<td>時間 (msec)
+<tr><td colspan=2>get_analyze_word_time, get_analyze_lexent_time and get_analyze_parse_timeはそれぞれ単語解析時間、辞書項目解析時間、構文解析時間を返します。get_total_timeはそれらget_analyze_*の合計を返します。get_parse_setup_time, get_parse_lex_time and get_parse_phrase_timeはそれぞれ構文解析中のセットアップ時間、リーフ解析時間、フレーズ解析時間を返します。つまり、get_parse_*の合計は常にget_analyze_parse_timeを下回ります。次の文が入力されるまで有効。
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_parser_name($Name)</tt>
+<tr><td colspan=2><tt>get_parser_version($Version)</tt>
+<tr><td>$Name<td>パーザの名前
+<tr><td>$Version<td>パーザのヴァージョン
+<tr><td colspan=2>それぞれパーザの名前，ヴァージョンを返す．
+</table>
+</p>
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>get_grammar_name(-$Name)</tt>
+<tr><td colspan=2><tt>get_grammar_version(-$Version)</tt>
+<tr><td colspan=2><tt>set_grammar_name(+$Name)</tt>
+<tr><td colspan=2><tt>set_grammar_version(+$Version)</tt>
+<tr><td>$Name<td>文法の名前
+<tr><td>$Version<td>文法のヴァージョン
+<tr><td colspan=2>文法の名前やヴァージョンをパーザにセットしたり，取得したりします．特に指定しなくてもパーザは動きます．
+</table>
+</p>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:ninomi@is.s.u-tokyo.ac.jp">
+<address>Takashi Ninomiya (ninomi@is.s.u-tokyo.ac.jp)</address>
+</a>
+Jun. 14, 2005
+</body>

@@ -1,0 +1,56 @@
+#!/bin/sh
+
+###########################################################################
+###
+###  Copyright (c) 2007, Tsujii Laboratory, The University of Tokyo.
+###  All rights reserved.
+###
+###  Name: run-mogura
+###  shell script to run mogura
+###
+###########################################################################
+
+BASE_DIR=`dirname $0`
+
+# find the absolute path to this script
+echo $BASE_DIR | grep -q '^/' 2> /dev/null > /dev/null
+if [ $? != 0 ]; then
+  BASE_DIR=`pwd`/$BASE_DIR
+fi
+
+# set environment variables
+if [ -z "$ENJU_PREFIX" ]; then
+  export ENJU_PREFIX=$BASE_DIR
+fi
+
+if [ -z "$ENJU_DIR" ]; then
+  export ENJU_DIR=$BASE_DIR/lib/enju
+fi
+
+# if [ -z "$ENJU_TAGGER" ]; then
+#   export ENJU_TAGGER="$BASE_DIR/bin/stepp -t -m $BASE_DIR/share/stepp/models_wsj02-21"
+# fi
+
+if [ -z "$LILFES_PATH" ]; then
+  export LILFES_PATH=$BASE_DIR/share/liblilfes
+else
+  export LILFES_PATH=$BASE_DIR/share/liblilfes:$LILFES_PATH
+fi
+
+if [ -z "$LD_LIBRARY_PATH" ]; then
+  export LD_LIBRARY_PATH=$BASE_DIR/lib
+else
+  export LD_LIBRARY_PATH=$BASE_DIR/lib:$LD_LIBRARY_PATH
+fi
+
+# for debugging
+# echo "base=$BASE_DIR"
+# echo "ENJU_PREFIX=$ENJU_PREFIX"
+# echo "ENJU_DIR=$ENJU_DIR"
+# echo "ENJU_TAGGER=$ENJU_TAGGER"
+# echo "LILFES_PATH=$LILFES_PATH"
+# echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+# run enju
+$BASE_DIR/bin/mogura "$@"
+

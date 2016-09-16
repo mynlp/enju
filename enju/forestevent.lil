@@ -1,0 +1,386 @@
+%/**********************************************************************
+  * @module    =  enju:forestevent
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @version   =  Time-stamp: <2008-01-14 17:14:05 yusuke>
+  * @desc      =  Extracting events for feature forest models
+  **********************************************************************
+%*/
+
+:- module("enju:forestevent").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/amismodel").
+:- ensure_loaded("types").
+
+%% extract_hpsg_aux_event <- [pred].
+extract_hpsg_terminal_event <- [pred].
+extract_hpsg_sem_event <- [pred].
+extract_hpsg_unary_event <- [pred].
+extract_hpsg_binary_event <- [pred].
+extract_hpsg_root_event <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("display").
+:- ensure_loaded("../mayz/parser").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Utilities
+
+word_distance_map <- [pred].
+word_distance_map(-1, "-1") :- !.
+word_distance_map(0, "0") :- !.
+word_distance_map(1, "1") :- !.
+word_distance_map(2, "2") :- !.
+word_distance_map(3, "2") :- !.
+word_distance_map(4, "4") :- !.
+word_distance_map(5, "4") :- !.
+word_distance_map(6, "4") :- !.
+word_distance_map(7, "7") :- !.
+word_distance_map(8, "7") :- !.
+word_distance_map(9, "7") :- !.
+word_distance_map(10, "7") :- !.
+word_distance_map(11, "11") :- !.
+word_distance_map(12, "11") :- !.
+word_distance_map(13, "11") :- !.
+word_distance_map(14, "11") :- !.
+word_distance_map(15, "11") :- !.
+word_distance_map(_, "16") :- !.
+
+word_distance <- [pred].
+word_distance($Pos1, $Pos2, $Dist) :-
+    $Len is $Pos2 - $Pos1,
+    word_distance_map($Len, $Dist).
+
+arg_distance <- [pred].
+arg_distance($Pos1, _, "-1") :-
+    $Pos1 < 0,
+    !.
+arg_distance(_, $Pos2, "-1") :-
+    $Pos2 < 0,
+    !.
+arg_distance($Pos1, $Pos2, $Dist) :-
+    ($Pos1 < $Pos2 ->
+     $Len is $Pos2 - $Pos1 ;
+     $Len is $Pos1 - $Pos2),
+    word_distance_map($Len, $Dist).
+
+find_head <- [pred].
+%% find_head(subj_head_schema, $Left, $Right, $Right, $Left).
+%% find_head(head_comp_schema, $Left, $Right, $Left, $Right).
+%% find_head(spec_head_schema, $Left, $Right, $Right, $Left).
+%% find_head(head_mod_schema, $Left, $Right, $Left, $Right).
+%% find_head(mod_head_schema, $Left, $Right, $Right, $Left).
+%% find_head(filler_head_schema, $Left, $Right, $Right, $Left).
+%% find_head(head_relative_schema, $Left, $Right, $Left, $Right).
+%% find_head(coord_left_schema, $Left, $Right, $Left, $Right).
+%% find_head(coord_right_schema, $Left, $Right, $Left, $Right).
+
+%% selection head
+find_head(subj_head_schema, $Left, $Right, $Right, $Left).
+find_head(head_comp_schema, $Left, $Right, $Left, $Right).
+find_head(spec_head_schema, $Left, $Right, $Right, $Left).
+find_head(head_mod_schema, $Left, $Right, $Right, $Left).
+find_head(mod_head_schema, $Left, $Right, $Left, $Right).
+find_head(filler_head_schema, $Left, $Right, $Right, $Left).
+find_head(head_relative_schema, $Left, $Right, $Right, $Left).
+find_head(coord_left_schema, $Left, $Right, $Left, $Right).
+find_head(coord_right_schema, $Left, $Right, $Right, $Left).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Encoding schema
+
+%% rule names
+rule_name_mapping <- [pred].
+rule_name_mapping(subj_head_schema,
+		  SYNSEM\LOCAL\CAT\HEAD\AGR\$HeadAgr,
+		  SYNSEM\LOCAL\CAT\HEAD\AGR\$NonHeadAgr, "SUBJ-noagr") :-
+    $HeadAgr \= $NonHeadAgr,
+    !.
+rule_name_mapping(subj_head_schema, _, _, "SUBJ").
+rule_name_mapping(head_comp_schema, _, _, "COMP").
+rule_name_mapping(spec_head_schema, _, _, "SPEC").
+rule_name_mapping(head_mod_schema, _, _, "RMOD").
+rule_name_mapping(mod_head_schema, _, _, "LMOD").
+rule_name_mapping(filler_head_schema, _, _, "FILLER").
+rule_name_mapping(head_relative_schema, _, _, "REL").
+rule_name_mapping(coord_left_schema,
+		  SYNSEM\LOCAL\CAT\HEAD\AGR\$HeadAgr,
+		  SYNSEM\LOCAL\CAT\HEAD\AGR\$NonHeadAgr, "COORDL-noagr") :-
+    $HeadAgr \= $NonHeadAgr,
+    !.
+rule_name_mapping(coord_left_schema, _, _, "COORDL").
+rule_name_mapping(coord_right_schema, _, _, "COORDR").
+%%rule_name_mapping(filler_insertion_schema, _, _, "INSERT").
+rule_name_mapping(empty_filler_head_schema, _, _, "EMPTY_FILLER").
+%rule_name_mapping(empty_specifier_schema, _, _, "EMPTY_SPEC").
+rule_name_mapping(free_relative_schema, _, _, "FREE_REL").
+
+%% agreement_feature <- [pred].
+%% agreement_feature(subj_head_schema,
+%% 		  SYNSEM\LOCAL\CAT\HEAD\AGR\$HeadAgr,
+%% 		  SYNSEM\LOCAL\CAT\HEAD\AGR\$NonHeadAgr,
+%% 		  "-noagr") :-
+%%     $HeadAgr \= $NonHeadAgr,
+%%     !.
+%% agreement_feature(_, _, _, "").
+
+%% encode_rule_name <- [pred].
+%% encode_rule_name($Rule, $Head, $NonHead, $RuleName) :-
+%%     rule_name_mapping($Rule, $RuleName1),
+%%     agreement_feature($Rule, $Head, $NonHead, $Agr),
+%%     strcat($RuleName1, $Agr, $RuleName).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Encoding relation of two phrases
+
+encode_distance <- [pred].
+encode_distance(LEX_SPEC\LEX_WORD\POSITION\$LeftPosition,
+		LEX_SPEC\LEX_WORD\POSITION\$RightPosition,
+		$Distance) :-
+    word_distance($LeftPosition, $RightPosition, $Distance).
+
+encode_depth <- [pred].
+encode_depth(PROB_FEATURE\L_ADJAC\BOUND_POSITION\$LPos, PROB_FEATURE\R_ADJAC\BOUND_POSITION\$RPos,
+	     $Depth) :-
+    $Len is $RPos - $LPos,
+    get_sentence_length($SentLen),
+    word_distance($Len, $SentLen, $Depth).
+
+encode_comma_adjacency <- [pred].
+encode_comma_adjacency(hpsg_phrase & PROB_FEATURE\R_ADJAC\BOUND_COMMA\hpsg_plus, _,
+		       "p") :- !.
+encode_comma_adjacency(_, hpsg_phrase & PROB_FEATURE\L_ADJAC\BOUND_COMMA\hpsg_plus,
+		       "p") :- !.
+encode_comma_adjacency(hpsg_word & PROB_FEATURE\R_ADJAC\BOUND_COMMA\hpsg_plus, _,
+		       "l") :- !.
+encode_comma_adjacency(_, hpsg_word & PROB_FEATURE\L_ADJAC\BOUND_COMMA\hpsg_plus,
+		       "r") :- !.
+encode_comma_adjacency(_, _,
+		       "m") :- !.
+
+encode_comma_boundary <- [pred].
+encode_comma_boundary(hpsg_phrase & PROB_FEATURE\L_ADJAC\BOUND_COMMA\hpsg_plus, _,
+		      "p") :- !.
+encode_comma_boundary(_, hpsg_phrase & PROB_FEATURE\R_ADJAC\BOUND_COMMA\hpsg_plus,
+		      "p") :- !.
+encode_comma_boundary(_, _,
+		      "m") :- !.
+
+encode_pos_adjacency <- [pred].
+encode_pos_adjacency(PROB_FEATURE\R_ADJAC\BOUND_POS\$LPOS,
+		     PROB_FEATURE\L_ADJAC\BOUND_POS\$RPOS,
+		     $LPOS, $RPOS).
+
+encode_outside_pos <- [pred].
+encode_outside_pos(PROB_FEATURE\L_ADJAC\BOUND_POSITION\$LPosition,
+		   PROB_FEATURE\R_ADJAC\BOUND_POSITION\$RPosition,
+		   $LPOS, $RPOS) :-
+    ($LPosition <= 0 ->
+     $LPOS = "BOS" ;
+     $LPosition1 is $LPosition - 1,
+     % get_word_lattice($LPosition1, $LPosition, [word\POS\$LPOS|_])),
+     words($LPosition1, $LPosition, [POS\$LPOS|_])),
+    get_sentence_length($Len),
+    $RPosition1 is $RPosition + 1,
+    ($RPosition1 >= $Len ->
+     $RPOS = "EOS" ;
+     $RPosition2 is $RPosition + 2,
+     %get_word_lattice($RPosition1, $RPosition2, [word\POS\$RPOS|_])).
+     words($RPosition1, $RPosition2, [POS\$RPOS|_])).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Encoding sign
+
+%% head_mapping <- [pred].
+%% head_mapping(hpsg_verb & VFORM\hpsg_fin, [], [], [], [], "S_fin") :- !.
+%% head_mapping(hpsg_verb, [], [], [], [], "S") :- !.
+%% head_mapping(hpsg_verb, [], _, [], [], "SX") :- !.
+%% head_mapping(hpsg_verb, [_], [], [], [], "VP") :- !.
+%% head_mapping(hpsg_verb, _, _, [], [], "VX") :- !.
+%% head_mapping(hpsg_noun & ADJ\hpsg_plus, [], [], [], [], "N_adj") :- !.
+%% head_mapping(hpsg_noun, [], [], [], [], "NP") :- !.
+%% %head_mapping(hpsg_noun, _, _, [_], [], "NB") :- !.
+%% head_mapping(hpsg_noun, _, _, _, _, "NX") :- !.
+%% head_mapping(hpsg_det, [], [], [], [_], "DP") :- !.
+%% %head_mapping(hpsg_det, _, [], [], [_], "DB") :- !.
+%% head_mapping(hpsg_det, _, _, _, _, "DX") :- !.
+%% head_mapping(hpsg_adj & ADJ\hpsg_plus, [], [], [], [], "A_adj") :- !.
+%% head_mapping(hpsg_adj, [], [], [], [], "AP") :- !.
+%% %head_mapping(hpsg_adj, [], [_], [], [], "AB") :- !.
+%% head_mapping(hpsg_adj, _, _, _, _, "AX") :- !.
+%% head_mapping(hpsg_adv & ADJ\hpsg_plus, [], [], [], [], "AV_adj") :- !.
+%% head_mapping(hpsg_adv, [], [], [], [], "AVP") :- !.
+%% %head_mapping(hpsg_adv, [], [_], [], [], "AVB") :- !.
+%% head_mapping(hpsg_adv, _, _, _, _, "AVX") :- !.
+%% head_mapping(hpsg_prep & ADJ\hpsg_plus, [], [], [], [], "P_adj") :- !.
+%% head_mapping(hpsg_prep, [], [], [], [], "PP") :- !.
+%% %head_mapping(hpsg_prep, [], [_], [], [], "PB") :- !.
+%% head_mapping(hpsg_prep, _, _, _, _, "PX") :- !.
+%% head_mapping(hpsg_pl, _, _, _, _, "PL") :- !.
+%% head_mapping(hpsg_punct, [], [], [], [], "PUP") :- !.
+%% head_mapping(hpsg_punct, _, _, _, _, "PUX") :- !.
+%% head_mapping(hpsg_comma, [], [], [], [], "CMP") :- !.
+%% head_mapping(hpsg_comma, _, _, _, _, "CMX") :- !.
+%% head_mapping(hpsg_conj, [], [], [], [], "CJP") :- !.
+%% head_mapping(hpsg_conj, _, _, _, _, "CJX") :- !.
+%% head_mapping(hpsg_comp, _, _, _, _, "CP") :- !.
+%% head_mapping(hpsg_subc, _, _, _, _, "SC") :- !.
+
+%% encode_num_clause <- [pred].
+%% encode_num_clause(0, "0") :- !.
+%% encode_num_clause(1, "1") :- !.
+%% encode_num_clause(2, "2") :- !.
+%% encode_num_clause(_, "3").
+
+encode_num_comma <- [pred].
+encode_num_comma($NumComma, "p") :-
+    type_equal($NumComma, hpsg_plus),
+    !.
+encode_num_comma(_, "m").
+
+encode_sign <- [pred].
+encode_sign($Sign &
+	    LEX_SPEC\(LEX_WORD\(SURFACE\$Surface &
+				POS\$POS &
+				BASE\$Base &
+				BASE_POS\$BasePOS) &
+		      % LEX_TEMPLATE\($TempName & LEXEME_NAME\$LexemeName)) &
+		      LEX_TEMPLATE\$TempName) &
+	    PROB_FEATURE\(L_ADJAC\BOUND_POSITION\$LPosition &
+			  R_ADJAC\BOUND_POSITION\$RPosition &
+%%			  NUM_CLAUSE\$NumClause1 &
+			  NUM_COMMA\$NumComma1),
+	    [$Symbol, $Surface, $POS, $TempName, $Base, $BasePOS, $LexemeName, $Span, $NumComma|$Tail],
+	    $Tail) :-
+%%    head_mapping($Head, $Subj, $Comps, $Spr, $Spec, $Symbol),
+    sign_label($Sign, $Symbol),
+    % lex_template_label($TempName, $Temp),
+    split($TempName, "-", [$LexemeName|_]),
+    word_distance($LPosition, $RPosition, $Span),
+%%    encode_num_clause($NumClause1, $NumClause),
+    encode_num_comma($NumComma1, $NumComma).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Syntactic features
+
+extract_hpsg_unary_event($Rule, $Sign,
+			 [$RuleName, $LBPOS, $RBPOS|$DtrFeatures]) :-
+    rule_name_mapping($Rule, $Sign, _, $RuleName),
+    encode_outside_pos($Sign, $Sign, $LBPOS, $RBPOS),
+    encode_sign($Sign, $DtrFeatures, []).
+
+extract_hpsg_binary_event($Rule, $LSign, $RSign,
+			  [$RuleName, $Dist, $Depth, $AdjComma, $BoundComma, $LPOS, $RPOS, $LBPOS, $RBPOS|$HDtrFeatures]) :-
+    find_head($Rule, $LSign, $RSign, $Head, $NonHead),
+    rule_name_mapping($Rule, $Head, $NonHead, $RuleName),
+    encode_distance($LSign, $RSign, $Dist),
+    encode_depth($LSign, $RSign, $Depth),
+    encode_comma_adjacency($LSign, $RSign, $AdjComma),
+    encode_comma_boundary($LSign, $RSign, $BoundComma),
+    encode_pos_adjacency($LSign, $RSign, $LPOS, $RPOS),
+    encode_outside_pos($LSign, $RSign, $LBPOS, $RBPOS),
+    encode_sign($Head, $HDtrFeatures, $NDtrFeatures),
+    encode_sign($NonHead, $NDtrFeatures, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Semantic features
+
+argument_str <- [pred].
+argument_str(invalid_relation, _) :- !, fail.  %% ignore unfilled arguments
+argument_str(unknown_relation,
+	     LEX_WORD\(INPUT\"UNKNOWN" & SURFACE\"UNKNOWN" & INPUT_POS\"UNKNOWN" & POS\"UNKNOWN" & POSITION\-1) &
+	     % LEX_TEMPLATE\(LEXEME_NAME\"UNKNOWN" & LEXICAL_RULES\[])) :- !.
+	     LEX_TEMPLATE\"UNKNOWN") :- !. %% is this ok? (2009-11-30 matuzaki)
+argument_str(PRED\$Name, $Name).
+extract_argument <- [pred].
+extract_argument(MODARG\$Arg, "MODIFY", $ArgStr) :- argument_str($Arg, $ArgStr).
+extract_argument(ARG1\$Arg, "ARG1", $ArgStr) :- argument_str($Arg, $ArgStr).
+extract_argument(ARG2\$Arg, "ARG2", $ArgStr) :- argument_str($Arg, $ArgStr).
+extract_argument(ARG3\$Arg, "ARG3", $ArgStr) :- argument_str($Arg, $ArgStr).
+extract_argument(ARG4\$Arg, "ARG4", $ArgStr) :- argument_str($Arg, $ArgStr).
+
+extract_hpsg_sem_event($Inactives,
+		       [$Surface, $POS, $Temp,
+			$ArgSurf, $ArgPOS, $ArgTemp,
+			$Feature, $Dist]) :-
+    member($Ind & PRED\(LEX_WORD\(SURFACE\$Surface &
+				  POS\$POS &
+				  POSITION\$Position) &
+			% LEX_TEMPLATE\LEXEME_NAME\$Temp),
+			LEX_TEMPLATE\$TempName),
+	   $Inactives),
+    split($TempName, "-", [$Temp|_]),
+    extract_argument($Ind, $Feature,
+		     LEX_WORD\(SURFACE\$ArgSurf & POS\$ArgPOS &
+			       POSITION\$ArgPosition) &
+		     % LEX_TEMPLATE\LEXEME_NAME\$ArgTemp),
+		     LEX_TEMPLATE\$ArgTempName),
+    split($ArgTempName, "-", [$ArgTemp|_]),
+    arg_distance($Position, $ArgPosition, $Dist).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Terminal features
+
+%% extract_hpsg_aux_event(LEX_SPEC\$WordInfo, ["unigram"], $FOM) :-
+%%    uni_log_probability($WordInfo, $FOM).
+
+extract_hpsg_terminal_event($Sign, $Event) :-
+    encode_sign($Sign, $Event, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Root features
+
+extract_hpsg_root_event($Sign, $Event) :-
+    encode_sign($Sign, $Event, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% extract_semantics_event("hpsgforest", $Sem, $Event) :-
+%%     extract_hpsg_sem_event($Sem, $Event).
+%% semantics_event_condition("hpsgforest", [$Surface, $POS, $Temp, _, _, _, $Feature, _], [$Surface, $POS, $Temp, $Feature]).
+
+%% extract_unary_event("hpsgforest", $Rule, $Sign, $Event) :-
+%%     extract_hpsg_unary_event($Rule, $Sign, $Event).
+%% unary_event_condition("hpsgforest", [_, $Symbol, _, $Surface, $POS, $Temp, _, _], [$Symbol, $Surface, $POS, $Temp]).
+
+%% extract_binary_event("hpsgforest", $Rule, $LSign, $RSign, $Event) :-
+%%     extract_hpsg_binary_event($Rule, $LSign, $RSign, $Event).
+%% binary_event_condition("hpsgforest", [_, _, _, _, $Symbol, _, $Surface, $POS, $Temp, _, _, _, _, _, _, _, _, _],
+%% 		       [$Symbol, $Surface, $POS, $Temp]).
+
+%% extract_root_event("hpsgforest", $Sign, $Event) :-
+%%     extract_hpsg_root_event($Sign, $Event).
+
+extract_unary_event("hpsg-forest", "sem", _, _, _, $Inactives, $Event) :-
+    extract_hpsg_sem_event($Inactives, $Event).
+extract_unary_event("hpsg-forest", "unary", $RuleName, $Dtr, _, _, $Event) :-
+    extract_hpsg_unary_event($RuleName, $Dtr, $Event).
+
+extract_binary_event("hpsg-forest", "sem", _, _, _, _, $Inactives, $Event) :-
+    extract_hpsg_sem_event($Inactives, $Event).
+extract_binary_event("hpsg-forest", "bin", $RuleName, $LDtr, $RDtr, _, _, $Event) :-
+    extract_hpsg_binary_event($RuleName, $LDtr, $RDtr, $Event).
+
+extract_terminal_event("hpsg-forest", "term", _, $Sign, _, $Event) :-
+    extract_hpsg_terminal_event($Sign, $Event).
+
+extract_root_event("hpsg-forest", "root", $Root, $Event) :-
+    extract_hpsg_root_event($Root, $Event).
+
+%% exploting auxiliary distribution as a feature function
+%% extract_terminal_event_feature_value("hpsg-forest", "aux", _, $Sign, $Event, $FOM) :-
+%%     extract_hpsg_aux_event($Sign, $Event, $FOM).
+

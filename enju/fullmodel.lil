@@ -1,0 +1,71 @@
+%/**********************************************************************
+  * @module    =  enju:fullmodel
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: fullmodel.lil,v 1.4 2009-12-03 23:33:11 matuzaki Exp $
+  * @version   =  Time-stamp: <2007-04-18 10:54:07 yusuke>
+  * @desc      =  fullmodel: feature forest model with syntactic/semantic features
+  **********************************************************************
+%*/
+
+:- module("enju:fullmodel").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+:- ensure_loaded("forestprob").
+:- ensure_loaded("fullmask").
+
+:- module_implementation.
+
+:- ensure_loaded("tools").
+:- ensure_loaded("lillib/debug").
+:- set_debug_mode("enju_fom").
+
+%% fom_semantics_loop <- [pred].
+%% fom_semantics_loop([], $Prob, $Prob).
+%% fom_semantics_loop([$Ind|$IndList], $InProb, $OutProb) :-
+%%     fom_derivation_semantics($Ind, $Prob),
+%%     $NextProb is $InProb + $Prob,
+%%     fom_semantics_loop($IndList, $NextProb, $OutProb).
+
+fom_binary($RuleName, $Left, $Right, _, $Inactives, $FOM) :-
+    deriv_weight_binary($RuleName, $Left, $Right, $FOM1),
+    semantics_weight($Inactives, $FOM2),
+    $FOM is $FOM1 + $FOM2.
+
+fom_unary($RuleName, $Dtr, _, $Inactives, $FOM) :-
+    deriv_weight_unary($RuleName, $Dtr, $FOM1),
+    semantics_weight($Inactives, $FOM2),
+    $FOM is $FOM1 + $FOM2.
+
+fom_root($Sign, $FOM) :-
+    root_weight($Sign, $FOM).
+
+fom_terminal(_, $Sign, _, $FOM) :-
+    deriv_weight_terminal($Sign, $FOM).
+
+%%-- OBSOLETE --%
+%% fom_lexical_entry(_, $LexName, $FOM) :-
+%%    uni_log_probability($LexName, $FOM).
+
+parser_init :-
+    %(get_enju_file_path("DATA/Enju-lex.output.gz", $LexFile) ->
+    % true ;
+    % error_message("Cannot find FOM file: DATA/Enju-lex.output.gz\n"),
+    % fail),
+    (get_enju_file_path("DATA/Enju-full.output.gz", $FullFile) ->
+     true ;
+     error_message("Cannot find FOM file: DATA/Enju-full.output.gz\n"),
+     fail),
+    %debug_message("enju_fom", "  Loading Unigram FOM model: ~s\n", [$LexFile]),
+    %(import_uni_model($LexFile) ->
+    % true ;
+    % error_message("Cannot import Unigram model: ~s\n", [$LexFile]),
+    % fail),
+    debug_message("enju_fom", "  Loading Full FOM model: ~s\n", [$FullFile]),
+    (import_forest_model($FullFile) ->
+     true ;
+     error_message("Cannot import forest model: ~s\n", [$FullFile]),
+     fail).
+

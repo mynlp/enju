@@ -1,0 +1,166 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lexextract: derivbank および lexicon 作成ツール</title>
+</head>
+
+
+
+<body>
+<h1>lexextract: derivbank および lexicon 作成ツール</h1>
+
+<a href="lexextract.html">English version</a>
+
+<p>
+構文木から derivation と lexical entry を作るツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexextract [オプション] 文法獲得モジュール treebank derivbank lexicon template lexbank
+<tr><td>文法獲得モジュール<td>inverse schema や inverse lexical rule が定義された lilfes プログラム
+<tr><td>treebank<td>入力の treebank (lildb 形式)
+<tr><td>derivbank<td>derivation を出力するファイル (lildb 形式)
+<tr><td>lexicon<td>lexicon を出力するファイル (lildb 形式)
+<tr><td>template<td>lexical entry template を出力するファイル (lildb 形式)
+<tr><td>lexbank<td>derivation の terminal 列を出力するファイル (lildb 形式)
+<tr><td colspan=2>オプション
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+treetrans によって作成された treebank から，ターゲット文法理論の
+derivation bank (derivbank) を作成し，さらに lexicon を抽出します．
+
+<p>
+まず，derivmake.lil で定義されているインタフェースを使って，構文木を以
+下のアルゴリズムで derivation に変換します．
+
+<ol>
+  <li>構文木の根元の TREE_NODE\NODE_SIGN\ 素性の値に対し，
+  root_constraints/1 を適用する．
+  <table border=1>
+  <tr><td colspan=2>root_constraints(-$Sign)
+  <tr><td>$Sign<td>ルートの sign
+  <tr><td colspan=2>derivation のルートの sign と，$Sign を単一化しま
+  す．
+  </table>
+  <li>構文木の各ノードの TREE_NODE\NODE_SIGN\ 素性の値に対し，トップダ
+  ウンに inverse_schema_binary/4 または inverse_schema_unary/3 を適用
+  する．このとき，TREE_NODE\SCHEMA_NAME\ の値をスキーマ名として使用す
+  る．スキーマ適用は深さ優先で行われる．
+  <table border=1>
+  <tr><td colspan=2>inverse_schema_binary(+$SchemaName, +$Mother,
+  -$Left, -$Right)
+  <tr><td>$SchemaName<td>スキーマの名前
+  <tr><td>$Mother<td>親の sign
+  <tr><td>$Left<td>左の娘の sign
+  <tr><td>$Right<td>右の娘の sign
+  <tr><td colspan=2>$Mother に binary schema を適用し，娘の sign を計
+  算します．
+  </table>
+  <table border=1>
+  <tr><td colspan=2>inverse_schema_unary(+$SchemaName, +$Mother,
+  -$Dtr)
+  <tr><td>$SchemaName<td>スキーマの名前
+  <tr><td>$Mother<td>親の sign
+  <tr><td>$Dtr<td>娘の sign
+  <tr><td colspan=2>$Mother に unary schema を適用し，娘の sign を計算
+  します．
+  </table>
+  <li>全ての中間ノードで inverse schema を適用した後，各末端ノードの
+  TREE_NODE\NODE_SIGN\ の値に対し，lexical_constraints/2 を適用する．
+  inverse_schema をすべて適用した後にこれが適用されるため，lexical
+  entry のデフォルト制約をここでかけることができる．
+  <table border=1>
+  <tr><td colspan=2>lexical_constraints(+$Word, -$Sign)
+  <tr><td>$Word<td>単語を表す素性構造(word) (TREE_NODE\WORD\ 素性の値)
+  <tr><td>$Sign<td>末端ノードの sign
+  <tr><td colspan=2>末端ノードの sign を $Sign を単一化します．
+  </table>
+</ol>
+
+変換後の derivation は，derivtypes.lil で定義されている素性構造で
+derivbank に格納されます．また，derivation の末端ノードだけを集めたリ
+ストは lexbank に格納されます．
+
+<p>
+次に，derivation の各末端ノードの素性構造から，lexical entry template
+及び単語と lexical entry template のマッピングを抽出します．抽出のイン
+タフェースは lexextract.lil で定義されており，以下のアルゴリズムで抽出
+を行います．以下の各ステップでは，処理対象の素性構造がその都度コピーさ
+れるので，新たな制約をかけたり，破壊的操作などを行っても，他のlexical
+entry に影響を与えません．
+
+<ol>
+  <li>derivation の末端ノードの DERIV_SIGN\ 素性の値に対し，
+  lexical_entry_template/3 を適用する．結果は derivation の
+  LEXENTRY_SIGN\ 素性に格納される．
+  <table border=1>
+  <tr><td colspan=2>lexical_entry_template(+$Word, +$Sign, -$Template)
+  <tr><td>$Word<td>単語を表す素性構造
+  <tr><td>$Sign<td>単語に対応する sign
+  <tr><td>$Template<td>単語の lexical entry template
+  <tr><td colspan=2>単語 $Word に対応する sign $Sign から，その単語の
+  lexical entry template $Template を作ります．
+  </table>
+  <li>結果の素性構造に対してreduce_lexical_template/5 を適用し，lexicon 
+  を引くキー，lexeme の素性構造，そして lexical rule の適用履歴を得る．
+  結果の lexeme の素性構造は template database に格納される．
+  lexeme の素性構造は，derivation の LEXEME_SIGN\ 素性にも格納される．
+  <table border=1>
+  <tr><td colspan=2>reduce_lexical_template(+$Word, +$InTemplate, -$Key,
+  -$OutTemplate, -$LexRules)
+  <tr><td>$Word<td>単語を表す素性構造
+  <tr><td>$InTemplate<td>入力の template (lexical_entry_template/3 の
+  出力)
+  <tr><td>$Key<td>lexicon に登録する時のキー
+  <tr><td>$OutTemplate<td>lexeme の template
+  <tr><td>$LexRules<td>適用された lexical rule のリスト
+  <tr><td colspan=2>lexical_entry_template/3 で得られた template に，
+  lexical rule を逆適用し，lexeme の template を計算します．
+  </table>
+  <li>lexeme の素性構造がまだデータベースに登録されていない初出のも
+  のであるときは，lexeme_name/4 を適用しtemplate の名前を得る．この 
+  template の名前とlexical rule の適用履歴の組み合わせが，ここで
+  の lexical entry template の名前となる．キーと template の名前の
+  マッピングがlexicon に登録される．template の名前は，derivation
+  の TERM_TEMPLATE\ 素性にも格納される．
+  <table border=1>
+  <tr><td colspan=2>lexeme_name(+$Word, +$Template, +$ID, -$Name)
+  <tr><td>$Word<td>単語を表す素性構造
+  <tr><td>$Template<td>lexeme の sign
+  <tr><td>$ID<td>通し番号
+  <tr><td>$Name<td>lexeme の名前(string)
+  <tr><td colspan=2>lexeme に一意の名前をつけます．
+  </table>
+  <li>単語の出現回数をインクリメントする．出現回数は，
+  <tt>lexrefine</tt>で単語の足切りをするときに使う．
+  <table border=1>
+  <tr><td colspan=2><tt>word_count_key(+$LexKey, -$CountKey)</tt>
+  <tr><td>$LexKey<td>入力のキー(lexicon を引くときのキー)
+  <tr><td>$CountKey<td>単語を数えるのに使うキー
+  <tr><td colspan=2>単語の出現回数を数えるときに使うキーを返します．
+  lexicon を引くキーが違う場合でも同じ単語としてカウントしたいものに対
+  しては同じ $CountKey を返すようにします．
+  </table>
+</ol>
+
+全ての derivation から文法抽出が終わると，lexicon と template database
+をファイルに保存します．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,8 @@
+
+how-to-build:
+	shell> make
+
+how-to-run:
+	shell> /path-to-here/convert < enju-output.xml > ptb-style.trees
+  or
+    shell> /path-to-here/convert -genia < enju-output-on-bio.xml > ptb-style.trees

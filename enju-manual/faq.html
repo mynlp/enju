@@ -1,0 +1,98 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Frequently asked questions</title>
+</head>
+
+
+
+<body>
+<h1>Frequently asked questions</h1>
+
+<a href="faq.ja.html">Japanese version</a>
+
+<p>
+
+<ul>
+  <li><a href="#always_error">Outputs "Parsing failure" or
+  "Fatal error" for any inputs</a>
+  <li><a href="#wrong_parses">Outputs very low-accurate parse results</a>
+  <li><a href="#firefox_no_input">Cannot input anything into text
+  forms of FireFox</a>
+  <li><a href="#firefox_crash">FireFox 1.5 or 2.0 sometimes crashes</a>
+</ul>
+
+<hr>
+
+<h2><a name="always_error">Outputs "Parsing failure" or "Fatal error"
+for any inputs</a></h2>
+
+<p>
+Four possibilities:
+
+<dl>
+  <dt>LiLFeS programs are not loaded.
+  <dd>When Enju starts, it prints messages to say loading grammar
+  configuration files (LiLFeS modules).  Check whether grammar module,
+  FOM module, parser module are properly loaded.  If error messages
+  are printed, module loading failed.  Set an environment variable,
+  "LILFES_PATH", to the directory where you installed LiLFeS modules
+  (by default, "/usr/local/share/liblilfes").
+  <dt>Grammar data are not loaded.
+  <dd>When Enju starts, it prints messages to say loading grammar
+  data.  Check whether stemming database, grammar database,
+  unigram FOM model, and syntax FOM model are properly loaded.  If
+  error messages are printed, data loading failed.  Set an environment
+  variable, "ENJU_DIR", to the directory where Enju grammar data are
+  installed (by default, "/usr/local/lib/enju").
+  <dt>Initialization of a POS tagger or a stemmer failed.
+  <dd>Enju uses a POS tagger and a stemmer as a preprocessor.  Check
+  whether they are installed in a binary execution path and can be used
+  properly.  By default, Enju uses the POS tagger and the stemmer
+  attached to the Enju package.  Additionally, Enju
+  assumes that a POS tagger receive a sentence in a line from a
+  standard input, and outputs words followed by "/part-of-speech" to a
+  standart output.  Check whether your POS tagger does not output any
+  unnecessary messages.
+  <dt>Grammar version is inconsistent.
+  <dd>Use grammar data whose major and minor versions are the same as
+  the Enju version.  For example, when you use "enju-X.Y.Z", use
+  "enju-X.Y-data".
+</dl>
+
+<h2><a name="wrong_parses">Outputs very low-accurate parse results
+</a></h2>
+
+<p>
+When you compile "liblilfes-1.3.2" or before using g++4, the
+disambiguation model of Enju does not work due to a bug of type
+punning.  Use "liblilfes-1.3.3" or above.
+
+<h2><a name="firefox_no_input">Cannot input anything into text forms
+of FireFox</a></h2>
+
+<p>
+FireFox 1.0 has a problem with XSL handling, and you cannot input
+texts into text forms.  Update to a newer version.
+
+<h2><a name="firefox_crash">FireFox 1.5 or 2.0 sometimes crashes</a></h2>
+
+<p>
+Some versions of Firefox has a problem with handling XSLT.  Update to
+a newer version.
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

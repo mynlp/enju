@@ -1,0 +1,441 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Unigram モデル</title>
+</head>
+
+
+
+<body>
+<h1>Unigram モデル</h1>
+
+<a href="unigram.html">English version</a>
+
+<p>
+ここでは，構文解析の際に曖昧性解消をする確率モデルの一つ  Unigram モデルの
+推定について説明します．
+
+<p>
+Unigram モデルは，各単語に対して語彙項目を割り当てる確率のモデルです．
+単語を<i>w</i>，周辺の単語列を<i>s</i>，語彙項目を<i>l</i> とすると，
+<i>p(l|w,s)</i> を求めます．
+Enju の確率モデルは最大エントロピーモデルになっているので，
+モデルの推定では素性の最適な重みを計算することになります
+(詳しくは<a href="probmodel.ja.html">確率モデル</a>を参照して下さい)．
+そのために最大エントロピーモデル推定器 
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> と
+ mayz の Amis 用ツール 
+<a href="../../manual/unimaker.ja.html">unimaker</a>，
+<a href="../../manual/amisfilter.ja.html">amisfilter</a> 
+を利用しています．
+
+<p>
+具体的には次のような手順で推定が行われます．
+
+<ol>
+  <li>unimaker により確率イベントをファイルに出力する
+  <li>amisfilter により確率イベントにマスクをかけて素性を取り出し，
+  Amis 形式のデータファイルを作る
+  <li>Amis により素性の最適な重みを計算する
+</ol>
+
+<p>
+確率イベントとは，以下のように // で区切られたフィールドを持つ文字列です．
+
+<blockquote>
+<pre style="font-size:medium">
+ms-period-//NNP//[D&lt N.3sg&gt]_lxm-noun_adjective_rule//haag//NNP//haag//NNP//uni
+</pre>
+</blockquote>
+
+最後のフィールドはこのイベントの<i>カテゴリ</i> を表しています．
+その他のフィールドはイベントの特徴を表す記号です．
+unimaker は derivation 中の単語とその語彙項目を表す確率イベントの
+リストをファイルに出力します．
+
+<p>
+amisfilter では，確率イベントに対してそのカテゴリにしたがって
+マスクをかけます．
+マスクではどのフィールドを組み合わせて素性を作るかが指定されています．
+例えば上の確率イベントに，(0, 1, 1, 1, 1, 1, 1)というマスクをかけると，
+次のような素性が得られます．
+
+<blockquote>
+<pre style="font-size:medium">
+_//NNP//[D&lt N.3sg&gt]_lxm-noun_adjective_rule//haag//NNP//haag//NNP//uni
+</pre>
+</blockquote>
+
+amisfilter はこのように確率イベントから素性を取り出し，
+Amis 形式のデータファイルを生成します．
+最後に，Amis によって素性の最適な重みが計算されます．
+
+<p>
+以下各ステップについて説明します．
+
+<h2>確率イベントをファイルに出力する</h2>
+
+<p>
+ここでは <a href="../../manual/unimaker.ja.html">unimaker</a> を
+使って，確率イベントをファイルに出力する過程を説明します．
+
+<table border=1>
+<tr><td colspan=2>unimaker モデル名 イベント抽出モジュール
+derivbank イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>イベント抽出モジュール<td>文法とイベント抽出の述語が実装されている
+lilfes module
+<tr><td>derivbank<td>文法獲得で得た derivbank (lildb 形式)
+<tr><td>イベントファイル<td>確率イベントを出力するファイル 
+(テキスト形式または gz/bz による圧縮形式)
+</table>
+
+<p>
+derivbank に格納された derivation の末端ノードには，
+TERM_TEMPLATE 素性に語彙項目テンプレートの名前 
+(語彙素テンプレートの名前と語彙規則の適用履歴を組み合わせたもの) が格納されています．
+unimaker では，各末端ノードの単語情報 (TERM_WORD 素性の値 'word' 型) と
+語彙項目テンプレートの名前 (TERM_TEMPLATE 素性)，
+また周辺の末端ノードの単語情報から確率イベントを出力します．
+
+<ol>
+   <li>derivation から
+   <tt>um_derivation_to_deriv_word_lattice/2</tt> によって
+   derivation word lattice を作る．
+   derivation word lattice の要素には WORD 素性に derivation
+   の末端ノードを格納する．
+   <li>derivation から
+   <tt>um_derivation_to_word_lattice/2</tt> によって
+   word lattice を作り，チャートに入力する．
+   <li>derivation word lattice の各要素から，正例の確率イベントと
+   負例の確率イベントを出力する．
+   各要素から word 素性の値，つまり derivation の末端ノードをを取り出し，
+   次の処理を行う．
+   <ol>
+      <li><tt>um_correct_lexical_entry/2</tt>
+      に derivation 末端ノードを与えて正しい語彙項目の名前を得る．
+      <li><tt>um_complement_lexical_entry/2</tt>
+      に derivation 末端ノードを与えて，
+      単語に割り当てられている語彙項目のうち，正しくない語彙項目の名前を得る．
+      <li>得られた語彙項目の名前を <tt>extract_lexical_event/4</tt>
+      に与えて，確率イベント(カテゴリと特徴フィールド)を取り出し出力する．
+      このとき，正しい語彙項目から得た確率イベントは正例として，
+      それ以外の語彙項目から得た確率イベントは負例として出力する．
+   </ol>
+</ol>
+
+<tt>extract_lexical_event/4</tt> において確率イベントを出力する時には，
+周辺の単語の word lattice の情報も特徴フィールドに含めることができます．
+これは word lattice をチャートに入力しているためです．
+周辺の単語の derivation word lattice は特徴フィールドには入れられません．
+
+<p>
+Enju の場合，derivation 末端ノードから2種類の word lattice を作る述語は
+ "devel/unimake.lil" に実装されています．
+また，derivation 末端ノードから正しい(正しくない)語彙項目を計算する述語も
+ "devel/unimake.lil" に実装されています．
+これらの性質は次のようになっています．
+
+<ul>
+   <li><tt>um_derivation_to_word_lattice/2</tt>
+   によって作られる word lattice の要素は，
+   要素に対応する単語の位置を left_position 素性と
+   right_position 素性に持つ．
+   また word 素性として deriation 末端ノードの TERM_WORD 素性を持つ．
+   <li><tt>um_derivation_to_deriv_word_lattice/2</tt> 
+   によって作られる derivation word lattice の要素は，
+   上の word lattice と単語の位置情報を持つ．
+   また word 素性として derivation の末端ノードを持つ．
+   <li><tt>um_correct_lexical_entry/2</tt> では，
+   与えられた derivation 末端ノードの単語に割り当てられた語彙項目の中から，
+   derivatoin 末端ノードの LEXENTRY_SIGN
+   素性と同じ素性構造を持つものを正しい語彙項目として1個だけ返す．
+   <li><tt>um_complement_lexical_entry/2</tt> では，
+   与えられた derivation 末端ノードの単語に割り当てられた語彙項目の中から，
+   <tt>um_correct_lexical_entry/2</tt> の返す語彙項目以外を
+   1個ずつ返す．
+</ul>
+
+これらは次のように定義されます．
+
+<blockquote>
+<pre style="font-size:medium">
+um_derivation_to_word_lattice(derivation_internal & DERIV_DTRS\$Dtrs,
+                              $WordLattice) :-
+    um_derivation_to_word_lattice_dtrs($Dtrs, $WordLattice). %% 再帰処理のための述語
+um_derivation_to_word_lattice(derivation_terminal & TERM_WORD\$Word,
+			      [left_position\$LPos & right_position\$RPos &
+                               word\$LexEntry]) :-
+    $LexEntry = [$Word],
+    $Word = POSITION\$LPos,
+    $RPos is $LPos + 1.
+
+um_derivation_to_deriv_word_lattice(derivation_internal & DERIV_DTRS\$Dtrs,
+                                    $WordLattice) :-
+    um_derivation_to_deriv_word_lattice_dtrs($Dtrs, $WordLattice). %% 再帰処理のための述語
+um_derivation_to_deriv_word_lattice(derivation_terminal & $Term & TERM_WORD\$Word,
+			      [left_position\$LPos & right_position\$RPos &
+                               word\$LexEntry]) :-
+    $LexEntry = $Term,
+    $Word = POSITION\$LPos,
+    $RPos is $LPos + 1.
+
+um_correct_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+    lookup_lexicon($Word, $TempNameList),
+    member($TempName, $TempNameList),
+    lookup_template($TempName, $LexEntry),
+    equivalent($LexEntry, $Sign),
+    !,
+    $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+
+um_complement_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+     lookup_lexicon($Word, $TempNameList1),
+     check_coverage($TempNameList1, $Sign, $TempName1), %% $TempNameList1 に
+                                                        %% $Sign を持つものが含まれているか調べる 
+     findall($Lex,
+ 	    (member($TN, $TempNameList1),
+ 	     $TN \= $TempName1,
+ 	     $Lex = LEX_WORD\$Word & LEX_TEMPLATE\$TN),
+ 	    $LexList),
+     member(LEX_TEMPLATE\$TempName, $LexList),
+     $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+</pre>
+</blockquote>
+
+<p>
+また，確率イベントを取り出す述語 <tt>extract_lexical_event/4</tt> は，
+"grammar/unievent.lil" で実装され，
+カテゴリ "uni" の確率イベントを抽出します．
+その特徴フィールドには次のようなものが含まれます．
+
+<ul>
+  <li>2語前の単語 (文字列と POS，stemming 後の文字列と POS)
+  <li>1語前の単語 (文字列と POS，stemming 後の文字列と POS)
+  <li>今見ている単語 (文字列と POS，stemming 後の文字列と POS)
+  と語彙項目と語彙素の名前
+  <li>1語後の単語 (文字列と POS，stemming 後の文字列と POS)
+  <li>2語後の単語 (文字列と POS，stemming 後の文字列と POS)
+</ul>
+
+これらは例えば次のように指定されます．
+
+<blockquote>
+<pre style="font-size:medium">
+extract_lexical_event("hpsg-uni", "uni", $LexEntry, $Event) :-
+    $LexEntry = (LEX_WORD\ (SURFACE\ $Surface &
+			    POS\ $Pos &
+			    BASE\ $Base &
+			    BASE_POS\ $BasePOS &
+			    POSITION\ $Position) &
+		 LEX_TEMPLATE\($LexTemplate & LEXEME_NAME\$LexemeName)),
+    lex_template_label($LexTemplate, $LexName),
+    $PositionN2 is $Position - 2,
+    $PositionN1 is $Position - 1,
+    $PositionP1 is $Position + 1,
+    $PositionP2 is $Position + 2,
+    $PositionP3 is $Position + 3,
+    $PositionP4 is $Position + 4,
+    lexical_event($PositionN2, $PositionN1, $Event, $Event2),     %% -2
+    lexical_event($PositionN1, $Position,   $Event2, $Event3),    %% -1
+    $Event3 = [$Surface, $Pos, $LexName, $Base, $BasePOS, $LexemeName|$Event4],
+    lexical_event($PositionP1, $PositionP2, $Event4, $Event5),    %%  1
+    lexical_event($PositionP2, $PositionP3, $Event5, $Event6),    %%  2
+    lexical_event($PositionP3, $PositionP4, $Event6, []).         %%  3
+</pre>
+</blockquote>
+
+
+<p>
+unimaker が出力する確率イベントファイルは次のようになっています．
+(実際には一つの確率イベントが一行で出力されます．
+下の event_2_0 の場合3個の確率イベントなので3行となります．)
+
+<small>
+<blockquote>
+<pre>
+event_2_0
+1       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm-noun_adjective_rule//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm//haag//NNP//haag//NNP//plays//VBZ//play//VB//
+elianti//NNP//elianti//NNP//uni
+0       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm//ms-period-//NNP//[D&lt N.3sg&gt]_lxm//haag//
+NNP//haag//NNP//plays//VBZ//play//VB//elianti//NNP//elianti//NNP//
+uni
+0       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[&lt NP.3sg.adj&gt]NP.adj_mod//ms-period-//NNP//
+[&lt NP.3sg.adj&gt]NP.adj_mod//haag//NNP//haag//NNP//plays//VBZ//
+play//VB//elianti//NNP//elianti//NNP//uni
+
+event_2_1
+...
+</pre>
+</blockquote>
+</small>
+
+この例の場合，
+event_2_0 は単語 "Ms." に "[D<N.3sg>]_lexm-noun_adjective_rule" で
+表される語彙項目が対応する確率イベントを表しています．
+2行目の最初の "1" が正例であることを，3，4行目の最初の "0" が負例であることを
+表しています．
+"BOS" は文の始まりを表しています．
+
+<h2>マスクをかけて素性を取り出す</h2>
+
+<p>
+ここでは <a href="../../manual/amisfilter.ja.html">amisfilter</a> を使って，
+上のステップで出力された確率イベントにマスクをかけ，
+素性を取り出し，Amis 形式のデータファイル出力する過程を説明します．
+
+<table border=1>
+<tr><td colspan=2>amisfilter モデル名 マスクモジュール 確率イベントファイル 
+カウントファイル モデルファイル イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>マスクモジュール<td>確率イベントにかけるマスクが実装され
+ている lilfes module
+<tr><td>確率イベントファイル<td>入力の確率イベントファイル (テキストま
+たは gz/bz 圧縮形式)
+<tr><td>カウントファイル<td>素性の頻度を出力するファイル (テキスト
+形式)
+<tr><td>モデルファイル<td>モデルファイル (AmisModel 形式)
+<tr><td>イベントファイル<td>イベントファイル (AmisEvent 形式)
+</table>
+
+<p>
+具体的には次のような処理が行われます．
+
+<ol>
+  <li>確率イベントファイル上の観測事象を表す確率イベントに対して，
+  そのカテゴリに定義された全てのマスクを適用して素性を作る．
+  マスクは <tt>feature_mask/3</tt> でカテゴリごとに定義されている．
+  <li>得られた素性が観測事象に現れる回数を数え，カウントファイルに出力する．
+  <li>素性のうち回数が閾値以上のものを採用して，
+  Amis 形式のモデルファイルとイベントファイルを作成する．
+</ol>
+
+<p>
+Enju の場合，<tt>feature_mask/3</tt> は "grammar/lexmask.lil" で実装されています．
+その中でカテゴリ "uni" に対するマスクには次のようなものが含まれます．
+(表に示していないフィールドは全て×)
+
+<table border=1>
+<tr><th rowspan="2"><th colspan="4">1語前<th colspan="6">今の語
+<tr><th>Surface<th>POS<th>BaseSurface<th>BasePos<th>Surface<th>POS<th>LexEntry<th>BaseSurface<th>BasePos<th>Lexeme
+<tr><th>mask 10<td>○<td>×<td>×<td>×
+    <td>○<td>×<td>○<td>×<td>×<td>×
+<tr><th>mask 12<td>×<td>○<td>×<td>×
+    <td>○<td>×<td>○<td>×<td>×<td>×
+</table>
+
+これらは次のように実装されます．
+
+<blockquote>
+<pre style="font-size:medium">
+%% 10 ... w-1, w0
+feature_mask("hpsg-uni", "uni", [0, 0, 0, 0,
+				 1, 0, 0, 0,
+				 1, 0, 1, 0, 0, 0,
+				 0, 0, 0, 0,
+				 0, 0, 0, 0,
+				 0, 0, 0, 0]).
+%% 12 ... p-1, w0
+feature_mask("hpsg-uni", "uni", [0, 0, 0, 0,
+				 0, 1, 0, 0,
+				 1, 0, 1, 0, 0, 0,
+				 0, 0, 0, 0,
+				 0, 0, 0, 0,
+				 0, 0, 0, 0]).
+</pre>
+</blockquote>
+
+<p>
+上のマスクを上のステップで示した確率イベントファイルの例に適用すると，
+次のような Amis 形式のイベントファイルが得られます．
+
+<blockquote>
+<pre style="font-size:medium">
+event_2_0
+1       _//_//_//_//BOS//_//_//_//_//_//[D&lt N.3sg&gt]_lxm-noun_adjective
+_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni _//_//_//_//_
+//_//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_//_//_
+//_//_//_//_//_//_//_//_//_//_//_//_//uni _//_//_//_//_//_//_//_//_//
+_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_//_//_//haag//_//_//_//_//_//
+_//_//_//_//_//_//uni _//BOS//_//_//_//_//_//_//_//_//[D%lt N.3sg&gt]_lxm-
+noun_adjective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni
+ _//_//_//_//_//BOS//_//_//_//_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//
+_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni _//_//_//_//_//_//_/
+/_//_//NNP//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_//_//_//_//_//_//_//
+_//_//_//_//_//_//_//_//uni _//_//_//_//_//_//_//_//_//_//[D%lt N.3sg&gt]_
+lxm-noun_adjective_rule//_//_//_//_//NNP//_//_//_//_//_//_//_//_//_//
+_//uni _//_//_//_//_//_//_//_//_//_//[D%lt N.3sg&gt]_lxm-noun_adjective_ru
+le//_//_//_//_//_//_//_//_//VBZ//_//_//_//_//_//_//uni _//_//_//_//_/
+/_//_//_//_//_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_//_//_//_//_//_/
+/_//_//_//_//_//_//NNP//_//_//uni _//_//_//_//BOS//_//_//_//ms-period
+-//_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_//_//_//_//_//_//_//_//_//
+_//_//_//_//_//_//uni _//_//_//_//_//BOS//_//_//ms-period-//_//[D%lt N.3
+sg&gt]_lxm-noun_adjective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//
+_//_//uni _//_//_//_//_//_//_//_//ms-period-//NNP//[D%lt N.3sg&gt]_lxm-nou
+....
+0       _//_//_//_//BOS//_//_//_//_//_//[D%lt N.3sg&gt]_lxm//_//_//_//_//_
+......
+</pre>
+</blockquote>
+
+
+1個の確率イベントに対して，複数の素性が出力されています．
+出力される Amis 形式のモデルファイルには，採用された素性と
+その重みの初期値が出力されています．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//_//_//BOS//_//_//_//_//_//[D&lt N.3sg&gt]_lxm-noun_adjective_ru
+le//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni _//_//_//_//_     1.0
+_//_//_//_//_//_//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adjec
+tive_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni  1.0
+....
+_//_//_//_//BOS//_//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adj
+ective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni   1.0
+_//_//_//_//_//BOS//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adj
+ective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni   1.0
+....
+</pre>
+</blockquote>
+</small>
+
+<h2>素性の最適な重みを計算する</h2>
+
+<p>
+上のステップで得られた Amis 形式のモデルファイルとイベントファイルから
+ <a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> を使って
+素性の最適な重みを計算します．
+出力ファイルにはモデルファイルと同じ形式で，計算された素性の重みが示されています．
+
+<blockquote>
+<pre style="font-size:medium">
+_//_//_//_//BOS//_//_//_//_//_//[D&lt N.3sg&gt]_lxm-noun_adjective_ru
+le//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni      1.221022e+00
+_//_//_//_//_//_//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adjective_rule//_/
+/_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni  1.069326e+00
+....
+_//_//_//_//BOS//_//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adj
+ective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni   1.124106e+00
+_//_//_//_//_//BOS//_//_//ms-period-//_//[D%lt N.3sg&gt]_lxm-noun_adj
+ective_rule//_//_//_//_//_//_//_//_//_//_//_//_//_//_//_//uni   1.124106e+00
+....
+</pre>
+</blockquote>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>

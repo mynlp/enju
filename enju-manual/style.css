@@ -1,0 +1,74 @@
+body {
+  color: black;
+  background-color: #aaffaa;
+}
+
+h1 {
+  /* font: bold 300% helvetica; */
+  font-weight: bold;
+  font-size: 200%;
+  color: black;
+  border-width: 5pt;
+  border-style: ridge;
+  padding: 10pt 10pt 10pt 10pt;
+}
+
+h2 {
+  /* font: bold 150% helvetica; */
+  font-weight: bold;
+  font-size: 150%;
+  color: black;
+  border-width: 0pt 0pt 1pt 5pt;
+  border-style: solid;
+  padding: 0pt 0pt 5pt 5pt;
+}
+
+pre {
+  font-weight: bold;
+  font-size: 90%;
+  color: black;
+  background-color: khaki;
+}
+
+caption {
+}
+
+table {
+  background-color: ivory;
+}
+
+table.fs {
+  text-align: left;
+  empty-cells: show;
+  white-space: nowrap;
+  text-indent: 0;
+}
+
+table.fs tr {
+  display: table-row;
+  line-height: 1;
+}
+
+table.fs td {
+  display: table-cell;
+  line-height: 1;
+}
+
+td.lprn {
+  display: table-cell;
+  line-height: 1;
+  padding: 0pt 3pt 0pt 0pt;
+  border-style: solid;
+  border-color: black;
+  border-width: 1pt 0pt 1pt 1pt;
+}
+
+td.rprn {
+  display: table-cell;
+  line-height: 1;
+  padding: 0pt 3pt 0pt 0pt;
+  border-style: solid;
+  border-color: black;
+  border-width: 1pt 1pt 1pt 0pt;
+}
+

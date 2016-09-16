@@ -1,0 +1,53 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>What is Enju?</title>
+</head>
+
+
+
+<body>
+<h1>What is Enju?</h1>
+
+<a href="intro.ja.html">Japanese version</a>
+
+<p>
+Enju is a syntactic analyzer for English.  A grammar is based on <a
+href="http://hpsg.stanford.edu/">Head-driven Phrase Structure Grammar
+(HPSG)</a>, which is a linguistic theory for syntax.  Since this
+system computes more detailed structure of sentences than CFG parsers,
+you can obtain various information such as predicate-argument
+structures.
+
+<p>
+For example, Enju can parse the following sentence,
+<blockquote>
+It's falling like a stone, said Danny Linger, a pit trader who was standing outside the London International Financial Futures Exchange.
+</blockquote>
+and you will get the results that the subject of "said" is "Danny
+Linger" and the complement is "it's falling like a stone", and the
+subject of "standing outside..." is "pit trader".
+
+<p>
+If you have a web browser that supports XHTML and XSLT (Mozilla
+Firefox etc.), you can browse the parse results of the above sentence.
+<ul>
+  <li><a href="browsetree.xhtml">Parse tree</a>
+  <li><a href="browsepas.xhtml">Predicate argument structure</a>
+</ul>
+
+<hr>
+<a href="index.html">Enju Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

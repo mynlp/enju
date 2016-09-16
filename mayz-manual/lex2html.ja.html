@@ -1,0 +1,76 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lex2html: 文法ブラウズ用ドキュメント作成ツール</title>
+</head>
+
+
+
+<body>
+<h1>lex2html: 文法ブラウズ用ドキュメント作成ツール</h1>
+
+<a href="lex2html.html">English version</a>
+
+<p>
+lexicon や derivbank をブラウズするためのドキュメントを生成するツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>lex2html [オプション] 文法モジュール lexicon template lexbank prefix
+<tr><td>文法モジュール<td>文法が定義された lilfes module
+<tr><td>lexicon<td>ドキュメント化する lexicon
+<tr><td>template<td>ドキュメント化する template
+<tr><td>lexbank<td>ドキュメント化する lexbank
+<tr><td>prefix<td>出力ファイルの先頭に付加する prefix
+<tr><td colspan=2>オプション
+<tr><td>-c style_file<td>スタイルシート
+<tr><td>-d directory<td>出力先ディレクトリ (デフォルト: .)
+<tr><td>-lexsize int<td>レキシコンのドキュメントの、ファイル一つに入れるデータの数 (デフォルト: 1000)
+<tr><td>-tmpsize int<td>テンプレートのドキュメントの、ファイル一つに入れるデータの数 (デフォルト: 100)
+<tr><td>-lxmsize int<td>レキシームのドキュメントの、ファイル一つに入れるデータの数 (デフォルト: 100)
+<tr><td>-sntsize int<td>抽出元の文のドキュメントの、ファイル一つに入れるデータの数 (デフォルト: 1000)
+<tr><td>-charset string<td>出力する html ファイルのヘッダの meta タグ内に charset=string の指定を追加
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+作成した lexicon や derivbank をブラウズするために，html ドキュメント
+として出力します．出力先ディレクトリに，以下のようなファイルを生成しま
+す．$(prefix) はコマンドラインで指定した prefix で，?? はファイルの番
+号です(0から順番に付けられる)．
+
+<ul>
+  <li>$(prefix)-index.html: 全体の目次
+  <li>$(prefix)-lex-??.html: lexicon の情報(キー，出現回数，割り当てら
+  れている template など)
+  <li>$(prefix)-template-??.html: template の情報(出現回数，初出の場所，
+  template の素性構造など)
+  <li>$(prefix)-sentence-??.html: 文法獲得に使われた文
+</ul>
+
+<p>
+template ファイルには素性構造用の拡張タグ(&lt;fs&gt;など)で素性構造が
+出力されているので，Internet Explorerでは素性構造を見ることはできません．
+Firefoxなどのブラウザを使用て下さい．
+
+<p>
+moriv でデータをブラウズする際、レンダリングが重過ぎる場合は、
+-lexsize などでサイズを小さめに設定してデータを読込直して下さい．
+状況が改善する場合があります．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

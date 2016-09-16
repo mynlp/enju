@@ -1,0 +1,50 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>GUI</title>
+</head>
+
+
+
+<body>
+<h1>GUI</h1>
+
+<a href="moriv.html">English version</a>
+
+<p>
+Enju の構文解析結果や文法の詳細はグラフィカルにブラウズすることができます．
+Enju に素性構造や木構造を表わすタグで拡張された XHTML を出力させ，FireFox など XSLT とXHTML をサポートしているウェブブラウザを使えば，XSLT で変換された素性構造や木構造を見ることができます．
+この GUI の使い方については，Enju ユーザマニュアルの<a href="modules.ja.html#moriv">「構文解析結果を GUI でブラウズする」</a>を参照して下さい．
+</p>
+
+<p>
+XHTML を出力するプログラムは，"enju/moriv.lil" で実装されています．
+実際には，ほとんどの処理が MAYZ ツールキットで提供されているモジュールで行われるため，モジュールを読み込んでいるだけです．
+</p>
+
+<p>
+Enju 独自の機能として，述語項構造をグラフィカルに見ることができるページがあります．
+このページでは文中の単語にマウスカーソルを合わせると，その単語が項としてとっている句がハイライトされます．
+(この機能はJavascript を使っています)
+
+マウスカーソルが合わされたときにどの句をハイライトするかの計算は，"enju/moriv.lil" で行っています．
+まず，<a href="output.ja.html">出力の節</a>で説明した XML 構造を作ります．
+すると，各単語についてどの句が項になっているかがわかります．
+次に，この情報を使って，各単語について，その単語にマウスカーソルが合わされたときに項になっている句をハイライトする Javascipt を出力します．
+</p>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

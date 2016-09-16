@@ -1,0 +1,78 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>スキーマとプリンシプル</title>
+</head>
+
+
+
+<body>
+<h1>スキーマとプリンシプル</h1>
+
+<a href="schemata.html">English version</a>
+
+<p>
+スキーマとプリンシプルは，"enju/schema.lil" で実装されています．
+スキーマの名前は，"enju/types.lil" で実装されています．
+
+<p>
+HPSG 標準の以下のスキーマが実装されています．
+
+<table border>
+<tr><th>スキーマ<th>プログラムでの型名<th>説明
+<tr><td>Head-Subject Schema<td>subj_head_schema<td>動詞などが主語をとる
+<tr><td>Head-Complement Schema<td>head_comp_schema<td>動詞や前置詞が目的語をとる
+<tr><td>Head-Specifier Schema<td>spec_head_schema<td>名詞が指定詞(冠詞など)をとる
+<tr><td>Head-Modifier Schema (left head)<td>head_mod_schema<td>主辞を右側から修飾する
+<tr><td>Head-Modifier Schema (right head)<td>mod_head_schema<td>主辞を左側から修飾する
+<tr><td>Head-Filler Schema<td>filler_head_schema<td>主辞が関係代名詞などをとる
+</table>
+
+<p>
+これに加えて，その他の構文をサポートするために以下のスキーマが実装され
+ています．
+<table border>
+<tr><th>プログラムでの型名<th>説明
+<tr><td>head_relative_schema<td>関係詞節が先行詞を修飾する
+<tr><td>coord_right_schema<td>並列接続詞が右側の句をとる
+<tr><td>coord_left_schema<td>並列接続詞が左側の句をとる
+<tr><td>empty_filler_head_schema<td>空の関係代名詞をとる
+<tr><td>empty_spec_head_schema<td>空の指定詞をとる
+<tr><td>free_relative_schema<td>関係詞節を自由関係詞節にする
+</table>
+
+<p>
+プリンシプルは，以下のものが実装されています．
+
+<table border>
+<tr><th>プログラムでの型名<th>説明
+<tr><td>head_feature_principle<td>主辞の HEAD が親に伝わる
+<tr><td>nonlocal_feature_principle<td>親の INHER:{QUE，REL，SLASH} のうち，実際に制約が存在するのは最大1個である
+<tr><td>semantic_binary_principle<td>主辞の CONT が親に伝わり，非主辞の CONT は RELS に入る
+<tr><td>semantic_unary_principle<td>娘の CONT が親に伝わる
+<tr><td>phonology_principle<td>親の PHON は娘たちの PHON をつなげたものになる
+<tr><td>adjacency_principle<td>PROB_FEATURE:{L_ADJAC/R_ADJAC}はそれぞれ左/右側の娘から伝わる
+</table>
+
+<p>
+その他に，確率モデルの素性として使う情報を伝えるためのプリンシプルが実装されています．
+
+<p>
+HPSG 理論におけるその他のプリンシプル(Valence Principle など)は，
+それぞれのスキーマの実装の中にハードコードされています．
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

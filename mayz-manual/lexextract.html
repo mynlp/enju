@@ -1,0 +1,177 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>lexextract: Tool for making derivation and lexicon</title>
+</head>
+
+
+
+<body>
+<h1>lexextract: Tool for making derivation and lexicon</h1>
+
+<a href="lexextract.ja.html">Japanese version</a>
+
+<p>
+This tool is for making derivation trees and lexical entries from
+parse trees.
+
+<p>
+<table border=1>
+<tr><td colspan=2>lexextract [options] lexextract_module treebank derivbank lexicon template lexbank
+<tr><td>lexextract_module<td>lilfes program in which inverse schemas
+    and inverse lexical rules are defined
+<tr><td>treebank<td>input treebank (lildb format)
+<tr><td>derivbank<td>file to output a derivbank (lildb format)
+<tr><td>lexicon<td>file to output a lexicon (lildb format)
+<tr><td>template<td>file to output lexical entry templates (lildb format)
+<tr><td>lexbank<td>file to output derivation terminals (lildb format)
+<tr><td colspan=2>Options
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+</table>
+
+<p>
+This tool converts a treebank made by "treetrans" into a derivbank
+(derivation trees of the target grammar theory).  It also extracts
+lexical entries from the derivbank.
+
+<p>
+First, write inverse schemas with the following interfaces, in order
+to convert parse trees in an input treebank into derivation trees.
+The inverse schemas are applied in the following order.
+
+<ol>
+  <li>Apply "root_constraints/1" to the value of "TREE_NODE\NODE_SIGN\"
+   of the root node of a parse tree.
+  <table border=1>
+  <tr><td colspan=2>root_constraints(-$Sign)
+  <tr><td>$Sign<td>sign of the root node
+  <tr><td colspan=2>Unify $Sign with the sign of the root of the
+  derivation tree.
+  </table>
+  <li>To "TREE_NODE\NODE_SIGN\" of each node, apply
+  "inverse_schema_binary/4" or "inverse_schema_unary/3" in a topdown
+  way.  The value of "TREE_NODE\SCHEMA_NAME\" is used as the name of a
+  schema.  Schemas are applied in a depth-first order.
+  <table border=1>
+  <tr><td colspan=2>inverse_schema_binary(+$SchemaName, +$Mother,
+  -$Left, -$Right)
+  <tr><td>$SchemaName<td>schema name
+  <tr><td>$Mother<td>sign of the mother
+  <tr><td>$Left<td>sign of the left daughter
+  <tr><td>$Right<td>sign of the right daughter
+  <tr><td colspan=2>Apply a binary schema to $Mother and obtain
+  daughter signs.
+  </table>
+  <table border=1>
+  <tr><td colspan=2>inverse_schema_unary(+$SchemaName, +$Mother,
+  -$Dtr)
+  <tr><td>$SchemaName<td>schema name
+  <tr><td>$Mother<td>sign of the mother
+  <tr><td>$Dtr<td>sign of the daughter
+  <tr><td colspan=2>Apply a unary schema to $Mother, and obtain a
+  daughter sign.
+  </table>
+  <li>After applying inverse schemas to all internal nodes, apply
+  "lexical_constraints/2" to "TREE_NODE\NODE_SIGN\" of terminal nodes.
+  Since this is done after all applications of inverse schemas, you
+  can coerce default constraints using this interface.
+  <table border=1>
+  <tr><td colspan=2>lexical_constraints(+$Word, -$Sign)
+  <tr><td>$Word<td>feature structure representing a word (the value of
+  "TREE_NODE\WORD\")
+  <tr><td>$Sign<td>sign of a terminal node
+  <tr><td colspan=2>Unify $Sign with the sign of a terminal node.
+  </table>
+</ol>
+
+A derivation tree made by the above process is represented with a
+feature structure defined in "derivtypes.lil".  A list of terminal
+nodes is stored in "lexbank".
+
+<p>
+Next, from terminal nodes of derivation trees, extract lexical entry
+templates and mappings from a word into lexical entry templates.
+Interfaces for lexicon extraction are defined in "lexextract.lil".
+The extraction algorithm is presented below.
+
+In each of the following steps, the target feature structures are
+copied.  This means that even when you modify the target feature
+structures with new constraints or destructive operations the
+modifications will not affect derivation trees nor other lexical
+entries.
+
+<ol>
+  <li>Apply "lexical_entry_template/3" to "DERIV_SIGN\" of each
+   terminal node of a derivation tree.  The result is stored in
+   "LEXENTRY_SIGN\" of the derivation tree.
+  <table border=1>
+  <tr><td colspan=2>lexical_entry_template(+$Word, +$Sign, -$Template)
+  <tr><td>$Word<td>feature structure representing a word
+  <tr><td>$Sign<td>lexical sign
+  <tr><td>$Template<td>lexical entry template
+  <tr><td colspan=2>Make a lexical entry template $Template from
+  lexical sign $Sign of the word $Word.
+  </table>
+  <li>Apply "reduce_lexical_template/5" to the lexical entry template,
+  and obtain a key to look up a lexicon, a sign of a lexeme, and a
+  history of lexical rule applications.  The obtained lexeme will be
+  stored in a template database.  Lexeme signs are also stored in
+  "LEXEME_SIGN\" of derivation trees.
+  <table border=1>
+  <tr><td colspan=2>reduce_lexical_template(+$Word, +$InTemplate, -$Key,
+  -$OutTemplate, -$LexRules)
+  <tr><td>$Word<td>feature structure representing a word
+  <tr><td>$InTemplate<td>input lexical entry template (the output of
+ "lexical_entry_template/3")
+  <tr><td>$Key<td>key to look up a lexicon
+  <tr><td>$OutTemplate<td>sign of a lexeme
+  <tr><td>$LexRules<td>a list of applied lexical rules
+  <tr><td colspan=2>Obtain a sign of a lexeme by inversely applying
+  lexical rules to a lexical entry template obtained by
+  "lexical_entry_template/3"
+  </table>
+  <li>If a lexeme sign is not stored in the database yet, i.e., it is
+  first to see, apply "lexeme_name/4" to the lexeme sign to obtain the
+  name of a lexeme.  The pair of this name and the history of the
+  application of lexical rules will be the name of a lexical entry
+  template.  A mapping from a key to a lexical entry template is
+  stored in a lexicon database.  Template names are stored in
+  "TERM_TEMPLATE\" of derivation trees.
+  <table border=1>
+  <tr><td colspan=2>lexeme_name(+$Word, +$Template, +$ID, -$Name)
+  <tr><td>$Word<td>feature structure representing a word
+  <tr><td>$Template<td>sign of a lexeme
+  <tr><td>$ID<td>identification number (integer)
+  <tr><td>$Name<td>name of a lexeme (string)
+  <tr><td colspan=2>Assign a unique name to a lexeme
+  </table>
+  <li>Increment the occurrence count of a word.  Occurrence counts
+  will be used for cutting off infrequent words in "<tt>lexrefine</tt>".
+  <table border=1>
+  <tr><td colspan=2><tt>word_count_key(+$LexKey, -$CountKey)</tt>
+  <tr><td>$LexKey<td>key to look up a lexicon
+  <tr><td>$CountKey<td>key to be used for counting a word
+  <tr><td colspan=2>Obtain a key to count the occurrence of a word.
+  If you want to count different keys as an identical word, implement
+  this predicate to return the same $CountKey for the different keys.
+  </table>
+</ol>
+
+Finally, a lexicon and a template database are stored in files.
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

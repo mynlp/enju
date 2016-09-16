@@ -1,0 +1,266 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Unigram model</title>
+</head>
+
+
+
+<body>
+<h1>Unigram model</h1>
+
+<a href="unigram.ja.html">Japanese version</a>
+
+<p>
+Here we explain the unigram model used for disambiguation during parsing. 
+
+<p>
+The unigram model is for assigning lexical entries to words. A word is <i>w</i>. The string containing the word is <i>s</s>. A lexical entry is <i>l</i>. We try to look for <i>p(l|w,s)</i>. 
+
+The probablistic model of ENJU is a Maximum Entropy model. The model would come up with the best weight for features. (For details, please refer to <a href="probmodel.html">Probablistic Model</a>). This is done by using the Maximum Entropy estimator<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> and the following tools that work with Amis: <a href="../../manual/unimaker.ja.html">unimaker</a>，
+<a href="../../manual/amisfilter.ja.html">amisfilter</a>. 
+
+<p>
+The procedures are as follows:
+
+<ol>
+<li>Output probablistic events to a file with unimaker</li>
+<li>Apply masks to the probablistic events and extract the relevant features for creating data files in Amis format</li>
+<li>Calculate the best weight for the features</li>
+</ol>
+
+<p>A probablistic event is a string separated by // like the following:
+<blockquote>
+<pre style="font-size:medium">
+ms-period-//NNP//[D&lt N.3sg&gt]_lxm-noun_adjective_rule//haag//NNP//haag//NNP//uni
+</pre>
+</blockquote>
+
+The last field indicates the <i>category</i> of the event. The other fields are symbols that represent features of the event. unimaker would output a word and the probablistic event correpsonding to the assignment of a lexical entry to it. 
+
+<p>
+amisfilter would apply a mask to a probablistic eventa according to the category of the category of the event. A mask determines which of the fields are used together to create a certain feature. For the above probablistic event, applying the mask (0,1,1,1,1,1,1) would create the following feature:
+
+ <blockquote>
+<pre style="font-size:medium">
+_//NNP//[D&lt N.3sg&gt]_lxm-noun_adjective_rule//haag//NNP//haag//NNP//uni
+</pre>
+</blockquote>
+
+amisfilter extracts features from probablistic events in this way and generates data files in amis format. Finally, amis would calcultate the best weight for each of these features.
+
+<p>
+Below we explain each of the steps involved.
+
+<h2>Outputing Probablistic Events to Files</h2>
+
+<p>
+Now let us explain how we use <a href="../../manual/unimaker.html">unimaker</a> 
+to output probablistic events to files.
+
+<table border=1>
+<tr><td colspan=2>Name of unimaker Model Event Extraction Module Derivbank Event File
+<tr><td>Name of Model<td>The name of the model<td>the name of the probablistic model(used for parsing)
+<tr><td>Event Extraction Module<td>The lilfes module that includes the predicate for event extraction
+<tr><td>dervibank<td>The derivbank resulted from grammar acquisition(lildb format)
+<tr><td>Event File<td>The file which probablistic events are outputed(in text format or bompressed in gz/bz format)
+
+<p>
+The TERM TEMPLATE feature of the terminal node of a derivation tree is assigned the name of a lexical entry template (a combination of the name of a lexeme template and the history of lexical rule application)
+
+unimaker would generate probablistic events from the word information(the 'word'-typed value assigned to the TERM WORD feature) of each terminal node, the name of a lexical entry template (the value of the TERM_TEMPLATE feature) and the word information of terminal nodes nearby. 
+
+<ol>
+   <li>Create derivation word lattice from derivation by calling the 
+   <tt>um_derivation_to_deriv_word_lattice/2</tt> predicate. 
+   The WORD feature of an element of derivation word lattice is assigned the terminal node of a derivation tree as its value. 
+   <li>Create a word lattice from a derivation tree by calling the <tt>um_derivation_to_word_lattice/2</tt> predicate and insert it in a chart.
+   <li>Output probablistic events of positive examples and negative examples from features of the derivation word lattice. The values of the WORD feature of eleements in the word lattice, that is, the terminal nodes of the relevant derivation tree, are extracted and processed in the following procedures.
+    <ol>
+      <li>Supply the <tt>um_correct_lexical_entry/2</tt> predicate with the terminal nodes of a derivation tree for obtaiing the correct lexical entries. 
+      <li>Supply the <tt>um_complement_lexical_entry/2</tt> predicate with a terminal node of a derviation tree to obtain the correct name of a lexical entry.
+       <li>The lexical entry obtained is passed to the <tt>extract_lexical_event/4</tt> predicate for extracting (the category and feature of) proabablistic events and outputing them. At this point, the probabilistic events obtained from correct lexical entries are outputed as positive examples and those obtained from other lexical entries are outputed as negative examples.  
+   </ol>
+</ol>
+
+When outputing probablistic events with the <tt>extract_lexical_event/4</tt> predicate, information from the word lattice of words nearby can be included in the Feature field. This is for inserting the word lattice in the relevant chart. The derviation word lattice of words nearby are not included the FIELD field. 
+
+The predicate that creates two types of word lattice from terminal nodes of a derivation tree is found in "devel/unimake.lil". "devel/unimake.lil" also includes a predicate for finding out the correct lexical entries to be used at the terminal nodes of a derviation tree. These prediates will be explained in the following paragraphy. 
+
+<ul>
+<li>A word lattice created by the <tt>um_derivation_to_word_lattice/2</tt> predicate contains a left_position feature and a right_position feature that tells the position of the word corresponding to the word lattice. It also has the WORD feature which is assigned the value of the TERM_WORD feature of a terminal node of a derviation tree. 
+<li>A derviation word lattice created created by <tt>um_derivation_to_deriv_word_lattice/2</tt> has features that tells the position of the corresponding word. It also has a WORD feature which is assigned the terminal nodes of a derivation tree. 
+<li>The <tt>um_correct_lexical_entry/2</tt> predicate would return the correct lexical entry from lexical entries assigned to the terminal nodes of a derivation tree. The returned lexical entry shares the same feature structure with the lexical entries supplied to the predicate. 
+<li>The <tt>um_complement_lexical_entry/2</tt> predicate would return one by one the lexical entries excluded by <tt>um_correct_lexical_entry/2</tt> from lexcial entries assigned to the terminal nodes of a derivation tree. 
+</ul>
+
+These predicates are defined in the following way:
+
+<blockquote>
+<pre style="font-size:medium">
+um_derivation_to_word_lattice(derivation_internal & DERIV_DTRS\$Dtrs,
+                              $WordLattice) :-
+    um_derivation_to_word_lattice_dtrs($Dtrs, $WordLattice). %% recursive predicate
+um_derivation_to_word_lattice(derivation_terminal & TERM_WORD\$Word,
+			      [left_position\$LPos & right_position\$RPos &
+                               word\$LexEntry]) :-
+    $LexEntry = [$Word],
+    $Word = POSITION\$LPos,
+    $RPos is $LPos + 1.
+
+um_derivation_to_deriv_word_lattice(derivation_internal & DERIV_DTRS\$Dtrs,
+                                    $WordLattice) :-
+    um_derivation_to_deriv_word_lattice_dtrs($Dtrs, $WordLattice). %%  recursive predicate
+um_derivation_to_deriv_word_lattice(derivation_terminal & $Term & TERM_WORD\$Word,
+			      [left_position\$LPos & right_position\$RPos &
+                               word\$LexEntry]) :-
+    $LexEntry = $Term,
+    $Word = POSITION\$LPos,
+    $RPos is $LPos + 1.
+
+um_correct_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+    lookup_lexicon($Word, $TempNameList),
+    member($TempName, $TempNameList),
+    lookup_template($TempName, $LexEntry),
+    equivalent($LexEntry, $Sign),
+    !,
+    $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+
+um_complement_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+     lookup_lexicon($Word, $TempNameList1),
+     check_coverage($TempNameList1, $Sign, $TempName1), %% check whether $TempNameList1 contains 
+                                                        %% elements that carry $Sign
+     findall($Lex,
+ 	    (member($TN, $TempNameList1),
+ 	     $TN \= $TempName1,
+ 	     $Lex = LEX_WORD\$Word & LEX_TEMPLATE\$TN),
+ 	    $LexList),
+     member(LEX_TEMPLATE\$TempName, $LexList),
+     $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+</pre>
+</blockquote>
+
+<p>
+
+
+The <tt>extract_lexical_event/4</tt> predicate, which is used for extracting probablistic events is found in 
+"grammar/unievent.lil". Probablistic events of the category "uni" is extracted by this predicate. Its feature contains the following fields:
+
+
+<ul>
+  <li>the word that precedes the word that immediately precedes the current word (string and POS, strings generated by stemming and POS)
+  <li>the word that immediatellly precedes the current word(strings and POS, strings generated by stemming and POS)
+  <li>the current word(stringss and POS，strings generated by stemming and POS), lexical entries and names of lexemes
+  <li>the word that immediately comes after the current word(string and POS，strings geeeenerated by stemming and POS)
+  <li>the word that comes after the word that immediately comes after the current word(string and POS, stemming and POS)
+</ul>
+
+They are specified in the following ways:
+
+<blockquote>
+<pre style="font-size:medium">
+extract_lexical_event("hpsg-uni", "uni", $LexEntry, $Event) :-
+    $LexEntry = (LEX_WORD\ (SURFACE\ $Surface &
+			    POS\ $Pos &
+			    BASE\ $Base &
+			    BASE_POS\ $BasePOS &
+			    POSITION\ $Position) &
+		 LEX_TEMPLATE\($LexTemplate & LEXEME_NAME\$LexemeName)),
+    lex_template_label($LexTemplate, $LexName),
+    $PositionN2 is $Position - 2,
+    $PositionN1 is $Position - 1,
+    $PositionP1 is $Position + 1,
+    $PositionP2 is $Position + 2,
+    $PositionP3 is $Position + 3,
+    $PositionP4 is $Position + 4,
+    lexical_event($PositionN2, $PositionN1, $Event, $Event2),     %% -2
+    lexical_event($PositionN1, $Position,   $Event2, $Event3),    %% -1
+    $Event3 = [$Surface, $Pos, $LexName, $Base, $BasePOS, $LexemeName|$Event4],
+    lexical_event($PositionP1, $PositionP2, $Event4, $Event5),    %%  1
+    lexical_event($PositionP2, $PositionP3, $Event5, $Event6),    %%  2
+    lexical_event($PositionP3, $PositionP4, $Event6, []).         %%  3
+</pre>
+</blockquote>
+
+
+<p>
+The event file outputed by unimaker looks like the following. 
+(One event is outputed as one line. In the case of event_2_0, there are 3 probablistic events.)
+
+<small>
+<blockquote>
+<pre>
+event_2_0
+1       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm-noun_adjective_rule//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm//haag//NNP//haag//NNP//plays//VBZ//play//VB//
+elianti//NNP//elianti//NNP//uni
+0       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[D&lt N.3sg&gt]_lxm//ms-period-//NNP//[D&lt N.3sg&gt]_lxm//haag//
+NNP//haag//NNP//plays//VBZ//play//VB//elianti//NNP//elianti//NNP//
+uni
+0       BOS//BOS//BOS//BOS//BOS//BOS//BOS//BOS//ms-period-//NNP//
+[&lt NP.3sg.adj&gt]NP.adj_mod//ms-period-//NNP//
+[&lt NP.3sg.adj&gt]NP.adj_mod//haag//NNP//haag//NNP//plays//VBZ//
+play//VB//elianti//NNP//elianti//NNP//uni
+
+event_2_1
+...
+</pre>
+</blockquote>
+</small>
+
+
+In this case, 
+event_2_0 is the word  "Ms." に "[D<N.3sg>]_lexm-noun_adjective_rule" で
+表される語彙項目が対応する確率イベントを表しています．
+The "1" in the beginning of the 2nd line indicates that it is a positive example. The "0" in the beginning of the 3rd line and the  4th line indicates that they are negative examples. "BOS" marks the beginning of a sentence. 
+
+<h2>Applying masks to extract features</h2>
+
+<p>
+Let us illustrate how to use <a href="../../manual/amisfilter.ja.html">amisfilter</a> to apply masks to the probablistic events outputed above and extract features for generating a data file in Amis format. 
+
+<table border=1>
+<tr><td colspan=2>amisfilter Name of Model Mask Module Probablistic Event File
+Count File Model File Event File
+<tr><td>Name of Model <td>Name of Proablistic Model(Also used in parsing)
+<tr><td>Mask Module<td>The lilfes module that applies masks to probablistic events
+<tr><td>Probablistic Event File<td>The Inpu Probablistic Event File(text file or gz/bz file) 
+<tr><td>Count File<td>The file that outputs the frequencies of features(text file)
+<tr><td>Model File<td>Model File(AmisModel foramt)
+<tr><td>Event File<td>Event File(AmisEvent format)
+</table>
+
+<p>
+The actual processing being done is as follows
+
+<ol>
+<li>
+Create features by applying masks defined in the category corresponding to probablistic events that represents observed events in the probablistic event file. 
+Category-specific Masks are defined by the <tt>feature_mask/3</tt> predicate. 
+  <li>The frequency of a feature appearing with observed events are counted and outputed to the count file.
+  <li>Those features that have frequencies above a predefined threshold are adopted and model files and event files in Amis format are created. 
+</ol>
+
+<p>
+The <tt>feature_mask/3</tt> predicate is found in "grammar/lexmask.lil". The mask 
+
+ 　　　
+
+
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,266 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>treetrans: 構文木変換ツール</title>
+</head>
+
+
+
+<body>
+<h1>treetrans: 構文木変換ツール</h1>
+
+<a href="treetrans.html">English version</a>
+
+<p>
+構文木をパターンルールを使って変換するツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>treetrans [オプション] ルールモジュール 入力ファイル 出力データベース
+<tr><td>ルールモジュール<td>構文木を変換するパターンルールがかかれた lilfes file
+<tr><td>入力ファイル<td>入力の treebank (テキスト形式)
+<tr><td>出力データベース<td>出力の treebank (lildb 形式)
+<tr><td colspan=2>オプション
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+一行に一つの構文木が書かれたテキストファイルを入力とし，構文木変換ルー
+ルを各入力木に適用し，その結果を lildb 形式のデータベースに格納します．
+
+<h2>構文木の入力の仕方</h2>
+
+treetrans は，'input_parse_tree/2' を呼び出すことでテキストファイルか
+ら構文木を読み込みます．'input_parse_tree/2' は treetrans のインタフェー
+スとして"treetrans.lil" で型定義されていますが，中身は実装されていない
+ので，文法開発者が実装してください．'input_parse_tree/2' の第一引数に
+は入力ファイルの一行が渡され，第二引数に構文木が返されることを想定して
+います．構文木は，"treetypes.lil" で定義されている型で記述します．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>input_parse_tree(+$String, -$Tree)</tt>
+<tr><td><tt>+$String</tt><td>入力ファイルの行
+<tr><td><tt>-$Tree</tt><td>構文木
+<tr><td colspan=2>入力ファイルの各行から構文木を読み込みます
+</table>
+
+<p>
+入力ファイルが Penn Treebank 形式の場合は，"treeio.lil" で実装されてい
+る 'input_ptb_parse_tree/2' が利用できます．'input_ptb_parse_tree/2' 
+を利用するには，"treeio.lil" で定義されている以下のインタフェースを実
+装する必要があります．
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>ptb_empty_category(-$Category)</tt>
+<tr><td><tt>-$Category</tt><td>空範疇とみなす SYM の値
+<tr><td colspan=2>構文木の中で空範疇とみなす非終端記号を指定します．
+SYM は "treetypes.lil" で定義されている素性です．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_preprocess_word(+$Input, -$Output)</tt>
+<tr><td><tt>+$Input</tt><td>入力単語
+<tr><td><tt>-$Output</tt><td>前処理をかけた結果
+<tr><td colspan=2>入力単語に前処理をかけます．特殊文字をエスケープした
+り，全て小文字に変換したりします．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_preprocess_pos(+$Input, -$Output)</tt>
+<tr><td><tt>+$Input</tt><td>入力品詞
+<tr><td><tt>-$Output</tt><td>前処理をかけた結果
+<tr><td colspan=2>入力品詞に前処理をかけます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_delete_pos(-$POS)</tt>
+<tr><td><tt>-$POS</tt><td>品詞
+<tr><td colspan=2>構文木の中で無視する品詞を指定します．この品詞のノー
+ドのみを持つ非終端記号も無視されます．$POS には ptb_preprocess_pos/2
+の結果を渡します．
+</table>
+
+<p>
+これらを実装した上で，'input_parse_tree/2' から 
+'input_ptb_parse_tree/2' を呼び出してください．例えば以下のように使い
+ます．
+
+<blockquote>
+<pre>
+ptb_empty_category("-NONE-").
+ptb_preprocess_word($In, $Out) :- to_lower($In, $Out).
+ptb_preprocess_pos($POS, $POS).
+ptb_delete_pos(".").
+ptb_delete_pos("""").
+input_parse_tree($String, $Tree) :-
+    input_ptb_parse_tree($String, $Tree).
+</pre>
+</blockquote>
+
+<p>
+入力ファイルが Penn Treebank 形式でない場合は，自分で 
+'input_parse_tree/2' を実装してください．
+
+<h2>構文木変換ルールの書き方</h2>
+
+構文木変換は，以下のステップで行われます．
+
+<p>
+<ul>
+  <li>構文木の前処理
+  <li>パターンルールによる変換
+  <li>ステミング
+</ul>
+
+<p>
+まず，以下のインタフェースを用いて，構文木を入力する時(パターンルール
+を適用する前)に構文木を整形することができます．
+
+<table border=1>
+<tr><td colspan=2><tt>delete_tree(+$Tree)</tt>
+<tr><td><tt>+$Tree</tt><td>構文木の部分木
+<tr><td colspan=2>+$Tree と unifiable な部分木を削除します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>nonterminal_mapping(+$InSym, -$OutSym)</tt>
+<tr><td><tt>+$InSym</tt><td>入力の nonterminal symbol
+<tr><td><tt>-$OutSym</tt><td>出力の nonterminal symbol
+<tr><td colspan=2>nonterminal symbol $InSym を $OutSym に変換します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>preterminal_mapping(+$InSurface, +$InSym, -$OutSurface, -$OutSym)</tt>
+<tr><td><tt>+$InSurface</tt><td>入力の単語(surface form)
+<tr><td><tt>+$InSym</tt><td>入力の nonterminal symbol
+<tr><td><tt>-$OutSurface</tt><td>出力の単語(surface form)
+<tr><td><tt>-$OutSym</tt><td>出力の nonterminal symbol
+<tr><td colspan=2>単語 $InSurface/$InSym を $OutSurface/$OutSym に変換します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>preterminal_projection(+$InSym, -$NewSym)</tt>
+<tr><td><tt>+$InSym</tt><td>preterminal symbol
+<tr><td><tt>-$NewSym</tt><td>nonterminal symbol
+<tr><td colspan=2>preterminal $InSym の直上に，nonterminal symbol
+$NewSym を加えます．
+</table>
+
+<p>
+パターンルールは，treetrans.lil で定義されているインタフェースを用いて，
+lilfes プログラムで記述します．構文木は，treetypes.lil で定義されてい
+る素性構造で表現されます．例えば，以下の例では，(... than/IN XXX) とい
+う木を，(... (PP than/IN XXX:argument)) という木に変換します．
+
+<blockquote>
+<pre>
+tree_transform_class("than", "topdown", "weak").
+
+tree_subst_pattern("than",
+                   TREE_NODE\$Node & TREE_DTRS\$Dtrs,
+                   TREE_NODE\$Node & TREE_DTRS\$NewDtrs) :-
+    $Dtrs = [$Left & tree_any & ANY_TREES\[_|_],
+             $Than & tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+             $Right & tree & TREE_NODE\HEAD_MARK\argument],
+    $NewDtrs = [$Left,
+                TREE_NODE\(SYM\"PP" & MOD\[] & ID\[] & HEAD_MARK\modifier) &
+                TREE_DTRS\[$Than, $Right]].
+</pre>
+</blockquote>
+
+<p>
+まず，<tt>tree_transform_class/3</tt> で変換ルールの名前，適用順序，適
+用失敗したときのふるまいを指定します．
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_class(+$Name, +$Direction, +$Strict)</tt>
+<tr><td><tt>+$Name</tt><td>変換ルールの名前
+<tr><td><tt>+$Direction</tt><td>変換ルールの適用順序
+        <ul>
+	  <li>"topdown": 上から下へ適用する
+	  <li>"bottomup": 下から上へ適用する
+	  <li>"rootonly": 構文木の根にだけ適用する
+<tr><td><tt>+$Strict</tt><td>失敗したときの振舞い
+        <ul>
+          <li>"strict": 適用失敗したら，構文木の変換を失敗させる
+          <li>"weak": 適用失敗しても無視して次のルールに行く
+	</ul>
+</table>
+
+<p>
+次に，以下のようなインタフェースを用いて変換ルールを記述します．全ての
+インタフェースにおいて，第一引数は上で指定した変換ルール名です．
+<tt>treetrans</tt>プログラムは，tree_transform_class/3 で指定された適用
+順序にしたがって，構文木の各ノードをトラバースし，変換ルールを適用しま
+す．
+
+<table border=1>
+<tr><td colspan=2><tt>tree_ignore(+$Name, ?$Tree)</tt>
+<tr><td><tt>+$Name</tt><td>ルール名
+<tr><td><tt>+$Tree</tt><td>tree: 構文木
+<tr><td colspan=2>+$Tree と unifiable な木を取り除きます．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_rule(+$Name, +$InTree, -$OutTree)</tt>
+<tr><td><tt>+$Name</tt><td>ルール名
+<tr><td><tt>+$InTree</tt><td>tree: 入力構文木
+<tr><td><tt>-$OutTree</tt><td>tree: 出力構文木
+<tr><td colspan=2>$InTree を $OutTree に変換します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_subst_pattern(+$Name, +$InPattern, +$OutPattern)</tt>
+<tr><td><tt>+$Name</tt><td>ルール名
+<tr><td><tt>+$InTree</tt><td>tree: 入力木のパターン
+<tr><td><tt>+$OutTree</tt><td>tree: 出力木のパターン
+<tr><td colspan=2>$InTree に tree_match/2 でマッチする木を，
+$OutPattern のパターンに変換します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_unify(+$Name, ?$Tree)</tt>
+<tr><td><tt>+$Name</tt><td>ルール名
+<tr><td><tt>+$Tree</tt><td>tree: 構文木
+<tr><td colspan=2>$Tree を構文木に unify します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_match_pattern(+$Name, +$Pattern)</tt>
+<tr><td><tt>+$Name</tt><td>ルール名
+<tr><td><tt>+$Tree</tt><td>tree: 構文木パターン
+<tr><td colspan=2>$Pattern を構文木に unify します．
+</table>
+
+<p>
+変換ルールは，<tt>tree_transform_class/3</tt>で定義された順番で適用されます．
+各変換ルールでは<tt>tree_ignore/2, tree_transform_rule/3,
+tree_subst_pattern/3, tree_unify/2, tree_match_pattern/2</tt> の順番で
+適用が試みられ，ひとつの適用が成功するとあとは適用されません．
+
+<p>
+変換ルールの中で，tree_binarize/2 (構文木を二分木化する．<a
+href="modules.ja.html#binarizer">binarizer.lil</a>で定義されている) や 
+mark_head/1, mark_modifier/1 (それぞれ，head マークや，
+modifier/argument マークをつける．<a
+href="modules.ja.html#markhead">markhead.lil</a>で定義されている) など
+のツールを使うこともできます．
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

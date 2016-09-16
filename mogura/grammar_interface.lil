@@ -1,0 +1,114 @@
+%/**********************************************************************
+  * @module    =  mogura:grammar_interface
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: grammar_interface.lil,v 1.4 2010-02-24 11:39:05 matuzaki Exp $
+  * @version   =  
+  * @desc      =  Interface of the Mogura grammar
+  **********************************************************************
+%*/
+
+:- module("mogura:grammar_interface").
+
+:- module_extendable.
+
+%------------------------------------------------------------------------------
+:- module_interface.
+%------------------------------------------------------------------------------
+
+%%
+%% get_sign_label(+$Sign, -$Label) : map a sign to an atomic symbol
+%%
+get_sign_label <- [pred].
+
+%%
+%% get_schema_list(-$LeftHead, -$RightHead, -$Unary) : get lists of rule schemas
+%%
+get_schema_list <- [pred].
+
+%%
+%% get_enju_feature(+$LeftDtr, +$RightDtr, -$Features)
+%%
+get_enju_feature <- [pred].
+
+%%
+%% get_val_feature(+$Sign, -$Features)
+%%
+get_val_feature <- [pred].
+
+%%
+%% get_model_key_index(-$KeyIndex) : get the index of model-selection key in word vector
+%%
+get_model_key_index <- [pred].
+
+%%
+%% get_pos_index(-$PosIndex) : get the index of POS tag field in word vector
+%%
+get_pos_index <- [pred].
+
+%%
+%% get_input_word_index(-$InputIndex) : get the index of input word field in word vector
+%%
+get_input_word_index <- [pred].
+
+%%
+%% get_cfg_grammar_file(-$FileName)
+%%
+get_cfg_grammar_file <- [pred].
+
+%%
+%% get_restricted_cfg_grammar_file(-$FileName)
+%%
+get_restricted_cfg_grammar_file <- [pred].
+
+%%
+%% get_model_file(-$FileName)
+%%
+get_model_file <- [pred].
+
+
+%------------------------------------------------------------------------------
+:- module_implementation.
+%------------------------------------------------------------------------------
+:- ensure_loaded("lillib/dattypes").
+:- ensure_loaded("lillib/debug").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("../enju/tools").
+
+%%% Utility; for internal use only.
+set_cfg_grammar_file <- [pred].
+set_restricted_cfg_grammar_file <- [pred].
+set_model_file <- [pred].
+
+set_file_name <- [pred].
+set_file_name($FileName, $VarName, $FileTypeName) :-
+    (get_enju_file_path($FileName, $FullFileName) ->
+     true
+     ;
+     formattostr("Cannot find ~s: ""~s""\n", [$FileTypeName, $FileName], $ErrMsg),
+     error_message($ErrMsg)),
+    set_variable($VarName, $FullFileName).
+
+%------------------------------------------------------------------------------
+'*mogura_cfg_file_name*' <- [variable].
+:- define_variable('*mogura_cfg_file_name*').
+
+get_cfg_grammar_file($FileName) :- get_variable('*mogura_cfg_file_name*', $FileName).
+set_cfg_grammar_file($FileName) :- set_file_name($FileName, '*mogura_cfg_file_name*', "CFG grammar file").
+
+%------------------------------------------------------------------------------
+'*mogura_restricted_cfg_file_name*' <- [variable].
+:- define_variable('*mogura_restricted_cfg_file_name*').
+
+get_restricted_cfg_grammar_file($FileName) :- get_variable('*mogura_restricted_cfg_file_name*', $FileName).
+set_restricted_cfg_grammar_file($FileName) :-
+    set_file_name($FileName, '*mogura_restricted_cfg_file_name*', "restricted CFG grammar file").
+
+%------------------------------------------------------------------------------
+'*mogura_model_file_name*' <- [variable].
+:- define_variable('*mogura_model_file_name*').
+
+get_model_file($FileName) :- get_variable('*mogura_model_file_name*', $FileName).
+set_model_file($FileName) :- set_file_name($FileName, '*mogura_model_file_name*', "model file").
+
+%------------------------------------------------------------------------------

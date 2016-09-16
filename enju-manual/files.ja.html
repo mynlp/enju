@@ -1,0 +1,156 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>ファイル一覧</title>
+</head>
+
+
+
+<body>
+<h1>ファイル一覧</h1>
+
+<a href="files.html">English version</a>
+
+<h2>grammar ディレクトリ</h2>
+
+<p>
+型階層，スキーマ，プリンシプルなどが定義されたファイルが含まれます．こ
+れらのファイルは $PREFIX/share/liblilfes/enju/ にインストールされます．
+
+<dl>
+  <dt>display.lil
+  <dd>sign などを表示用文字列に変換するプログラム
+  <dt>forestevent.lil
+  <dd>feature forest model のイベントを取りだすプログラム
+  <dt>forestprob.lil
+  <dd>feature forest model の確率値を計算するプログラム
+  <dt>fs.css
+  <dd>素性構造をブラウザで見るためのスタイルシート
+  <dt>fs.xsl
+  <dd>素性構造をブラウザで見るための XSL
+  <dt>grammar.lil
+  <dd>up のインタフェースを実装しているモジュール
+  <dt>lexmask.lil
+  <dd>lexicalized unigram FOM モデルのマスク
+  <dt>lexmodel.lil
+  <dd>lexicalized unigram FOM モデルを実装しているモジュール
+  <dt>macro.lil
+  <dd>sign のいろいろなマクロを実装しているモジュール
+  <dt>moriv.css
+  <dd>moriv で使うスタイルシート
+  <dt>moriv.lil
+  <dd>moriv で構文解析結果を見るためのプログラム
+  <dt>outputdep.lil
+  <dd>構文解析結果を dependency 形式で出力するプログラム
+  <dt>outputxml.lil
+  <dd>構文解析結果を xml 形式で出力するプログラム
+  <dt>preproc.lil
+  <dd>単語と品詞の前処理(stemming 以外)を行なうプログラム
+  <dt>schema.lil
+  <dd>ID schema と principle を実装しているモジュール
+  <dt>semantics.lil
+  <dd>semantic principle を実装しているモジュール
+  <dt>stem.lil
+  <dd>stemming のプログラム
+  <dt>synmask.lil
+  <dd>syntax FOM モデルのマスク
+  <dt>synmodel.lil
+  <dd>syntax FOM モデルを実装しているモジュール
+  <dt>tools.lil
+  <dd>パーザでよく使う述語集
+  <dt>types.lil
+  <dd>HPSG 文法の型階層を定義しているモジュール
+  <dt>unievent.lil
+  <dd>unigram model のイベントを取りだすプログラム
+  <dt>uniprob.lil
+  <dd>unigram model の確率値を計算するプログラム
+</dl>
+
+<h2>devel ディレクトリ</h2>
+
+<p>
+treebank の変換ルールや inverse schema が定義されたファイルが含まれま
+す．これらのファイルは開発者用なので，インストールはされません．
+
+<dl>
+  <dt>evalpas.lil
+  <dd>predicate-argument relation の精度測定プログラム
+  <dt>forestmake.lil
+  <dd>feature forest model を作るプログラム
+  <dt>invlexrule.lil
+  <dd>inverse_lexical_rule を実装しているモジュール
+  <dt>invschema.lil
+  <dd>inverse_schema を実装しているモジュール
+  <dt>lexabstract.lil
+  <dd>lexical entry の抽象化をするプログラム
+  <dt>lexcommon.lil
+  <dd>lexrule.lil, invlexrule.lil で共通に使われるプログラム
+  <dt>lexextract.lil
+  <dd>lexextract の設定ファイル
+  <dt>lexmodel.conf
+  <dd>lexicalized unigram FOM モデルの amis 設定ファイル
+  <dt>lexrefine.lil
+  <dd>lexrefine の設定ファイル
+  <dt>lexrule.lil
+  <dd>lexical_rule を実装しているモジュール
+  <dt>lextemplate.lil
+  <dd>lexical_entry_template を実装しているモジュール
+  <dt>makesem.lil
+  <dd>CONT の中身を作るプログラム
+  <dt>moriv.css
+  <dd>moriv で使うスタイルシート
+  <dt>moriv.lil
+  <dd>文法獲得過程を moriv で見るためのプログラム
+  <dt>pqueue.lil
+  <dd>priority queue を使うプログラム
+  <dt>synmodel.conf
+  <dd>syntax FOM モデルの amis 設定ファイル
+  <dt>transmain.lil
+  <dd>treetrans の設定ファイル
+  <dt>transrules/*.lil
+  <dd>構文木変換のためのパターンルール
+</dl>
+
+<h2>parser ディレクトリ</h2>
+
+<p>
+Enju パーザの C++ ソースが含まれます．
+
+<dl>
+  <dt>enju.cc
+  <dd>enju の本体
+  <dt>outputxml.cc
+  <dd>XML 形式を出力するためのプログラム
+</dl>
+
+<h2>tools ディレクトリ</h2>
+
+<p>
+いろいろなスクリプトが含まれます．
+
+<dl>
+  <dt>err2html.prl
+  <dd>*.err ファイルを HTML 形式に変換する Perl スクリプト
+  <dt>mrg2trees.prl
+  <dd>Penn の *.mrg ファイルを *.trees 形式に変換する Perl スクリプト
+  <dt>trees2raw.prl
+  <dd>*.trees ファイルを生テキストに変換する Perl スクリプト
+  <dt>trees2tagged.prl
+  <dd>*.trees ファイルを POS タグつきコーパスに変換する Perl スクリプト
+</dl>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

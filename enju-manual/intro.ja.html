@@ -1,0 +1,52 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Enju って何？</title>
+</head>
+
+
+
+<body>
+<h1>Enju って何？</h1>
+
+<a href="intro.html">English version</a>
+
+<p>
+Enju は，英語の構文解析器です．文法は <a
+href="http://hpsg.stanford.edu/">Head-driven Phrase Structure Grammar
+(HPSG)</a> という言語理論を基礎にしています．CFG に基づくパーザよりも
+詳細な文構造を計算するため，従来は得られなかった文の詳細な構造や，述語
+項構造を出力することができます．
+
+<p>
+例えば，
+<blockquote>
+It's falling like a stone, said Danny Linger, a pit trader who was standing outside the London International Financial Futures Exchange.
+</blockquote>
+という文を解析すると，"said" の主語は "Danny Linger" であり，補語が
+"it's falling like a stone" であるということや，"standing outside..."
+の主語が "pit trader" であることなどが計算できます．
+
+<p>
+XHTML と XSLT をサポートしているブラウザ(Mozilla Firefox など)で，上の
+文の解析結果を見ることができます．
+<ul>
+  <li><a href="browsetree.xhtml">構文木</a>
+  <li><a href="browsepas.xhtml">述語項構造</a>
+</ul>
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

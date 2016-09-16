@@ -1,0 +1,147 @@
+:- module("mogura:output_super").
+
+:- module_interface.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("../enju/outputxml").
+
+output_super_xml <- [pred].
+output_super_so <- [pred].
+
+output_super_xml_file <- [pred].
+'output_super_xml_file/0' <- ['pred/0', output_super_xml_file].
+'output_super_xml_file/1' <- ['pred/1', 'output_super_xml_file/0'].
+'output_super_xml_file/2' <- ['pred/2', 'output_super_xml_file/1'].
+
+output_super_so_file <- [pred].
+'output_super_so_file/0' <- ['pred/0', output_super_so_file].
+'output_super_so_file/1' <- ['pred/1', 'output_super_so_file/0'].
+'output_super_so_file/2' <- ['pred/2', 'output_super_so_file/1'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+extract_leaf_sequence <- [pred].
+extract_leaf_sequence([], $X, $X) :- !.
+extract_leaf_sequence([$T|$Rest], $Hd, $Tl) :-
+    extract_leaf_sequence($T, $Hd, $Tl1),
+    extract_leaf_sequence($Rest, $Tl1, $Tl).
+extract_leaf_sequence(xml_phrase & XML_DTRS\ $Dtrs, $Hd, $Tl) :-
+    extract_leaf_sequence($Dtrs, $Hd, $Tl).
+extract_leaf_sequence(xml_word & $W, [$W1|$Tl], $Tl) :-
+    $W = XML_NODE_ID\ $WordID &
+         XML_CAT\ $WordCat &
+         XML_SURFACE\ $Input &
+         XML_POS\ $POS &
+         XML_BASE\ $Base &
+         XML_LEXENTRY\ $LexTempLabel &
+         XML_PRED\$Pred &
+         XML_REL_LIST\ $RelList,
+    $W1 = XML_NODE_ID\ $WordID &
+          XML_CAT\ $WordCat &
+          XML_SURFACE\ $Input &
+          XML_POS\ $POS &
+          XML_BASE\ $Base &
+          XML_LEXENTRY\ $LexTempLabel &
+          XML_PRED\$Pred &
+          XML_REL_LIST\ $RelList1,
+    findall($Rel,
+            (member($Rel & XML_REL_LABEL\ $Label, $RelList), member($Label, ["tense", "aspect", "voice", "aux"])),
+            $RelList1).
+
+%% make a flat tree
+make_super_xml <- [pred].
+make_super_xml(xml_sentence & XML_SENTENCE_ID\ $Id & XML_PARSE_STATUS\ $Status & XML_PARSE_TREE\ $Tree,
+               xml_sentence & XML_SENTENCE_ID\ $Id & XML_PARSE_STATUS\ $Status & XML_PARSE_TREE\ $FlatTree) :-
+    extract_leaf_sequence($Tree, $FlatTree, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Output XML file
+
+output_super_xml($Sentence, $Output) :-
+    xml_parse_tree($Sentence, $XML),
+    make_super_xml($XML, $SuperXML),
+    output_xml_parse_tree($Sentence, $SuperXML, $Output).
+
+output_super_xml_loop <- [pred].
+output_super_xml_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_super_xml_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    output_super_xml($Sentence, $Output),
+    fail.
+output_super_xml_loop($Input, $Output) :-
+    output_super_xml_loop($Input, $Output).
+
+output_super_xml_file($InputFile, $OutputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    'enju:outputxml':init_id_numbers,
+    output_super_xml_loop($Input, $Output),
+    close($Output),
+    close($Input).
+
+output_super_xml_file($InputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    'enju:outputxml':init_id_numbers,
+    output_super_xml_loop($Input, $StdOut),
+    close($Input).
+
+output_super_xml_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    'enju:outputxml':init_id_numbers,
+    output_super_xml_loop($Input, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Output stand-off file
+
+output_super_so($Offset, $Sentence, $Output) :-
+    xml_parse_tree($Sentence, $XML),
+    make_super_xml($XML, $SuperXML),
+    output_so_parse_tree($Offset, $Sentence, $SuperXML, $Output).
+
+output_super_so_loop <- [pred].
+output_super_so_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_super_so_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    get_variable('enju:outputxml':'*file_offset*', $Offset),
+    output_super_so($Offset, $Sentence, $Output),
+    strlen($Sentence, $Len),
+    $NewOffset is $Offset + $Len + 1,
+    set_variable('enju:outputxml':'*file_offset*', $NewOffset),
+    fail.
+output_super_so_loop($Input, $Output) :-
+    output_super_so_loop($Input, $Output).
+
+output_super_so_file($InputFile, $OutputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    'enju:outputxml':init_id_numbers,
+    set_variable('enju:outputxml':'*file_offset*', 0),
+    output_super_so_loop($Input, $Output),
+    close($Output),
+    close($Input).
+
+output_super_so_file($InputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    'enju:outputxml':init_id_numbers,
+    set_variable('enju:outputxml':'*file_offset*', 0),
+    output_super_so_loop($Input, $StdOut),
+    close($Input).
+
+output_super_so_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    'enju:outputxml':init_id_numbers,
+    set_variable('enju:outputxml':'*file_offset*', 0),
+    output_super_so_loop($Input, $Output).
+

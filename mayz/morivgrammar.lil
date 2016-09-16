@@ -1,0 +1,218 @@
+%/**********************************************************************
+  * @module    = mayz:morivgrammar
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: morivgrammar.lil,v 1.6 2010-08-06 04:49:55 yusuke Exp $
+  * @version   = Time-stamp: <2010-08-06 13:47:57 yusuke>
+  * @desc      = Grammar browser using MoriV
+  **********************************************************************
+%*/
+
+:- module("mayz:morivgrammar").
+
+:- module_interface.
+
+:- ensure_loaded("moriv").
+
+'*moriv_grammar_title*' <- [variable].
+'*moriv_grammar_heading*' <- [variable].
+
+:- module_implementation.
+
+:- ensure_loaded("lexicon").
+:- ensure_loaded("tagger").
+:- ensure_loaded("display").
+:- ensure_loaded("parser").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/tools").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/io").
+
+'*word_cache*' <- [variable].
+'*template_cache*' <- [variable].
+'*lexentry_cache*' <- [pred].
+'*num_lexentries*' <- [variable].
+:-
+    set_variable('*moriv_toppage_name*', "grammar"),
+    define_string_variable('*moriv_grammar_title*'),
+    set_variable('*moriv_grammar_title*', "MAYZ GUI - Grammar Browser"),
+    define_variable('*moriv_grammar_heading*'),
+    set_variable('*moriv_grammar_heading*', "MAYZ GUI - Grammar Browser"),
+    define_string_variable('*word_cache*'),
+    set_variable('*word_cache*', ""),
+    define_string_variable('*template_cache*'),
+    set_variable('*template_cache*', ""),
+    define_integer_variable('*num_lexentries*'),
+    set_variable('*num_lexentries*', 0),
+    db_open('*lexentry_cache*'(key_inthash, array_value_string, array_value)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+input_form_page <- [pred].
+input_form_page($Page) :-
+    get_variable('*moriv_grammar_heading*', $Heading),
+%%     get_variable('*word_cache*', $Word1),
+%%     encode_xml_string($Word1, $Word),
+    get_variable('*template_cache*', $Template1),
+    encode_xml_string($Template1, $Template),
+    $Page = [xhtml_h3 & XHTML_TEXT\$Heading & XHTML_CLASS\"title",
+	     (xhtml_form & FORM_METHOD\"GET" &
+	      FORM_ACTION\"moriv" &
+	      XHTML_ATTRIBUTES\[XML_ATTR\"onreset" & XML_ATTR_VAL\"this.word.value=''; return false;"] &
+	      XHTML_TEXT\[
+%% 			  (xhtml_span & XHTML_TEXT\"Word/POS: "),
+%% 			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" & INPUT_VALUE\$Word &
+%% 			   INPUT_SIZE\"30" & XHTML_NAME\"word"),
+			  (xhtml_span & XHTML_TEXT\"Template: "),
+			  (xhtml_input & XHTML_CLASS\"input" & INPUT_TYPE\"text" & INPUT_VALUE\$Template &
+			   INPUT_SIZE\"30" & XHTML_NAME\"template"),
+			  (xhtml_input & INPUT_TYPE\"hidden" &
+			   XHTML_NAME\"page" & INPUT_VALUE\"grammar"),
+			  (xhtml_input & INPUT_TYPE\"submit" &
+			   XHTML_NAME\"input" & INPUT_VALUE\"Input"),
+			  (xhtml_input & INPUT_TYPE\"reset" &
+			   INPUT_VALUE\"Clear")]),
+	     (xhtml_a &
+	      A_HREF\"moriv?page=grammar&amp;all_template=1" &
+	      XHTML_TEXT\"List of all templates"),
+	     $Menu],
+    get_variable('*moriv_common_menu*', $Menu).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+make_template_label <- [pred].
+make_template_label($TempName, $TempLabel) :-
+    %%lex_template_label($TempName, $TempLabel1),
+    encode_xml_string($TempName, $TempLabel),
+    !.
+
+temp_name_compare <- [pred].
+temp_name_compare([$Name1, _], [$Name2, _]) :-
+    $Name1 < $Name2.
+
+make_all_template_list <- [pred].
+make_all_template_list :-
+    db_clear('*lexentry_cache*'(_, _, _)),
+    set_variable('*num_lexentries*', 0),
+    db_findall('*template*'(_, _), $Templates),
+    findall([$TempLabel, $Sign],
+	    (member('*template*'($TempName, $Sign), $Templates),
+	     make_template_label($TempName, $TempLabel)),
+	    $TempList1),
+    qsort($TempList1, temp_name_compare(_, _), $TempList),
+    (member([$TempLabel, $Sign], $TempList),
+     inc_variable('*num_lexentries*', $ID),
+     db_insert('*lexentry_cache*'($ID, $TempLabel, $Sign)),
+     fail ;
+     true).
+
+make_lex_label <- [pred].
+make_lex_label(_, $LexName, $LexLabel, $FOM) :-
+    lexname_label($LexName, $LexLabel1),
+    encode_xml_string($LexLabel1, $LexLabel),
+    % (fom_lexical_entry($Word, $LexName, $FOM) ->
+    % true ; $FOM = 0.0),
+    $FOM = 0.0,
+    !.
+
+lex_prob_compare <- [pred].
+lex_prob_compare([$FOM1, _, _], [$FOM2, _, _]) :-
+    $FOM1 > $FOM2.
+
+%% lexical_entry/2 doesn't work now
+%% make_template_list <- [pred].
+%% make_template_list($WordInfo) :-
+%%     db_clear('*lexentry_cache*'(_, _, _)),
+%%     set_variable('*num_lexentries*', 0),
+%%     findall([$FOM, $Label, $Sign],
+%% 	    (lexical_entry($WordInfo, $LexName),
+%% 	     make_lex_label($WordInfo, $LexName, $LexLabel, $FOM),
+%% 	     floattostr($FOM, $FOMStr),
+%% 	     concatenate_string([$LexLabel, " ", $FOMStr], $Label),
+%% 	     lexical_entry_sign($LexName, $Sign)),
+%% 	    $LexList1),
+%%     qsort($LexList1, lex_prob_compare(_, _), $LexList),
+%%     (member([_, $Label, $Sign], $LexList),
+%%      inc_variable('*num_lexentries*', $ID),
+%%      db_insert('*lexentry_cache*'($ID, $Label, $Sign)),
+%%      fail ;
+%%      true).
+
+lexentry_list <- [pred].
+lexentry_list([xhtml_h3 & XHTML_TEXT\"List of lexical entries" & XHTML_CLASS\"title",
+	       xhtml_ul & XHTML_TEXT\$List]) :-
+    get_variable('*num_lexentries*', $Num),
+    make_num_list(0, $Num, $IDList),
+    findall(xhtml_li & XHTML_TEXT\[xhtml_a & A_HREF\$Href & XHTML_TEXT\$Label],
+	    (member($ID, $IDList),
+	     db_find('*lexentry_cache*'($ID, $Label, _)),
+	     formattostr("moriv?page=grammar&lexentry=~d", [$ID], $Href1),
+	     encode_query_string($Href1, $Href)),
+	    $List).
+
+lexentry_list_page <- [pred].
+lexentry_list_page($Args, $Page) :-
+    assoc("all_template", $Args, _),
+    !,
+    set_variable('*word_cache*', ""),
+    set_variable('*template_cache*', ""),
+    make_all_template_list,
+    lexentry_list($Page).
+%% lexentry_list_page($Args, $Page) :-
+%%     assoc("word", $Args, $Word),
+%%     !,
+%%     set_variable('*word_cache*', $Word),
+%%     (disable_external_tagger,
+%%      sentence_to_lattice($Word, [$WordInfo]) ->
+%%      make_template_list($WordInfo),
+%%      lexentry_list($Page)
+%%      ;
+%%      $Page = ["Input should be `Word/POS': ", $Word]).
+lexentry_list_page(_, $Page) :-
+    lexentry_list($Page).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+display_page <- [pred].
+display_page($Args, $Page) :-
+    assoc("lexentry", $Args, $TempIDStr),
+    !,
+    strtoint($TempIDStr, $TempID),
+    (db_find('*lexentry_cache*'($TempID, $TempName, $Sign)) ->
+     $Result = [xhtml_tfstoxml & XHTML_TEXT\$Sign] ;
+     $Result = ["Unknown lexical entry: ", $TempName]),
+    $Page = [xhtml_h3 &
+	     XHTML_TEXT\["Lexical entry for", $TempName] &
+	     XHTML_CLASS\"title"|$Result],
+    !.
+display_page($Args, $Page) :-
+    assoc("template", $Args, $TempName),
+    !,
+    set_variable('*template_cache*', $TempName),
+    encode_xml_string($TempName, $TempNameEncoded),
+    (db_find('*template*'($TempName, $Sign)) ->
+     $Result = [xhtml_tfstoxml & XHTML_TEXT\$Sign] ;
+     $Result = ["Unknown template: ", $TempNameEncoded]),
+    $Page = [xhtml_h3 &
+	     XHTML_TEXT\["Lexical entry template for", $TempNameEncoded] &
+	     XHTML_CLASS\"title"|$Result],
+    !.
+display_page(_, $Page) :-
+    $Page = [xhtml_h3 &
+	     XHTML_TEXT\"Lexical entry" &
+	     XHTML_CLASS\"title"].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Grammar browser top page
+%%
+
+moriv_page("grammar", $Args, $Title, $Page) :-
+    get_variable('*moriv_grammar_title*', $Title),
+    lexentry_list_page($Args, $ListPage),
+    display_page($Args, $DisplayPage),
+    input_form_page($InputPage),
+    $Page = [xhtml_div & XHTML_ID\"form" & XHTML_TEXT\$InputPage,
+	     xhtml_div & XHTML_ID\"menu" & XHTML_TEXT\$ListPage,
+	     xhtml_div & XHTML_ID\"display" & XHTML_TEXT\$DisplayPage].
+

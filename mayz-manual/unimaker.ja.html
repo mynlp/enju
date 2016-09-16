@@ -1,0 +1,109 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>unimaker: unigram 確率モデル作成ツール</title>
+</head>
+
+
+
+<body>
+<h1>unimaker: unigram 確率モデル作成ツール</h1>
+
+<a href="unimaker.html">English version</a>
+
+<p>
+unigram probability model のためのイベントファイルを作るツールです．
+
+<p>
+<table border=1>
+<tr><td colspan=2>unimaker モデル名 イベント抽出モジュール lexicon template lexbank イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>イベント抽出モジュール<td>イベント抽出 predicate が実装されている lilfes module
+<tr><td>lexicon<td>文法獲得で得た lexicon (lildb 形式)
+<tr><td>template<td>文法獲得で得た template (lildb 形式)
+<tr><td>lexbank<td>文法獲得で得た lexbank (lildb 形式)
+<tr><td>イベントファイル<td>unfiltered event を出力するファイル 
+(テキスト形式または gz/bz による圧縮形式)
+<tr><td colspan=2>オプション
+<tr><td>-ff<td>Feature forest 形式でイベントを出力します．
+<tr><td>-n 閾値<td>イベントを抽出する文の数
+<tr><td>-v<td>デバッグ用メッセージを表示します．
+<tr><td>-vv<td>デバッグ用メッセージをたくさん表示します．
+</table>
+
+<p>
+確率モデルの名前は，一つのイベントファイルに対して一つ割り当てます．違
+う名前を割り当てれば，複数のイベントファイルを同時に用いることができま
+す．
+
+<p>
+文法および lexbank を入力として，lexical entry の出力確率(unigram
+probability)の最大エントロピーモデルを作成するためのツールです．このツー
+ルでは，確率モデルの学習に必要な unfiltered event を作成します．
+
+<p>
+unfiltered event とは，以下のように // で区切られたフィールドを持つ文字
+列です．
+
+<blockquote>
+<pre>
+in//IN//vp[PPnp]//uni
+</pre>
+</blockquote>
+
+<p>
+最後のフィールド(uni)はこのイベントの<em>カテゴリ</em>を表しています．
+カテゴリは，後のステップでこのイベント形式にフィルタをかける時などに利
+用します．カテゴリが同じイベントに対しては同じフィルタをかけるので，
+フィールドの数が同じである必要があります．つまり，フィールドの数が違う
+イベントを使いたい時は，カテゴリ名を分けて下さい．
+
+<p>
+各 unfiltered event は，対象となるイベントを文字列で表したものです．こ
+れは，amismodel.lil で定義された extract_lexical_event/4 の第４引数で
+得られるリストの要素をつなげたものです．
+
+<table border=1>
+<tr><td colspan=2><tt>extract_lexical_event(+$ModelName, -$Category,
+  +$LexEntry, -$Event)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$LexEntry<td>語彙項目
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td colspan=2>語彙項目のイベントを取りだします．
+</table>
+
+<p>
+確率モデルの名前は，<tt>unimaker</tt>の第一引数で与えたものと同じもの
+を指定してください．
+
+<p>
+素性関数の値(integer または float)を指定したい時は，以下のインタフェー
+スを使って下さい．
+
+<table border=1>
+<tr><td colspan=2><tt>extract_lexical_event_feature_value(+$ModelName,
+-$Category, +$LexEntry, -$Event, -$Val)</tt>
+<tr><td>$ModelName<td>確率モデルの名前
+<tr><td>$Category<td>カテゴリ名
+<tr><td>$LexEntry<td>語彙項目
+<tr><td>$Event<td>イベントを表す文字列リスト
+<tr><td>$Val<td>素性関数の値
+<tr><td colspan=2>語彙項目のイベントとその値を取りだします．
+</table>
+
+<hr>
+<a href="index.ja.html">MAYZツールキットマニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

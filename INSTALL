@@ -1,0 +1,33 @@
+Enju - an HPSG parser for English
+
+Copyright (c) 2005-2014, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+
+Enju requires:
+  g++ 3.2 or above, or clang
+  zlib
+  regex library
+
+To install Enju:
+  % ./configure
+  % make
+  % make install
+
+Enju will be installed in "/usr/local/bin/enju".  To change the
+installation place, run
+  % ./configure --prefix=$INSTALL_DIR
+where $INSTALL_DIR is the directory to install Enju.
+
+For details, see "enju-manual/index.html".
+
+----------------------------------------------------------------------
+If you want to create grammar data from scratch:
+
+0. Install "amis" (used for the training of disambiguation models)
+
+1. Put WordNet and Penn Treebank (WordNet in "wordnet" and Penn
+   Treebank in "penn").
+  % tar xvzf WordNet-X.X.tar.gz
+  % tar xvzf penn.tar.gz
+
+2. Run "make"

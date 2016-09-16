@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+use strict;
+
+while (<>) {
+    chomp;
+    my @tokens = grep { $_ } split /([()])|\s+/;
+
+    my @stack = ();
+    while (@tokens) {
+        my $t = shift @tokens;
+        if ($t eq "(") {
+            die "Broken input tree: $_" if (! @tokens);
+            my $label = shift @tokens;
+            $label =~ s/-.*//;  ## remove function tags etc.
+            push @stack, $label;
+        }
+        elsif ($t eq ")") {
+            my @ts = ();
+            while (1) {
+                die "Broken input tree: $_" if (! @stack);
+                unshift @ts, (pop @stack);
+                if ($ts[0] !~ m/^\(/) { ## label is found
+                    last;
+                }
+            }
+
+            if (@ts == 1) {
+                ### discard empty sub-trees
+            }
+            else {
+                my $str = "(" . (join " ", @ts) . ")";
+                push @stack, $str;
+            }
+        }
+        else { ## terminal: word/POS
+
+            if ($t !~ /^(.*)\/([^\/]*)$/) {
+                die "Broken input tree: $_\n"
+                  . "Bad terminal symbol: $t";
+            }
+            my ($word, $pos) = ($1, $2);
+
+            if ($pos eq "-NONE-") {
+                ## discard epsilon nodes
+            }
+            else {
+                push @stack, "($pos $word)";
+            }
+        }
+    }
+    
+    if (@stack != 1) {
+        die "Broken input tree: $_\n"
+          . "stack: [" . (join "][", @stack) . "]";
+    }
+
+    print "(TOP " . $stack[0] . ")\n";
+}
+

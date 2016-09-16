@@ -1,0 +1,185 @@
+#!/usr/bin/env perl
+
+use strict;
+
+use IPC::Open2;
+
+# find the absolute path to this script
+my ($base_dir) = $0 =~ m|(.*?)/?[^/]*$|;
+if ($base_dir !~ /^\//) {
+    my $pwd = `pwd`;
+    chomp $pwd;
+    $base_dir = "$pwd/$base_dir";
+}
+
+# set environment variables
+if (! exists $ENV{ENJU_PREFIX}) {
+    $ENV{ENJU_PREFIX} = $base_dir;
+}
+
+if (! exists $ENV{ENJU_DIR}) {
+    $ENV{ENJU_DIR} = "$base_dir/lib/enju";
+}
+
+if (! exists $ENV{LD_LIBRARY_PATH}) {
+    $ENV{LD_LIBRARY_PATH} = "$base_dir/lib";
+}
+else {
+    $ENV{LD_LIBRARY_PATH} = "$base_dir/lib:$ENV{LD_LIBRARY_PATH}";
+}
+
+# Data directory
+my $data_dir = (-d "$ENV{ENJU_DIR}/DATA") ? "$ENV{ENJU_DIR}/DATA"
+                                          : "$base_dir/DATA";
+
+# Script directory
+my $script_dir = (-d "$base_dir/share/liblilfes/enju") ? "$base_dir/share/liblilfes/enju"
+                                                       : "$base_dir/enju";
+
+# Paths to binaries and stepp model files
+my $stepp_bin       = (-e "$base_dir/bin/stepp")      ? "$base_dir/bin/stepp"      : "$base_dir/stepp-tagger/stepp";
+my $stepp_model_dir = (-d "$base_dir/share/stepp")    ? "$base_dir/share/stepp"    : "$base_dir/stepp-tagger";
+my $morph_bin       = (-e "$base_dir/bin/enju-morph") ? "$base_dir/bin/enju-morph" : "$base_dir/enju-src/enju-morph";
+my $super_bin       = (-e "$base_dir/bin/super")      ? "$base_dir/bin/super"      : "$base_dir/mayz-src/super";
+
+# Default POS tagging model
+my $stepp_model = "$stepp_model_dir/models_wsj02-21c";
+
+# Default supertagger settings
+my $super_lexicon = "$data_dir/Enju.lexicon";
+my $super_param   = "$data_dir/Enju-lex.output.gz";
+my $super_model   = "$script_dir/enju-super.conf";
+
+# command-line options
+# my @super_opts = ();
+my $tokenize = 1;
+foreach my $arg (@ARGV) {
+    if ($arg eq "-genia") {
+        $stepp_model = "$stepp_model_dir/models_medline";
+        $super_lexicon = "$data_dir/Enju-GENIA.adapt-lexicon";
+        $super_param = "$data_dir/Enju-GENIA-adaptlex.output.gz";
+    }
+    elsif ($arg eq "-nt") {
+        $tokenize = 0;
+    }
+    else {
+        # push @super_opts, $arg;
+        die "Unknown option: $arg\n";
+    }
+}
+
+# Sub-module command lines
+my @stepp_command = $tokenize ? ($stepp_bin, "-e", "-m", $stepp_model, "-t")
+                              : ($stepp_bin, "-e", "-m", $stepp_model);
+my @morph_command = ($morph_bin, "-s", $data_dir);
+my @super_command = ($super_bin, "-L", "-l", $super_lexicon, "-c", $super_model, "-m", $super_param, "-n", 6);
+
+my $stepp_pid = open2 my $stepp_read, my $stepp_write, @stepp_command;
+my $morph_pid = open2 my $morph_read, my $morph_write, @morph_command;
+my $super_pid = open2 my $super_read, my $super_write, @super_command;
+
+select((select($stepp_write), $| = 1)[0]);
+select((select($morph_write), $| = 1)[0]);
+select((select($super_write), $| = 1)[0]);
+
+while (<STDIN>) {
+    if (/^\s*$/) {
+        print;
+        next;
+    }
+
+    chomp;
+
+    my $sentence = $_;
+
+    # POS tagging
+    my @pos_tokens = ();
+    print {$stepp_write} $sentence, "\n";
+    while (<$stepp_read>) {
+        last if /^$/;
+        chomp;
+        my ($begin, $end, $pos, $prob) = split;
+        push @pos_tokens, { begin => $begin,
+                            end   => $end,
+                            input => substr($sentence, $begin, $end - $begin),
+                            pos   => $pos,
+                            prob  => log($prob) };
+    }
+
+    # Morphological analysis
+    my @morph_tokens = ();
+    foreach my $token (@pos_tokens) {
+        print {$morph_write} join("\t", @{$token}{qw(begin end input pos prob)}), "\n";
+    }
+    print {$morph_write} "\n";
+
+    while (<$morph_read>) {
+        last if /^$/;
+
+        chomp;
+        my ($begin, $end, $prob) = split;
+
+        my $word_feature_line = <$morph_read>;
+        my $lookup_keys_line = <$morph_read>;
+
+        chomp $word_feature_line;
+        chomp $lookup_keys_line;
+
+        my @word_features = split /\s+/, $word_feature_line;
+        my @lookup_keys = split /\s+/, $lookup_keys_line;
+
+        push @morph_tokens, { begin => $begin,
+                              end   => $end,
+                              prob  => $prob,
+                              word_features => [@word_features],
+                              lookup_keys   => [@lookup_keys] };
+    }
+
+    # offset -> lattice node-ID mapping
+    my %begins = ();
+    foreach my $token (@morph_tokens) {
+        $begins{ $token->{begin} } = 1;
+    }
+    my @begins = sort { $a <=> $b } keys %begins;
+
+    ## end position -> nearest begin position
+    my $length = length($sentence);
+    my @bs = @begins;
+    my @next_begin = ();
+    for (my $i = 0; $i <= $length; ++$i) {
+        while (@bs && $bs[0] < $i) {
+            shift @bs;
+        }
+        $next_begin[$i] = @bs ? $bs[0] : $length;
+    }
+
+    ## begin position -> node-ID mapping
+    my $next_id = 0;
+    my @node_id_of = ();
+    foreach my $b (@begins) {
+        $node_id_of[$b] = $next_id++;
+    }
+    $node_id_of[$length] = $next_id; # EOS node
+
+    ## overwrite offset numbers in morph_tokens
+    foreach my $token (@morph_tokens) {
+        $token->{begin} = $node_id_of[ $token->{begin} ];
+        $token->{end}   = $node_id_of[ $next_begin[ $token->{end} ] ];
+    }
+
+    # Supertagging
+    foreach my $token (@morph_tokens) {
+        print {$super_write} join("\t", @{$token}{qw(begin end prob)},
+                                        @{ $token->{word_features} },
+                                        @{ $token->{lookup_keys} } ), "\n";
+    }
+    print {$super_write} "\n";
+
+    while (<$super_read>) {
+        last if /^$/;
+        my ($begin, $end, @out_fields) = split;
+        print join("\t", @out_fields), "\n";
+    }
+    print "\n";
+}
+

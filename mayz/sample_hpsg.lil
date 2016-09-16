@@ -1,0 +1,1316 @@
+%/****************************
+  * @module    = sample_hpsg
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: sample_hpsg.lil,v 1.6 2010-02-04 06:10:32 uematsu Exp $
+  * @version   = July 12, 2004
+  * @since     = July 12, 2004
+  * @desc      = a sample HPSG grammar
+  * This is a sample HPSG grammar developed by Hiroko Nakanishi in the lecture course of `Write an HPSG grammar!'.
+  * Since the grammar does not implement FOM models, run "up" with "-nofom" option as follows.
+  * <pre>
+  * % up -i -nofom -l sample_hpsg
+  * </pre>
+  * This grammar supports the following words.
+  * <p>
+  * Nouns: 
+  * "I", "me", "he", "him", "she", "her", "you", "they", "Mary", "John",
+  * "Picachu", "apple", "apples", "banana", "bananas", "boy", "girl", "friend",
+  * "dog", "book", "books"
+  * <p>
+  * Determiners:
+  * "a", "an", "the"
+  * <p>
+  * Adjectives:
+  * "many", "pretty", "big"
+  * <p>
+  * Adverbs:
+  * "very", "fast"
+  * <p>
+  * Prepositions:
+  * "to", "with", "of", "on", "by"
+  * <p>
+  * Auxiliary verbs:
+  * "can", "must", "may", "will", "do", "does", "to"
+  * <p>
+  * "Be" verbs:
+  * "is", "am", "are", "be"
+  * <p>
+  * Verbs:
+  * "run", "runs", "love", "loves", "loved", "rely", "relies", "relied",
+  * "read", "reads", "know", "knows", "known"
+  * "think", "thinks", "thought", "want", "wants", "wanted",
+  * "hate", "hates", "hated", "give", "gives", "given"
+  * <p>
+  * Relative pronouns:
+  * "who", "whom", "which", "that"
+  * <p>
+  * Complementizer:
+  * "that"
+%*/
+
+
+:- module("sample_hpsg").
+:- module_interface.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("parser").
+:- ensure_loaded("display").
+:- ensure_loaded("no_fom").
+
+
+%%%%%%%%%%%%%%%%%%
+%%% predicates
+
+%%% predicates for HPSG principles
+principles <- [pred].
+phonology_principle <- [pred].
+head_feature_principle <- [pred].
+id_principle <- [pred].
+
+head_subject_schema <- [pred].
+head_complement_schema <- [pred].
+head_specifier_schema <- [pred].
+head_modifier_schema <- [pred].
+head_filler_schema <- [pred].
+
+%%% predicates for lexical items
+express <- [pred].
+lexicon_lookup <- [pred].
+template_lookup <- [pred].
+voc <- [pred].
+begin <- [pred].
+
+
+%%%%%%%%%%%%%
+%%% types
+
+%%% a type used in the lexical assingment phase of UP
+sample_word <- [bot] + [SURF\, EXPR_WORD\].
+
+%%% types for HPSG sign
+
+%% boolean
+bool <- [bot].
+plus <- [bool].
+minus <- [bool].
+
+%% direction to the modifyee
+dir <- [bot].
+front <- [dir].
+back <- [dir].
+
+%% vowel or consonant
+beginwith <- [bot].
+vocal <- [beginwith].
+conso <- [beginwith].
+
+%% noun case
+case <- [bot].
+nom <- [case].
+obj <- [case].
+
+%% for nouns
+ntype <- [bot].
+modifiable <- [ntype].
+appel <- [modifiable].
+onom <- [modifiable].
+quest <- [modifiable].
+pron <- [ntype].
+
+%% verb forms
+form <- [bot].
+usable <- [form].
+present <- [usable].
+present_third <- [usable].
+root <- [form].
+past <- [usable].
+pp <- [form].
+prog <- [form].
+
+%% POSs in the grammar
+head <- [bot].
+subst <- [head] + [PRD\, MOD\, DIR\dir].
+relative <- [subst].
+func <- [head] + [SPEC\].
+noun <- [subst] + [CASE\case, NTYPE\ntype].
+prep <- [subst].
+verb <- [subst] + [FORM\form, INV\bool].
+be <- [verb].
+aux <- [verb].
+adv <- [subst].
+adj <- [subst].
+mark <- [func].
+article <- [func] + [BEGIN\beginwith].
+
+%% for articles
+atype <- [bot].
+poss <- [atype].
+complete <- [atype].
+necces <- [poss].
+unnecces <- [poss, complete].
+imposs <- [complete].
+
+valence <- [bot] +[SUBJ\list, COMPS\list, SPR\list, ARTICLE\atype].
+
+category <- [bot] + [HEAD\head, VAL\valence].
+
+%% person
+personal <- [bot].
+third <- [personal].
+second <- [personal].
+first <- [personal].
+
+%% number
+number <- [bot].
+sing <- [number].
+plu <- [number].
+
+%% combination of person and number
+pernum <- [bot].
+normal <- [pernum].
+special <- [pernum].
+
+%% gender
+gend <- [bot].
+female <- [gend].
+male <- [gend].
+
+index <- [bot] + 
+        [PER\personal, NUM\number, PERNUM\pernum, GEND\gend].
+
+content <- [bot] + [INDEX\index, RESTR\list].
+
+local <- [bot] + [CAT\category,CONTENT\content,CONTEXT\].
+
+slash <- [bot] +  [SLASH\list].
+nonlocal <- [bot] + [INHER\slash, TOBIND\slash].
+
+expr <- [bot] + [WORD\, ARGS\list, MODS\list].
+
+synsem <- [bot] + [LOCAL\local, NONLOCAL\nonlocal, EXPR\expr].
+
+%% daughters
+head_struc <- [bot] + [HEAD_DTR\].
+head_subj_struc <- [head_struc] + [SUBJ_DTR\].
+head_comp_struc <- [head_struc] + [COMP_DTR\].
+head_spec_struc <- [head_struc] + [SPEC_DTR\].
+head_mod_struc <- [head_struc] + [MOD_DTR\].
+head_fill_struc <- [head_struc] + [FILL_DTR\].
+
+%% HPSG sign
+sign <- [bot] + [PHONOLOGY\list, BEGINWITH\beginwith, SYNSEM\synsem].
+non_sign <- [bot].
+phrase <- [sign] + [DTRS\head_struc].
+word <- [sign].
+
+
+:- module_implementation.
+
+% id-schema definitions
+head_subject_schema($LEFT,$RIGHT,$HEAD,$SUBJ,$MOTHER) :-
+    $MOTHER = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\ [] &
+				      COMPS\ $COMPS &
+				      SPR\ $Z) &
+		       NONLOCAL\(INHER\SLASH\$SL &
+				 TOBIND\SLASH\[]) &
+		       EXPR\ $E) &
+	       DTRS\(HEAD_DTR\ $HEAD &
+		     SUBJ_DTR\ $SUBJ)),
+    $HEAD = (SYNSEM\(LOCAL\CAT\(HEAD\(verb & INV\$I)&
+				VAL\(SUBJ\ [$SUBJ] &
+				     COMPS\ $COMPS &
+				     SPR\ $Z)) &
+		     NONLOCAL\INHER\SLASH\$SL &
+		     EXPR\ $E)),
+    (($I = plus, $LEFT = $SUBJ, $RIGHT = $HEAD, $COMPS = []);
+     ($I = minus, $RIGHT = $SUBJ, $LEFT = $HEAD)).
+
+
+head_complement_schema($LEFT,$RIGHT,$HEAD,$COMP,$MOTHER) :-
+    $MOTHER = (SYNSEM\(LOCAL\(CAT\(VAL\(SUBJ\ $S&
+					COMPS\ $COMPS&
+					SPR\ $Z)) &
+			      CONTENT\$CONT) &
+		       NONLOCAL\INHER\SLASH\$SL &
+		       EXPR\$E) &
+	       DTRS\(HEAD_DTR\ $HEAD &
+		     COMP_DTR\ $COMP)),
+    $HEAD = (SYNSEM\(LOCAL\(CAT\(VAL\(SUBJ\ $S&
+				      COMPS\ [$COMP|$COMPS]&
+				      SPR\ $Z)) &
+			    CONTENT\$CONT) &
+		     NONLOCAL\INHER\SLASH\$SLH &
+		     EXPR\$E)),
+    $COMP = SYNSEM\(LOCAL\CAT\VAL\COMPS\[] &
+		    NONLOCAL\INHER\SLASH\$SLC),
+    ($SL=$SLC; $SL=$SLH),
+    $LEFT = $HEAD,
+    $RIGHT = $COMP.
+
+
+head_specifier_schema($LEFT,$RIGHT,$HEAD,$SPEC,$MOTHER) :-
+    $MOTHER = (SYNSEM\(LOCAL\(CAT\VAL\(SUBJ\ $X&
+				       COMPS\ $Y&
+				       SPR\ [] &
+				       ARTICLE\imposs) &
+			      CONTENT\ $W) &
+		       NONLOCAL\(INHER\SLASH\[] &
+				 TOBIND\SLASH\[]) &
+		       EXPR\ $E) & 
+	       DTRS\(HEAD_DTR\ $HEAD &
+		     SPEC_DTR\ $SPEC)),
+    $HEAD = (SYNSEM\(LOCAL\(CAT\VAL\(SUBJ\ $X&
+				     COMPS\ $Y&
+				     SPR\ [$SPEC]) &
+			    CONTENT\ $W) &
+		     NONLOCAL\(INHER\SLASH\[] &
+			       TOBIND\SLASH\[]) &
+		     EXPR\ $E)),
+    $SPEC = SYNSEM\LOCAL\CAT\HEAD\SPEC\$HEAD,
+    $LEFT = $SPEC,
+    $RIGHT = $HEAD.
+
+
+head_modifier_schema($LEFT, $RIGHT, $HEAD, $MOD, $MOTHER) :-
+    $MOTHER = (BEGINWITH\$B & 
+	       SYNSEM\(LOCAL\$X &
+		       NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) & 
+		       EXPR\(WORD\$W & ARGS\$A & MODS\[$M|$MM])) & 
+	       DTRS\(HEAD_DTR\ $HEAD &
+		     MOD_DTR\ $MOD)),
+    $HEAD = SYNSEM\(LOCAL\$X &
+		    NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) & 
+		    EXPR\(WORD\$W & ARGS\$A & MODS\$MM)),
+    $X = (CAT\VAL\(COMPS\ [] & SUBJ\ []) & CONTENT\$CONT),
+    $MOD = (BEGINWITH\$B & 
+	    SYNSEM\(LOCAL\(CAT\(HEAD\(MOD\(sign & $HEAD) & DIR\front) &
+				VAL\(SUBJ\ [] & COMPS\ [])) & CONTENT\$CONT) &
+		    EXPR\$M)),
+    $LEFT = $MOD, $RIGHT = $HEAD.
+
+
+head_modifier_schema($LEFT, $RIGHT, $HEAD, $MOD, $MOTHER) :-
+    $MOTHER = (SYNSEM\(LOCAL\$X & NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) & 
+		       EXPR\(WORD\$W & ARGS\$A & MODS\[$M|$MM])) & 
+	       DTRS\(HEAD_DTR\ $HEAD &
+		     MOD_DTR\ $MOD)),
+    $HEAD = SYNSEM\(LOCAL\$X & NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) & 
+		    EXPR\(WORD\$W & ARGS\$A & MODS\$MM)),
+    $X = CAT\VAL\COMPS\ [] & CONTENT\$CONT,
+    $MOD = SYNSEM\(LOCAL\(CAT\(HEAD\(MOD\(sign & $HEAD) & DIR\back) &
+			       VAL\(SUBJ\ [] & COMPS\ [])) &
+			  CONTENT\$CONT) &
+		   NONLOCAL\INHER\SLASH\[] &
+		   EXPR\$M),
+    $LEFT = $HEAD,
+    $RIGHT = $MOD.
+
+
+head_filler_schema($LEFT, $RIGHT, $HEAD, $FILL, $MOTHER) :-
+    $MOTHER = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\ [] & COMPS\ []) &
+		       NONLOCAL\INHER\SLASH\[] & 
+		       EXPR\(WORD\$W & ARGS\$A & MODS\[$M|$MM])) &
+	       DTRS\(HEAD_DTR\$HEAD &
+		     FILL_DTR\$FILL)),
+    $FILL = SYNSEM\(LOCAL\CAT\VAL\(SUBJ\ [] & COMPS\ [] & SPR\ []) &
+		    NONLOCAL\INHER\SLASH\[$HEAD] &
+		    EXPR\$M),
+    $HEAD = SYNSEM\(LOCAL\CAT\VAL\(SUBJ\ [] & COMPS\ [] & ARTICLE\ complete) &
+		    EXPR\(WORD\$W & ARGS\$A & MODS\$MM)),
+    $LEFT = $HEAD,
+    $RIGHT = $FILL.
+
+
+% principle definitions
+id_principle(head_subject_schema, LEFT,RIGHT,HEAD,COMP,MOTHER) :-
+    head_subject_schema(LEFT,RIGHT,HEAD,COMP,MOTHER).
+id_principle(head_complement_schema, LEFT,RIGHT,HEAD,COMP,MOTHER) :-
+    head_complement_schema(LEFT,RIGHT,HEAD,COMP,MOTHER).
+id_principle(head_specifier_schema, LEFT,RIGHT,HEAD,COMP,MOTHER) :-
+    head_specifier_schema(LEFT,RIGHT,HEAD,COMP,MOTHER).
+id_principle(head_modifier_schema, LEFT,RIGHT,HEAD,COMP,MOTHER) :-
+    head_modifier_schema(LEFT,RIGHT,HEAD,COMP,MOTHER).
+id_principle(head_filler_schema, LEFT,RIGHT,HEAD,COMP,MOTHER) :-
+    head_filler_schema(LEFT,RIGHT,HEAD,COMP,MOTHER).
+
+phonology_principle($L,$R,$M) :-
+    $L = (PHONOLOGY\ $X),
+    copy($X,$XX),
+    $R = (PHONOLOGY\ $Y),
+    copy($Y,$YY),
+    $M = (PHONOLOGY\ $ZZ),
+    append($XX,$YY,$ZZ).
+
+head_feature_principle(HEAD,MOTHER) :-
+    MOTHER = (SYNSEM\LOCAL\CAT\HEAD\ $X),
+    HEAD = (SYNSEM\LOCAL\CAT\HEAD\ $X).
+
+%%% this predicate 'principles' propagates all daughtors.
+principles($N, $L, $R, $M) :-
+    id_principle($N, $L, $R, $H, _,$M),
+    head_feature_principle($H, $M).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% interface for UP
+%%%
+
+parser_init :-
+    set_limit_sentence_length(40),
+    set_limit_edge_number(20000).
+
+root_sign(_).
+
+id_schema_binary($Name, $Left, $Right, $Mother, $Dcp) :-
+    principles($Name, $Left, $Right, $Mother),
+    $Dcp = phonology_principle($Left, $Right, $Mother).
+id_schema_unary(_, _, _, _) :- fail.
+
+reduce_sign($Sign, $Sign, _) :-
+    restriction($Sign, DTRS\).
+
+make_infolist <- [pred].
+make_infolist($Word, $List) :- 
+    findall(SURF\$Word & EXPR_WORD\$Expr, express($Word, $Expr), $List).
+
+make_lexent <- [pred].
+make_lexent($WordInfo, $Tmpl,
+	    LEXENT\(LEX_TEMPLATE\$Tmpl & LEX_WORD\$WordInfo) & LEXENT_FOM\0.0).
+
+make_lattice <- [pred].
+make_lattice([], _, []).
+make_lattice([$Word|$WordList], $Left, [$Extent | $Lattice]) :-
+    $Right is $Left + 1,
+    make_infolist($Word, $WordInfoList),
+    findall($Lex, 
+	    (member($WordInfo, $WordInfoList), 
+	     lexicon_lookup($WordInfo, $TmplList),
+	     member($Tmpl, $TmplList), 
+	     make_lexent($WordInfo, $Tmpl, $Lex)),
+	    $LexEnts),
+    $Extent = BEGIN_POSITION\$Left &
+              END_POSITION\$Right &
+              LEXENT_LIST\$LexEnts,
+    make_lattice($WordList, $Right, $Lattice).
+
+sentence_to_lattice($Sentence, $WordLattice) :-
+    split($Sentence, " ", $WordList),
+    make_lattice($WordList, 0, $WordLattice).
+
+voc(97).        voc(105).       voc(117).
+voc(101).       voc(111).
+begin(PHON, vocal) :- strtolist(PHON, L), L = hd\X, voc(X).
+begin(PHON, conso) :- \+begin(PHON, vocal).
+
+make_expr <- [pred].
+make_expr("", _) :- !.
+make_expr($Base, $Base).
+
+make_sign <- [pred].
+make_sign(LEX_WORD\(SURF\$Word & EXPR_WORD\$Base), 
+	  PHONOLOGY\[$Word] & BEGINWITH\$Begin & SYNSEM\EXPR\WORD\$Expr) :- 
+    begin($Word, $Begin), make_expr($Base, $Expr).
+
+lexical_entry_sign($LexEnt & LEX_TEMPLATE\$TmpID, $Sign) :-
+    template_lookup($TmpID, $Sign), make_sign($LexEnt, $Sign).
+
+strlist_to_word([$Word, $Expr], _, _, SURF\$Word & EXPR_WORD\$Expr).
+word_to_strlist(SURF\$Word & EXPR_WORD\$Expr, [$Word, $Expr]).
+
+
+%%%
+%%% interface for GUI
+%%%
+
+word_label(SURF\$Word, $Word).
+
+schema_edge_label_binary(head_subject_schema, "subject", "head").
+schema_edge_label_binary(head_complement_schema, "head", "complement").
+schema_edge_label_binary(head_specifier_schema, "specifier", "head").
+schema_edge_label_binary(head_modifier_schema, "modifier", "head").
+schema_edge_label_binary(head_filler_schema, "filler", "head").
+
+schema_label(head_subject_schema, "head_subject_schema").
+schema_label(head_complement_schema, "head_complement_schema").
+schema_label(head_specifier_schema, "head_specifier_schema").
+schema_label(head_modifier_schema, "head_modifier_schema").
+schema_label(head_filler_schema, "head_filler_schema").
+
+head_label <- [pred].
+head_label(relative, "REL").
+head_label(noun, "N").
+head_label(prep, "P").
+head_label(verb, "V").
+head_label(adv, "AV").
+head_label(adj, "AJ").
+head_label(mark, "MARK").
+head_label(article, "D").
+
+sign_label(SYNSEM\LOCAL\CAT\HEAD\$Head, $Label) :-
+    head_label($Head, $Label).
+
+lexname_label(LEX_WORD\SURF\$Word & LEX_TEMPLATE\$TmpID, $Label) :-
+    concatenate_string([$Word, "/", $TmpID], $Label).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the predicate 'express' shows 
+%% the value of SYNSEM/EXPR/WORD feature (usually a baseform)
+
+express("I", "I").
+express("me", "I").
+express("he", "he").
+express("him", "he").
+express("she", "she").
+express("her", "she").
+express("you", "you").
+express("they", "they").
+express("Mary", "Mary").
+express("John", "John").
+express("Picachu", "Picachu").
+express("apple", "apple").
+express("apples", "apple").
+express("banana", "banana").
+express("bananas", "banana").
+express("friend", "friend").
+express("boy", "boy").
+express("girl", "girl").
+express("dog", "dog").
+express("book", "book").
+express("books", "book").
+
+express("run", "run").
+express("runs", "run").
+express("love", "love").
+express("loves", "love").
+express("loved", "love").
+express("rely", "rely").
+express("relies", "rely").
+express("relied", "rely").
+express("read", "read").
+express("reads", "read").
+express("want", "want").
+express("wants", "want").
+express("wanted", "want").
+express("hate", "hate").
+express("hates", "hate").
+express("hated", "hate").
+express("know", "know").
+express("knows", "know").
+express("known", "know").
+express("think", "think").
+express("thinks", "think").
+express("thought", "think").
+express("give", "give").
+express("gives", "give").
+express("given", "give").
+express("is", "be").
+express("is", "").
+express("am", "be").
+express("am", "").
+express("are", "be").
+express("are", "").
+express("be", "be").
+express("be", "").
+
+express("many", "many").
+express("pretty", "pretty").
+express("big", "big").
+
+express("very", "very").
+express("fast", "fast").
+
+express("to", "to").
+express("with", "with").
+express("of", "of").
+express("on", "on").
+express("by", "by").
+
+express("a", "").
+express("an", "").
+express("the", "").
+
+express("can", "").
+express("must", "").
+express("may", "").
+express("will", "").
+
+express("to", "").
+express("who", "").
+express("whom", "").
+express("which", "").
+express("that", "").
+express("do", "").
+express("does", "").
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the predicate 'lexicon_lookup' shows 
+%% possible lexical items for each word
+
+lexicon_lookup(SURF\"I" & EXPR_WORD\"I", ["Pron_1stSingNom"]).
+lexicon_lookup(SURF\"me" & EXPR_WORD\"I", ["Pron_1stSingAcc"]).
+lexicon_lookup(SURF\"he" & EXPR_WORD\"he", ["Pron_3rdSingNomMale"]).
+lexicon_lookup(SURF\"him" & EXPR_WORD\"he", ["Pron_3rdSingAccMale"]).
+lexicon_lookup(SURF\"she" & EXPR_WORD\"she", ["Pron_3rdSingNomFemale"]).
+lexicon_lookup(SURF\"her" & EXPR_WORD\"she", ["Pron_3rdSingAccFemale"]).
+lexicon_lookup(SURF\"you" & EXPR_WORD\"you", ["Pron_2nd"]).
+lexicon_lookup(SURF\"they" & EXPR_WORD\"they", ["Pron_3rdPluNom"]).
+lexicon_lookup(SURF\"Mary" & EXPR_WORD\"Mary", ["ProperNoun_SingFemale"]).
+lexicon_lookup(SURF\"John" & EXPR_WORD\"John", ["ProperNoun_SingMale"]).
+lexicon_lookup(SURF\"Picachu" & EXPR_WORD\"Picachu", ["ProperNoun_SingNeu"]).
+lexicon_lookup(SURF\"apple" & EXPR_WORD\"apple", ["ComNoun_SingNeu"]).
+lexicon_lookup(SURF\"apples" & EXPR_WORD\"apple", ["ComNoun_PluNeu"]).
+lexicon_lookup(SURF\"banana" & EXPR_WORD\"banana", ["ComNoun_SingNeu"]).
+lexicon_lookup(SURF\"bananas" & EXPR_WORD\"banana", ["ComNoun_PluNeu"]).
+lexicon_lookup(SURF\"friend" & EXPR_WORD\"friend", ["ComNoun_SingNeu"]).
+lexicon_lookup(SURF\"boy" & EXPR_WORD\"boy", ["ComNoun_SingMale"]).
+lexicon_lookup(SURF\"girl" & EXPR_WORD\"girl", ["ComNoun_SingFemale"]).
+lexicon_lookup(SURF\"dog" & EXPR_WORD\"dog", ["ComNoun_SingNeu"]).
+lexicon_lookup(SURF\"book" & EXPR_WORD\"book", ["ComNoun_SingNeu"]).
+lexicon_lookup(SURF\"books" & EXPR_WORD\"book", ["ComNoun_PluNeu"]).
+
+lexicon_lookup(SURF\"run" & EXPR_WORD\"run", ["Verb_IntransBase", "Verb_IntransPresentNon3rdSing"]).
+lexicon_lookup(SURF\"runs" & EXPR_WORD\"run", ["Verb_IntransPresent3rdSing"]).
+lexicon_lookup(SURF\"love" & EXPR_WORD\"love", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"loves" & EXPR_WORD\"love", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"loved" & EXPR_WORD\"love", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"rely" & EXPR_WORD\"rely", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"relies" & EXPR_WORD\"rely", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"relied" & EXPR_WORD\"rely", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"read" & EXPR_WORD\"read", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement", "Verb_TransPassive"]).
+lexicon_lookup(SURF\"reads" & EXPR_WORD\"read", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"want" & EXPR_WORD\"want", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"wants" & EXPR_WORD\"want", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"wanted" & EXPR_WORD\"want", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"hate" & EXPR_WORD\"hate", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"hates" & EXPR_WORD\"hate", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement"]).
+lexicon_lookup(SURF\"hated" & EXPR_WORD\"hate", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"know" & EXPR_WORD\"know", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement", "Verb_TransBase_sentence", "Verb_TransBase_sentence-movement", "Verb_TransPresentNon3rdSing_sentence", "Verb_TransPresentNon3rdSing_sentence-movement"]).
+lexicon_lookup(SURF\"knows" & EXPR_WORD\"know", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement", "Verb_TransPresent3rdSing_sentence", "Verb_TransPresent3rdSing_sentence-movement"]).
+lexicon_lookup(SURF\"known" & EXPR_WORD\"know", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"think" & EXPR_WORD\"think", ["Verb_TransBase_noun", "Verb_TransBase_noun-movement", "Verb_TransPresentNon3rdSing_noun", "Verb_TransPresentNon3rdSing_noun-movement", "Verb_TransBase_sentence", "Verb_TransBase_sentence-movement", "Verb_TransPresentNon3rdSing_sentence", "Verb_TransPresentNon3rdSing_sentence-movement"]).
+lexicon_lookup(SURF\"thinks" & EXPR_WORD\"think", ["Verb_TransPresent3rdSing_noun", "Verb_TransPresent3rdSing_noun-movement", "Verb_TransPresent3rdSing_sentence", "Verb_TransPresent3rdSing_sentence-movement"]).
+lexicon_lookup(SURF\"thought" & EXPR_WORD\"think", ["Verb_TransPassive"]).
+lexicon_lookup(SURF\"give" & EXPR_WORD\"give", ["Verb_DitransBase_noun_noun", "Verb_DitransBase_noun_noun-movement", "Verb_DitransPresentNon3rdSing_noun_noun", "Verb_DitransPresentNon3rdSing_noun_noun-movement"]).
+lexicon_lookup(SURF\"gives" & EXPR_WORD\"give", ["Verb_DitransPresent3rdSing_noun_noun","Verb_DitransPresent3rdSing_noun_noun-movement"]).
+lexicon_lookup(SURF\"given" & EXPR_WORD\"give", ["Verb_DitransPassive_noun_noun"]).
+lexicon_lookup(SURF\"is" & EXPR_WORD\"be", ["Be_Present3rdSing_adj", "Be_Present3rdSing_noun"]).
+lexicon_lookup(SURF\"is" & EXPR_WORD\"", ["Be_Present3rdSing_verb_TransPassive", "Be_Present3rdSing_verb_DitransPassive"]).
+lexicon_lookup(SURF\"am" & EXPR_WORD\"be", ["Be_PresentNon3rdSing_adj", "Be_PresentNon3rdSing_noun"]).
+lexicon_lookup(SURF\"am" & EXPR_WORD\"", ["Be_PresentNon3rdSing_verb_TransPassive", "Be_PresentNon3rdSing_verb_DitransPassive"]).
+lexicon_lookup(SURF\"are" & EXPR_WORD\"be", ["Be_PresentNon3rdSing_adj", "Be_PresentNon3rdSing_noun"]).
+lexicon_lookup(SURF\"are" & EXPR_WORD\"", ["Be_PresentNon3rdSing_verb_TransPassive", "Be_PresentNon3rdSing_verb_DitransPassive"]).
+lexicon_lookup(SURF\"be" & EXPR_WORD\"be", ["Be_Base_adj", "Be_Base_noun"]).
+lexicon_lookup(SURF\"be" & EXPR_WORD\"", ["Be_Base_verb_TransPassive", "Be_Base_verb_DitransPassive"]).
+
+lexicon_lookup(SURF\"many" & EXPR_WORD\"many", ["Adj_ModPlu"]).
+lexicon_lookup(SURF\"pretty" & EXPR_WORD\"pretty", ["Adj_ModNoun"]).
+lexicon_lookup(SURF\"big" & EXPR_WORD\"big", ["Adj_ModNoun"]).
+lexicon_lookup(SURF\"very" & EXPR_WORD\"very", ["Adverb_ModAdverb","Adverb_ModAdj"]).
+lexicon_lookup(SURF\"fast" & EXPR_WORD\"fast", ["Adverb_ModVerb"]).
+lexicon_lookup(SURF\"to" & EXPR_WORD\"to", ["Prep_ModVerb", "Prep_ModAdj"]).
+lexicon_lookup(SURF\"with" & EXPR_WORD\"with", ["Prep_ModVerb", "Prep_ModAdj"]).
+lexicon_lookup(SURF\"of" & EXPR_WORD\"of", ["Prep_ModVerb", "Prep_ModAdj"]).
+lexicon_lookup(SURF\"on" & EXPR_WORD\"on", ["Prep_ModVerb", "Prep_ModAdj"]).
+lexicon_lookup(SURF\"by" & EXPR_WORD\"by", ["Prep_ModVerb", "Prep_ModAdj"]).
+lexicon_lookup(SURF\"a" & EXPR_WORD\"", ["Det_SpecSingConso"]).
+lexicon_lookup(SURF\"an" & EXPR_WORD\"", ["Det_SpecSingVow"]).
+lexicon_lookup(SURF\"the" & EXPR_WORD\"", ["Det_SpecNoun"]).
+lexicon_lookup(SURF\"can" & EXPR_WORD\"", ["Aux_Common"]).
+lexicon_lookup(SURF\"must" & EXPR_WORD\"", ["Aux_Common"]).
+lexicon_lookup(SURF\"may" & EXPR_WORD\"", ["Aux_Common"]).
+lexicon_lookup(SURF\"will" & EXPR_WORD\"", ["Aux_Common"]).
+lexicon_lookup(SURF\"to" & EXPR_WORD\"", ["Comp_Infinitive"]).
+lexicon_lookup(SURF\"who" & EXPR_WORD\"", ["RelPron_Nom"]).
+lexicon_lookup(SURF\"whom" & EXPR_WORD\"", ["RelPron_Acc1"]).
+lexicon_lookup(SURF\"which" & EXPR_WORD\"", ["RelPron_Acc2"]).
+lexicon_lookup(SURF\"that" & EXPR_WORD\"", ["Comp_Sentence", "RelPron_Acc3"]).
+lexicon_lookup(SURF\"do" & EXPR_WORD\"", ["Aux_Int-Non3rdSing"]).
+lexicon_lookup(SURF\"does" & EXPR_WORD\"", ["Aux_Int-3rdSing"]).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the predicate 'template_lookup' works 
+%% as a database of lexical templates
+
+template_lookup("Pron_1stSingNom",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom & MOD\non_sign & NTYPE\pron) &
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) &
+	       CONTENT\(INDEX\(NUM\sing & PER\first & PERNUM\normal))) &
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("Pron_1stSingAcc",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\obj & MOD\non_sign & NTYPE\pron) &
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) &
+	       CONTENT\(INDEX\(NUM\sing & PER\first & PERNUM\normal))) &
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("Pron_2nd",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\INDEX\(PER\second & PERNUM\normal)) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))). 
+template_lookup("Pron_3rdSingNomMale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\(INDEX\(GEND\male & NUM\sing & PER\third & PERNUM\special))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[]  & MODS\[]))).
+template_lookup("Pron_3rdSingAccMale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\obj & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\(INDEX\(GEND\male & NUM\sing & PER\third & PERNUM\special))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[]  & MODS\[]))).
+template_lookup("Pron_3rdSingNomFemale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\(INDEX\(GEND\female & NUM\sing & PER\third & PERNUM\special))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[]  & MODS\[]))).
+template_lookup("Pron_3rdSingAccFemale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\obj & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\(INDEX\(GEND\female & NUM\sing & PER\third & PERNUM\special))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[]  & MODS\[]))).
+template_lookup("Pron_3rdPluNom",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom & MOD\non_sign & NTYPE\pron) & 
+		    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\(INDEX\(NUM\plu & PER\third & PERNUM\normal))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("ProperNoun_SingFemale",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\onom) & 
+                    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\INDEX\(GEND\female & NUM\sing & PER\third & PERNUM\special)) &
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("ProperNoun_SingMale",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\onom) & 
+                    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\INDEX\(GEND\male & NUM\sing & PER\third & PERNUM\special)) &
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("ProperNoun_SingNeu",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\onom) & 
+                    VAL\(ARTICLE\imposs & COMPS\[] & SPR\[_] & SUBJ\[])) & 
+	       CONTENT\INDEX\(NUM\sing & PER\third & PERNUM\special)) &
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("ComNoun_SingNeu",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\appel) & 
+	 VAL\(ARTICLE\necces &
+	      SPR\[SYNSEM\LOCAL\(CAT\HEAD\article & CONTENT\$CONT)] & 
+	      SUBJ\[] & COMPS\[])) & 
+	CONTENT\$CONT) & 
+	NONLOCAL\(INHER\SLASH\[]  & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[ ] & MODS\[ ]))) :- 
+    $CONT = INDEX\(NUM\sing & PER\third & PERNUM\special).
+template_lookup("ComNoun_PluNeu",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\appel) & 
+	 VAL\(ARTICLE\unnecces &
+	      SPR\[SYNSEM\LOCAL\(CAT\HEAD\article & CONTENT\$CONT)] & 
+	      SUBJ\[] & COMPS\[])) & 
+	CONTENT\$CONT) & 
+	NONLOCAL\(INHER\SLASH\[]  & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[] & MODS\[]))) :- 
+    $CONT = INDEX\(NUM\plu & PER\third & PERNUM\normal).
+template_lookup("ComNoun_SingMale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\appel) & 
+	 VAL\(ARTICLE\necces &
+	      SPR\[SYNSEM\LOCAL\(CAT\HEAD\article & CONTENT\$CONT)] & 
+	      SUBJ\[] & COMPS\[])) & 
+	CONTENT\$CONT) & 
+	NONLOCAL\(INHER\SLASH\[]  & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[ ] & MODS\[ ]))) :- 
+    $CONT = INDEX\(NUM\sing & PER\third & PERNUM\special & GEND\male).
+template_lookup("ComNoun_SingFemale",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(noun & MOD\non_sign & NTYPE\appel) & 
+	 VAL\(ARTICLE\necces &
+	      SPR\[SYNSEM\LOCAL\(CAT\HEAD\article & CONTENT\$CONT)] & 
+	      SUBJ\[] & COMPS\[])) & 
+	CONTENT\$CONT) & 
+	NONLOCAL\(INHER\SLASH\[]  & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[ ] & MODS\[ ]))) :- 
+    $CONT = INDEX\(NUM\sing & PER\third & PERNUM\special & GEND\female).
+template_lookup("Det_SpecSingVow",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(article &
+        SPEC\(BEGINWITH\vocal & SYNSEM\LOCAL\(CAT\(HEAD\noun & 
+        VAL\ARTICLE\poss)&
+                CONTENT\INDEX\NUM\sing))) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))).
+template_lookup("Det_SpecSingConso",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(article &
+        SPEC\(BEGINWITH\conso & SYNSEM\LOCAL\(CAT\(HEAD\noun & 
+        VAL\ARTICLE\poss)&
+                CONTENT\INDEX\NUM\sing))) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))).
+template_lookup("Det_SpecNoun",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(article &
+        SPEC\(SYNSEM\LOCAL\(CAT\(HEAD\noun & 
+        VAL\ARTICLE\poss)&
+                CONTENT\INDEX\NUM\_))) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))).
+template_lookup("Adj_ModNoun",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(adj & DIR\front & 
+        MOD\SYNSEM\LOCAL\(CAT\
+                (HEAD\(noun & NTYPE\modifiable) & VAL\SPR\[_]) & 
+                CONTENT\$CONT)) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[])) & CONTENT\$CONT) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+        EXPR\(MODS\[] & ARGS\[]))) :-
+    $CONT = INDEX\NUM\_.
+template_lookup("Adj_ModPlu",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(adj & DIR\front & 
+        MOD\SYNSEM\LOCAL\(CAT\
+                (HEAD\(noun & NTYPE\modifiable) & VAL\SPR\[_]) & 
+                CONTENT\$CONT)) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[])) & CONTENT\$CONT) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+        EXPR\(MODS\[] & ARGS\[]))) :-
+    $CONT = INDEX\NUM\plu.
+template_lookup("Adverb_ModAdverb",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(adv &
+        MOD\SYNSEM\LOCAL\CAT\HEAD\adv) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+        EXPR\(MODS\[] & ARGS\[]))).
+template_lookup("Adverb_ModAdj",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(adv &
+        MOD\SYNSEM\LOCAL\CAT\HEAD\adj) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+        EXPR\(MODS\[] & ARGS\[]))).
+template_lookup("Adverb_ModVerb",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(adv &
+        MOD\SYNSEM\LOCAL\CAT\HEAD\verb) &
+        VAL\(SUBJ\[] &  COMPS\[] & SPR\[]))) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+        EXPR\(MODS\[] & ARGS\[]))).
+template_lookup("Prep_ModVerb",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(prep & MOD\SYNSEM\LOCAL\CAT\HEAD\verb & DIR\back) &
+        VAL\(SUBJ\[] &
+        COMPS\[SYNSEM\(LOCAL\CAT\HEAD\(noun & CASE\obj) & EXPR\$E)] &
+        SPR\[]))) & EXPR\(ARGS\[$E] & MODS\[]))).
+template_lookup("Prep_ModAdj",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(prep & MOD\SYNSEM\LOCAL\CAT\HEAD\adj & DIR\back) &
+        VAL\(SUBJ\[] &
+        COMPS\[SYNSEM\(LOCAL\CAT\HEAD\(noun & CASE\obj) & EXPR\$E)] &
+        SPR\[]))) & EXPR\(ARGS\[$E] & MODS\[]))).
+template_lookup("Aux_Common",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(aux & MOD\non_sign) &
+        VAL\(SUBJ\
+         [SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) &
+                EXPR\$S)] &
+        COMPS\[SYNSEM\(LOCAL\CAT\HEAD\(verb & FORM\root) & EXPR\$E)] &
+        SPR\[]))) & EXPR\ $E)) :-
+        $E = ARGS\[$S|_].
+template_lookup("Comp_Sentence",
+word & 
+SYNSEM\LOCAL\CAT\(HEAD\noun & 
+        VAL\COMPS\[SYNSEM\LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[]))])).
+template_lookup("Comp_Infinitive",
+word &
+SYNSEM\(LOCAL\CAT\(HEAD\(noun & NTYPE\pron & DIR\back &
+                MOD\SYNSEM\LOCAL\CAT\
+                 (HEAD\(noun & NTYPE\modifiable) & VAL\ARTICLE\complete)) & 
+        VAL\(ARTICLE\imposs & SUBJ\[] & SPR\[] &  
+        COMPS\[SYNSEM\LOCAL\CAT\HEAD\(verb & FORM\root)])) &
+        NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))).
+template_lookup("RelPron_Nom",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(noun & NTYPE\pron & DIR\back & 
+                MOD\non_sign) &
+        VAL\(SUBJ\[] & COMPS\ [] & ARTICLE\imposs)) &
+        NONLOCAL\INHER\SLASH\[] & EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("RelPron_Acc1",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(noun & DIR\front & MOD\non_sign) &
+        VAL\(SUBJ\ [] & COMPS\ [])) & EXPR\(ARGS\[] & MODS\[]))).
+template_lookup("RelPron_Acc2",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(noun  & DIR\front & MOD\
+        SYNSEM\(LOCAL\CAT\(HEAD\(verb & FORM\usable) & 
+                           VAL\(COMPS\[] & SUBJ\[])) &
+                NONLOCAL\(INHER\SLASH\[_]))) &
+        VAL\(SUBJ\ [] & COMPS\ [])))).
+template_lookup("RelPron_Acc3",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(noun & DIR\front & MOD\
+        SYNSEM\(LOCAL\CAT\(HEAD\(verb & FORM\usable) & 
+                           VAL\(COMPS\[] & SUBJ\[])) &
+                NONLOCAL\(INHER\SLASH\[_]) & EXPR\(ARGS\[] & MODS\[]))) &
+        VAL\(SUBJ\ [] & COMPS\ [])))).
+template_lookup("Aux_Int-Non3rdSing",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(aux & MOD\non_sign & INV\minus) &
+        VAL\(SUBJ\
+         [SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete)
+                 & CONTENT\INDEX\PERNUM\normal) & EXPR\$S)] &
+        COMPS\[SYNSEM\(LOCAL\CAT\HEAD\(verb & FORM\root) & EXPR\$E)] & 
+        SPR\[])) & CONTENT\INDEX\PERNUM\normal) & EXPR\$E)) :-
+        $E = ARGS\[$S|_] & MODS\[].
+template_lookup("Aux_Int-3rdSing",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(aux & MOD\non_sign & INV\minus) &
+        VAL\(SUBJ\
+         [SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete)
+                & CONTENT\INDEX\PERNUM\special)
+                 & EXPR\$S)] &
+        COMPS\[SYNSEM\(LOCAL\CAT\HEAD\(verb & FORM\root) & EXPR\$E)] & 
+        SPR\[]))) & EXPR\$E)) :-
+        $E = ARGS\[$S|_] & MODS\[].
+template_lookup("Verb_IntransBase",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(verb & DIR\back & FORM\root & INV\plus & 
+			  MOD\SYNSEM\LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete)) & 
+		    VAL\(COMPS\[] & SPR\[] & SUBJ\[non_sign])) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[_] & MODS\[]))).
+template_lookup("Verb_IntransPresentNon3rdSing",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) & EXPR\$ARG)) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG] & MODS\[]))).
+template_lookup("Verb_IntransPresent3rdSing",
+word & 
+SYNSEM\(EXPR\(ARGS\[$ARG] & MODS\[]) & 
+	LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present_third & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) & EXPR\$ARG)) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG)])) & 
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))).
+template_lookup("Verb_TransBase_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\root & INV\plus & 
+			  MOD\SYNSEM\LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete)) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & VAL\ARTICLE\complete) & EXPR\$ARG)] &
+			 SPR\[] & SUBJ\[non_sign]))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[_, $ARG] & MODS\[]))).
+template_lookup("Verb_TransBase_noun-movement",
+word & 
+SYNSEM\(EXPR\(ARGS\[_, $ARG2] & MODS\[]) & 
+	LOCAL\CAT\(HEAD\(verb & FORM\root & INV\plus & MOD\non_sign) & 
+		   VAL\(COMPS\[] & SPR\[] & SUBJ\[non_sign])) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(EXPR\$ARG2 & LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete))]) & 
+		  TOBIND\(SLASH\$Slash)))).
+template_lookup("Verb_TransPresentNon3rdSing_noun",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) & EXPR\$ARG1)) &
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & VAL\ARTICLE\complete) & EXPR\$ARG2)] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresentNon3rdSing_noun-movement",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(EXPR\$ARG2 & LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete))]) &
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresent3rdSing_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present_third & INV\plus & 
+			  MOD\SYNSEM\(EXPR\$ARG1 & LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete))) &
+		    VAL\(COMPS\[SYNSEM\(EXPR\$ARG2 & LOCAL\CAT\(HEAD\(noun & CASE\obj) & VAL\ARTICLE\complete))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG1 & LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete))] )) &
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresent3rdSing_noun-movement",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present_third & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG1 & 
+				       LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete))])) & 
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\($Slash & [SYNSEM\(EXPR\$ARG2 & 
+						 LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete))]) &
+							    
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPassive",
+word & 
+SYNSEM\(EXPR\(ARGS\[_, _] & MODS\[]) & 
+	LOCAL\(CAT\(HEAD\(verb & FORM\pp & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[] & SPR\[] & SUBJ\[]))) & 
+	NONLOCAL\(INHER\(SLASH\[]) & TOBIND\(SLASH\[])))).
+template_lookup("Verb_TransBase_sentence",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\root & INV\plus & 
+			  MOD\SYNSEM\LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete)) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$ARG2 & 
+					LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]))] & 
+			 SPR\[] & SUBJ\[non_sign]))) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[_, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransBase_sentence-movement",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(verb & FORM\root & INV\plus & MOD\non_sign) & 
+		   VAL\(COMPS\[] & SPR\[] & SUBJ\[non_sign])) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+					EXPR\$ARG2)]) & 
+		  TOBIND\SLASH\$Slash) & 
+	EXPR\(ARGS\[_, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresentNon3rdSing_sentence",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) & EXPR\$ARG1)) &
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) & EXPR\$ARG2)] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresentNon3rdSing_sentence-movement",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & VAL\ARTICLE\complete) & EXPR\$ARG1)])) &
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+					EXPR\$ARG2)]) &
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresent3rdSing_sentence",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present_third & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+				      EXPR\$ARG1)) &
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+					EXPR\$ARG2)] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) & 
+				       EXPR\$ARG1)])) &
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_TransPresent3rdSing_sentence-movement",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present_third & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[] & SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(LOCAL\CAT\(HEAD\verb & VAL\(COMPS\[] & SUBJ\[])) &
+					NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+					EXPR\$ARG2)]) & 
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Verb_DitransBase_noun_noun",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(verb & DIR\back & FORM\root & INV\plus & 
+			 MOD\SYNSEM\LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete)) & 
+		   VAL\(COMPS\[(SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						   VAL\ARTICLE\complete) & 
+					EXPR\$ARG2)), 
+			       (SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						   VAL\ARTICLE\complete) &
+					EXPR\$ARG3))] & 
+			SPR\[] & SUBJ\[non_sign])) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[_, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransBase_noun_noun-movement",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(verb & FORM\root & INV\plus & MOD\non_sign) & 
+		   VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG3)] & 
+			SPR\[] & SUBJ\[non_sign])) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					EXPR\$ARG2)]) & 
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[_, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransPresentNon3rdSing_noun_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+				      EXPR\$ARG1)) & 
+		    VAL\(COMPS\[(SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						    VAL\ARTICLE\complete) &
+					 EXPR\$ARG2)), 
+				(SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						    VAL\ARTICLE\complete) &
+					 EXPR\$ARG3))] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransPresentNon3rdSing_noun_noun-movement",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						   VAL\ARTICLE\complete) &
+					EXPR\$ARG3)] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\normal) & 
+	NONLOCAL\(INHER\SLASH\($Slash & 
+			       [SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					EXPR\$ARG2)]) &
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransPresent3rdSing_noun_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & DIR\back & FORM\present_third & INV\plus & 
+			  MOD\SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+				      EXPR\$ARG1)) & 
+		    VAL\(COMPS\[(SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						    VAL\ARTICLE\complete) &
+					 EXPR\$ARG2)), 
+				(SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						    VAL\ARTICLE\complete) &
+					 EXPR\$ARG3))] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[$ARG1, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransPresent3rdSing_noun_noun-movement",
+word &
+SYNSEM\(LOCAL\(CAT\(HEAD\(verb & FORM\present_third & INV\plus & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						   VAL\ARTICLE\complete) &
+					EXPR\$ARG3)] & 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\nom) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG1)])) &
+	       CONTENT\INDEX\PERNUM\special) & 
+	NONLOCAL\(INHER\SLASH\($Slash &
+			       [SYNSEM\(LOCAL\CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					EXPR\$ARG2)]) &
+		  TOBIND\SLASH\$Slash) &
+	EXPR\(ARGS\[$ARG1, $ARG2, $ARG3] & MODS\[]))).
+template_lookup("Verb_DitransPassive_noun_noun",
+word & 
+SYNSEM\(LOCAL\CAT\(HEAD\(verb & FORM\pp & INV\plus & MOD\non_sign) & 
+		   VAL\(COMPS\[SYNSEM\(LOCAL\CAT\(HEAD\(noun & CASE\obj) & 
+						  VAL\ARTICLE\complete) &
+				       EXPR\$ARG3)] & 
+			SPR\[] & SUBJ\[])) & 
+	NONLOCAL\(INHER\SLASH\[] & TOBIND\SLASH\[]) &
+	EXPR\(ARGS\[_, _, $ARG3] & MODS\[]))).
+template_lookup("Be_Present3rdSing_adj",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present_third & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\(CAT\HEAD\adj & 
+					       CONTENT\($Cont & INDEX\PERNUM\special)) &
+					EXPR\$ARG2)] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_Present3rdSing_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present_third & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$ARG2 & 
+					LOCAL\(CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					       CONTENT\($Cont& INDEX\PERNUM\special)))]& 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG1 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_Present3rdSing_verb_TransPassive",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present_third & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\($Cont & INDEX\PERNUM\special)))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\($Exp & ARGS\[$ARG1, $ARG2] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]))).
+template_lookup("Be_Present3rdSing_verb_DitransPassive",
+word & 
+SYNSEM\(EXPR\($Exp & ARGS\[$ARG1, $ARG2, _] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]) &
+	LOCAL\(CAT\(HEAD\(be & FORM\present_third & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\($Cont & INDEX\PERNUM\special)))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont))).
+template_lookup("Be_PresentNon3rdSing_adj",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\(CAT\HEAD\adj & 
+					       CONTENT\($Cont & INDEX\PERNUM\normal)) &
+					EXPR\$ARG2)] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_PresentNon3rdSing_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$ARG2 & 
+					LOCAL\(CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					       CONTENT\($Cont& INDEX\PERNUM\normal)))]& 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG1 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_PresentNon3rdSing_verb_TransPassive",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\present & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\($Cont & INDEX\PERNUM\normal)))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\($Exp & ARGS\[$ARG1, $ARG2] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]))).
+template_lookup("Be_PresentNon3rdSing_verb_DitransPassive",
+word & 
+SYNSEM\(EXPR\($Exp & ARGS\[$ARG1, $ARG2, _] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]) &
+	LOCAL\(CAT\(HEAD\(be & FORM\present & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\($Cont & INDEX\PERNUM\normal)))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont))).
+template_lookup("Be_Base_adj",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\root & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(LOCAL\(CAT\HEAD\adj & 
+					       CONTENT\$Cont) &
+					EXPR\$ARG2)] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont) &
+				       EXPR\$ARG1)])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_Base_noun",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\root & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$ARG2 & 
+					LOCAL\(CAT\(HEAD\noun & VAL\ARTICLE\complete) &
+					       CONTENT\$Cont))]& 
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG1 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\(ARGS\[$ARG1, $ARG2] & MODS\[]))).
+template_lookup("Be_Base_verb_TransPassive",
+word & 
+SYNSEM\(LOCAL\(CAT\(HEAD\(be & FORM\root & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\$Cont))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont) &
+	EXPR\($Exp & ARGS\[$ARG1, $ARG2] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]))).
+template_lookup("Be_Base_verb_DitransPassive",
+word & 
+SYNSEM\(EXPR\($Exp & ARGS\[$ARG1, $ARG2, _] & MODS\[(ARGS\[$ARG1] & WORD\"by")|_]) &
+	LOCAL\(CAT\(HEAD\(be & FORM\root & MOD\non_sign) & 
+		    VAL\(COMPS\[SYNSEM\(EXPR\$Exp & 
+					LOCAL\(CAT\HEAD\(verb & FORM\pp) & 
+					       CONTENT\$Cont))] &
+			 SPR\[] & 
+			 SUBJ\[SYNSEM\(EXPR\$ARG2 & 
+				       LOCAL\(CAT\(HEAD\(noun & CASE\nom) & 
+						   VAL\ARTICLE\complete) & 
+					      CONTENT\$Cont))])) & 
+	       CONTENT\$Cont))).

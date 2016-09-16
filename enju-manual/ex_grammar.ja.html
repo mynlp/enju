@@ -1,0 +1,805 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>文法の例</title>
+</head>
+
+
+
+<body>
+<h1>文法の例</h1>
+
+<a href="ex_grammar.html">English version</a>
+
+<p>
+ここでは "I thanked him." という文を例にして， Enju の文法が
+どのように働くかを見ていきます．
+
+<p>
+この文での "I" に対応する語彙項目を簡単に書くと，次のようになります．
+より正確には <a href="I_sign.xhtml">"I" の語彙項目</a> を見てください．
+(XHTML と XSLT をサポートしているブラウザで，見ることができます．)
+
+<table class="fs">
+<tr><td	class="lprn" rowspan="2">
+    <td>PHON: &lt <span class="shared_id">1</span>"I" &gt
+    <td	class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+	<td class="lprn" rowspan="2">
+	<td>
+	<table class="fs">
+	<tr><td rowspan="2">LOCAL
+	    <td class="lprn" rowspan="2">
+	    <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="4">HEAD
+                    <td class="lprn" rowspan="4">
+                    <td>hpsg_noun
+                    <td class="rprn" rowspan="4">
+                <tr><td>CASE: hpsg_nom
+                <tr><td>MOD: &lt &gt
+                <tr><td>POSTHEAD: hpsg_binary
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">VAL
+                    <td class="lprn" rowspan="5">
+		    <td>SUBJ: &lt &gt
+                    <td class="rprn" rowspan="5">
+                <tr><td>COMPS: &lt &gt
+                <tr><td>SPR: &lt &gt
+                <tr><td>SPEC: &lt &gt
+                <tr><td>CONJ: &lt &gt
+                </table>
+            </table>
+	    <td class="rprn" rowspan="2">
+	<tr><td>
+	    <table class="fs">
+            <tr><td rowspan="2">CONT
+                <td class="lprn" rowspan="2">
+		<td>
+		<table class="fs">
+                <tr><td rowspan="1">HOOK
+                    <td class="lprn" rowspan="1">
+		    <td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> PRED
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+                        <tr><td rowspan="8">LEX_WORD
+                            <td class="lprn" rowspan="8">
+		            <td>word
+                            <td class="rprn" rowspan="8">
+                        <tr><td>INPUT: <span class="shared_id">1</span>"I"
+                        <tr><td>SURFACE: <span class="shared_id">2</span>"i"
+                        <tr><td>BASE: <span class="shared_id">2</span>
+                        <tr><td>INPUT_POS: <span class="shared_id">3</span>"PRP"
+                        <tr><td>POS: <span class="shared_id">3</span>
+                        <tr><td>BASE_POS: <span class="shared_id">3</span>
+                        <tr><td>POSITION: <span class="shared_id">4</span>0
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                    <td class="rprn" rowspan="1">
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>RELS: &lt &gt
+            </table>
+	</table>  
+    <tr><td>
+        <table class="fs">
+        <tr><td rowspan="1">NONLOCAL
+            <td class="lprn" rowspan="1">
+            <td>
+	    <table class="fs">
+	    <tr><td rowspan="2">INHER
+                <td class="lprn" rowspan="2">
+		<td>REL: &lt &gt
+		<td class="rprn" rowspan="2">			
+            <tr><td>SLASH: &lt &gt
+            </table>
+            <td class="rprn" rowspan="1">
+	</table>
+    </table>
+</table>
+
+<p>
+この文での "thanked" に対応する語彙項目は，次のようになります．
+より正確には <a href="thanked_sign.xhtml">"thanked" の語彙項目</a> を見てください．
+
+<table class="fs">
+<tr><td	class="lprn" rowspan="2">
+    <td>PHON: &lt <span class="shared_id">5</span>"thanked" &gt
+    <td	class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+	<td class="lprn" rowspan="2">
+	<td>
+	<table class="fs">
+	<tr><td rowspan="2">LOCAL
+	    <td class="lprn" rowspan="2">
+	    <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="5">HEAD
+		    <span class="shared_id">17</span>
+                    <td class="lprn" rowspan="5">
+                    <td>hpsg_verb
+                    <td class="rprn" rowspan="5">
+		<tr><td>VFORM: verb_fin
+                <tr><td>TENSE: tense_past
+                <tr><td>MOD: &lt &gt
+                <tr><td>POSTHEAD: hpsg_binary
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">VAL
+                    <td class="lprn" rowspan="5">
+		    <td>SUBJ: &lt
+		    <td>
+		    <table class="fs">
+		    <tr><td class="lprn" rowspan="1">
+		        <td>
+			<table class="fs">
+			<tr><td rowspan="2">LOCAL
+			    <td class="lprn" rowspan="2">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="2">CAT
+			        <td class="lprn" rowspan="2">
+			        <td>
+				<table class="fs">
+				<tr><td rowspan="4">HEAD
+				    <td class="lprn" rowspan="4">
+				    <td>hpsg_noun
+				    <td class="rprn" rowspan="4">
+				<tr><td>CASE: hpsg_nom
+				<tr><td>MOD: &lt &gt
+				<tr><td>POSTHEAD: hpsg_binary
+				</table>
+				<td class="rprn" rowspan="2">
+			    <tr><td>
+			        <table class="fs">
+				<tr><td rowspan="5">VAL
+				    <td class="lprn" rowspan="5">
+				    <td>SUBJ: &lt &gt
+				    <td class="rprn" rowspan="5">
+				<tr><td>COMPS: &lt &gt
+				<tr><td>SPR: &lt &gt
+				<tr><td>SPEC: &lt &gt
+				<tr><td>CONJ: &lt &gt
+				</table>
+			    </table>
+			    <td class="rprn" rowspan="2">
+			<tr><td>
+			    <table class="fs">
+			    <tr><td rowspan="1">CONT
+			        <td class="lprn" rowspan="1">
+				<td>HOOK: <span class="shared_id">6</span>
+				<td class="rprn" rowspan="1">    
+			    </table>
+			</table>  
+		        <td class="rprn" rowspan="1">
+                    </table>
+		    <td> &gt
+                    <td class="rprn" rowspan="5">
+                <tr><td>COMPS: &lt
+		    <td>
+		    <table class="fs">
+		    <tr><td class="lprn" rowspan="1">
+		        <td>
+			<table class="fs">
+			<tr><td rowspan="2">LOCAL
+			    <td class="lprn" rowspan="2">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="2">CAT
+			        <td class="lprn" rowspan="2">
+			        <td>
+				<table class="fs">
+				<tr><td rowspan="4">HEAD
+				    <td class="lprn" rowspan="4">
+				    <td>hpsg_noun
+				    <td class="rprn" rowspan="4">
+				<tr><td>CASE: hpsg_acc
+				<tr><td>MOD: &lt &gt
+				<tr><td>POSTHEAD: hpsg_binary
+				</table>
+				<td class="rprn" rowspan="2">
+			    <tr><td>
+			        <table class="fs">
+				<tr><td rowspan="5">VAL
+				    <td class="lprn" rowspan="5">
+				    <td>SUBJ: &lt &gt
+				    <td class="rprn" rowspan="5">
+				<tr><td>COMPS: &lt &gt
+				<tr><td>SPR: &lt &gt
+				<tr><td>SPEC: &lt &gt
+				<tr><td>CONJ: &lt &gt
+				</table>
+			    </table>
+			    <td class="rprn" rowspan="2">
+			<tr><td>
+			    <table class="fs">
+			    <tr><td rowspan="1">CONT
+			        <td class="lprn" rowspan="1">
+				<td>HOOK: <span class="shared_id">7</span>
+				<td class="rprn" rowspan="1">    
+			    </table>
+			</table>  
+		        <td class="rprn" rowspan="1">
+                    </table>
+		    <td>&gt
+                <tr><td>SPR: &lt &gt
+                <tr><td>SPEC: &lt &gt
+                <tr><td>CONJ: &lt &gt
+                </table>
+            </table>
+	    <td class="rprn" rowspan="2">
+	<tr><td>
+	    <table class="fs">
+            <tr><td rowspan="2">CONT
+                <td class="lprn" rowspan="2">
+		<td>
+		<table class="fs">
+                <tr><td rowspan="5">HOOK
+         	    <span class="shared_id">18</span>
+                    <td class="lprn" rowspan="3">
+		    <td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> PRED
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+                        <tr><td rowspan="8">LEX_WORD
+                            <td class="lprn" rowspan="8">
+		            <td>word
+                            <td class="rprn" rowspan="8">
+                        <tr><td>INPUT: <span class="shared_id">5</span>"thanked"
+                        <tr><td>SURFACE: "thanked"
+                        <tr><td>BASE: "thank"
+                        <tr><td>INPUT_POS: <span class="shared_id">8</span>"VBD"
+                        <tr><td>POS: <span class="shared_id">8</span>
+                        <tr><td>BASE_POS: "VB"
+                        <tr><td>POSITION: <span class="shared_id">9</span>1
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                    <td class="rprn" rowspan="3">
+		<tr><td>ARG1: <span class="shared_id">6</span>
+		<tr><td>ARG2: <span class="shared_id">7</span>
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>RELS: &lt &gt
+            </table>
+	</table>  
+    <tr><td>
+        <table class="fs">
+        <tr><td rowspan="1">NONLOCAL
+            <td class="lprn" rowspan="1">
+            <td>
+	    <table class="fs">
+	    <tr><td rowspan="2">INHER
+                <td class="lprn" rowspan="2">
+		<td>REL: &lt &gt
+		<td class="rprn" rowspan="2">			
+            <tr><td>SLASH: &lt &gt
+            </table>
+            <td class="rprn" rowspan="1">
+	</table>
+    </table>
+</table>
+
+<p>
+この文での "him" に対応する語彙項目は，次のようになります．
+より正確には <a href="him_sign.xhtml">"him" の語彙項目</a> を見てください．
+
+<table class="fs">
+<tr><td	class="lprn" rowspan="2">
+    <td>PHON: &lt <span class="shared_id">10</span>"him" &gt
+    <td	class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+	<td class="lprn" rowspan="2">
+	<td>
+	<table class="fs">
+	<tr><td rowspan="2">LOCAL
+	    <td class="lprn" rowspan="2">
+	    <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="4">HEAD
+                    <td class="lprn" rowspan="4">
+                    <td>hpsg_noun
+                    <td class="rprn" rowspan="4">
+                <tr><td>CASE: hpsg_acc
+                <tr><td>MOD: &lt &gt
+                <tr><td>POSTHEAD: hpsg_binary
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">VAL
+                    <td class="lprn" rowspan="5">
+		    <td>SUBJ: &lt &gt
+                    <td class="rprn" rowspan="5">
+                <tr><td>COMPS: &lt &gt
+                <tr><td>SPR: &lt &gt
+                <tr><td>SPEC: &lt &gt
+                <tr><td>CONJ: &lt &gt
+                </table>
+            </table>
+	    <td class="rprn" rowspan="2">
+	<tr><td>
+	    <table class="fs">
+            <tr><td rowspan="2">CONT
+                <td class="lprn" rowspan="2">
+		<td>
+		<table class="fs">
+                <tr><td rowspan="1">HOOK
+                    <td class="lprn" rowspan="1">
+		    <td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> PRED
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+                        <tr><td rowspan="8">LEX_WORD
+                            <td class="lprn" rowspan="8">
+		            <td>word
+                            <td class="rprn" rowspan="8">
+                        <tr><td>INPUT: <span class="shared_id">10</span>"him"
+                        <tr><td>SURFACE: <span class="shared_id">11</span>"him"
+                        <tr><td>BASE: <span class="shared_id">11</span>
+                        <tr><td>INPUT_POS: <span class="shared_id">12</span>"PRP"
+                        <tr><td>POS: <span class="shared_id">12</span>
+                        <tr><td>BASE_POS: <span class="shared_id">12</span>
+                        <tr><td>POSITION: <span class="shared_id">13</span>2
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                    <td class="rprn" rowspan="1">
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>RELS: &lt &gt
+            </table>
+	</table>  
+    <tr><td>
+        <table class="fs">
+        <tr><td rowspan="1">NONLOCAL
+            <td class="lprn" rowspan="1">
+            <td>
+	    <table class="fs">
+	    <tr><td rowspan="2">INHER
+                <td class="lprn" rowspan="2">
+		<td>REL: &lt &gt
+		<td class="rprn" rowspan="2">			
+            <tr><td>SLASH: &lt &gt
+            </table>
+            <td class="rprn" rowspan="1">
+	</table>
+    </table>
+</table>
+
+<p>
+次に "thanked" の sign と "him" の sign に Head-Complement Schema が
+適用されます．Head-Complement Schema は、下のような制約を満たす sign の
+並びに対して，
+
+<table class="fs">
+<tr><td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: &lt <span class="shared_id">B</span> | <span class="shared_id">C</span> &gt
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>    
+    <td class="rprn" rowspan="1">
+    <td>
+    <td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td>SYNSEM: <span class="shared_id">B</span>
+    </table>
+    <td class="rprn" rowspan="1">    
+</table>
+
+それらの親の sign に次のような制約を課します．(Valence Principle も
+ハードコードされています)
+<table class="fs">
+<tr><td class="lprn" rowspan="1">
+    <td>
+    <table class="fs">
+    <tr><td rowspan="5">SYNSEM|LOCAL|CAT|VAL
+        <td class="lprn" rowspan="5">
+	<td>SUBJ: <span class="shared_id">A</span>
+	<td class="rprn" rowspan="5">
+    <tr><td>COMPS: <span class="shared_id">C</span>
+    <tr><td>SPR: <span class="shared_id">D</span>
+    <tr><td>SPEC: <span class="shared_id">E</span>
+    <tr><td>CONJ: &lt &gt
+    </table>    
+    <td class="rprn" rowspan="1">
+</table>
+
+<p>
+つまり，head である "thanked" の COMP 素性の最初の値と，
+complement である "him" の SYNSEM 素性の値が単一化されます．
+その結果，head の HOOK では ARG2 の値が "him" となり，
+それが semantic_binary_principle によって親に受け継がれます．
+親の sign を簡単化したものは次のようになります．
+head_feature_principle などの他のプリンシプルも
+満たされていることに注意して下さい．
+
+<table class="fs">
+<tr><td	class="lprn" rowspan="2">
+    <td>PHON: &lt <span class="shared_id">5</span> <span class="shared_id">10</span> &gt
+    <td	class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+	<td class="lprn" rowspan="2">
+	<td>
+	<table class="fs">
+	<tr><td rowspan="2">LOCAL
+	    <td class="lprn" rowspan="2">
+	    <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="5">HEAD
+		    <span class="shared_id">17</span>
+                    <td class="lprn" rowspan="5">
+                    <td>hpsg_verb
+                    <td class="rprn" rowspan="5">
+		<tr><td>VFORM: verb_fin
+                <tr><td>TENSE: tense_past
+                <tr><td>MOD: &lt &gt
+                <tr><td>POSTHEAD: hpsg_binary
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">VAL
+                    <td class="lprn" rowspan="5">
+		    <td>SUBJ: &lt
+		    <td>
+		    <table class="fs">
+		    <tr><td class="lprn" rowspan="1">
+		        <td>
+			<table class="fs">
+			<tr><td rowspan="2">LOCAL
+			    <td class="lprn" rowspan="2">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="2">CAT
+			        <td class="lprn" rowspan="2">
+			        <td>
+				<table class="fs">
+				<tr><td rowspan="4">HEAD
+				    <td class="lprn" rowspan="4">
+				    <td>hpsg_noun
+				    <td class="rprn" rowspan="4">
+				<tr><td>CASE: hpsg_nom
+				<tr><td>MOD: &lt &gt
+				<tr><td>POSTHEAD: hpsg_binary
+				</table>
+				<td class="rprn" rowspan="2">
+			    <tr><td>
+			        <table class="fs">
+				<tr><td rowspan="5">VAL
+				    <td class="lprn" rowspan="5">
+				    <td>SUBJ: &lt &gt
+				    <td class="rprn" rowspan="5">
+				<tr><td>COMPS: &lt &gt
+				<tr><td>SPR: &lt &gt
+				<tr><td>SPEC: &lt &gt
+				<tr><td>CONJ: &lt &gt
+				</table>
+			    </table>
+			    <td class="rprn" rowspan="2">
+			<tr><td>
+			    <table class="fs">
+			    <tr><td rowspan="1">CONT
+			        <td class="lprn" rowspan="1">
+				<td>HOOK: <span class="shared_id">6</span>
+				<td class="rprn" rowspan="1">    
+			    </table>
+			</table>  
+		        <td class="rprn" rowspan="1">
+                    </table>
+		    <td> &gt
+                    <td class="rprn" rowspan="5">
+                <tr><td>COMPS: &lt &gt
+                <tr><td>SPR: &lt &gt
+                <tr><td>SPEC: &lt &gt
+                <tr><td>CONJ: &lt &gt
+                </table>
+            </table>
+	    <td class="rprn" rowspan="2">
+	<tr><td>
+	    <table class="fs">
+            <tr><td rowspan="2">CONT
+                <td class="lprn" rowspan="2">
+		<td>
+		<table class="fs">
+                <tr><td rowspan="5">HOOK
+         	    <span class="shared_id">18</span>
+                    <td class="lprn" rowspan="3">
+		    <td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> PRED
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+                        <tr><td rowspan="8">LEX_WORD
+                            <td class="lprn" rowspan="8">
+		            <td>word
+                            <td class="rprn" rowspan="8">
+                        <tr><td>INPUT: <span class="shared_id">5</span>"thanked"
+                        <tr><td>SURFACE: "thanked"
+                        <tr><td>BASE: "thank"
+                        <tr><td>INPUT_POS: <span class="shared_id">8</span>"VBD"
+                        <tr><td>POS: <span class="shared_id">8</span>
+                        <tr><td>BASE_POS: "VB"
+                        <tr><td>POSITION: <span class="shared_id">9</span>1
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                    <td class="rprn" rowspan="3">
+		<tr><td>ARG1: <span class="shared_id">6</span>
+		<tr><td>
+		    <table class="fs">
+		    <tr><td rowspan="1">ARG2
+ 			<span class="shared_id">7</span>
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+			<tr><td rowspan="1">PRED
+			    <td class="lprn" rowspan="1">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="8">LEX_WORD
+                                <td class="lprn" rowspan="8">
+				<td>word
+				<td class="rprn" rowspan="8">
+			    <tr><td>INPUT: <span class="shared_id">10</span>"him"
+			    <tr><td>SURFACE: <span class="shared_id">11</span>"him"
+			    <tr><td>BASE: <span class="shared_id">11</span>
+			    <tr><td>INPUT_POS: <span class="shared_id">12</span>"PRP"
+			    <tr><td>POS: <span class="shared_id">12</span>
+			    <tr><td>BASE_POS: <span class="shared_id">12</span>
+			    <tr><td>POSITION: <span class="shared_id">13</span>2
+			    </table>
+			    <td class="rprn" rowspan="1">
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>RELS: &lt &gt
+            </table>
+	</table>  
+    <tr><td>
+        <table class="fs">
+        <tr><td rowspan="1">NONLOCAL
+            <td class="lprn" rowspan="1">
+            <td>
+	    <table class="fs">
+	    <tr><td rowspan="2">INHER
+                <td class="lprn" rowspan="2">
+		<td>REL: &lt &gt
+		<td class="rprn" rowspan="2">			
+            <tr><td>SLASH: &lt &gt
+            </table>
+            <td class="rprn" rowspan="1">
+	</table>
+    </table>
+</table>
+
+<p>
+上の sign と "I" の sign に Head-Subject Schema が適用されると，
+文全体に対応する sign が得られます．
+ここでは，head である "thanked him" の SUBJ 素性の最初の値と，
+subject である "I" の SYNSEM 素性の値が単一化されます．
+先程と同様に，head の HOOK では ARG1 の値が "him" となり，
+それが semantic_binary_principle により
+親の sign に受け継がれます．
+
+<table class="fs">
+<tr><td	class="lprn" rowspan="2">
+    <td>PHON: &lt <span class="shared_id">1</span> <span class="shared_id">5</span> <span class="shared_id">10</span> &gt
+    <td	class="rprn" rowspan="2">
+<tr><td>
+    <table class="fs">
+    <tr><td rowspan="2">SYNSEM
+	<td class="lprn" rowspan="2">
+	<td>
+	<table class="fs">
+	<tr><td rowspan="2">LOCAL
+	    <td class="lprn" rowspan="2">
+	    <td>
+            <table class="fs">
+            <tr><td rowspan="2">CAT
+                <td class="lprn" rowspan="2">
+                <td>
+                <table class="fs">
+                <tr><td rowspan="5">HEAD
+		    <span class="shared_id">17</span>
+                    <td class="lprn" rowspan="5">
+                    <td>hpsg_verb
+                    <td class="rprn" rowspan="5">
+		<tr><td>VFORM: verb_fin
+                <tr><td>TENSE: tense_past
+                <tr><td>MOD: &lt &gt
+                <tr><td>POSTHEAD: hpsg_binary
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>
+                <table class="fs">
+                <tr><td rowspan="5">VAL
+                    <td class="lprn" rowspan="5">
+		    <td>SUBJ: &lt &gt
+                    <td class="rprn" rowspan="5">
+                <tr><td>COMPS: &lt &gt
+                <tr><td>SPR: &lt &gt
+                <tr><td>SPEC: &lt &gt
+                <tr><td>CONJ: &lt &gt
+                </table>
+            </table>
+	    <td class="rprn" rowspan="2">
+	<tr><td>
+	    <table class="fs">
+            <tr><td rowspan="2">CONT
+                <td class="lprn" rowspan="2">
+		<td>
+		<table class="fs">
+                <tr><td rowspan="3">HOOK
+         	    <span class="shared_id">18</span>
+                    <td class="lprn" rowspan="3">
+		    <td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> PRED
+		        <td class="lprn" rowspan="1">
+			<td>
+		        <table class="fs">
+                        <tr><td rowspan="8">LEX_WORD
+                            <td class="lprn" rowspan="8">
+		            <td>word
+                            <td class="rprn" rowspan="8">
+                        <tr><td>INPUT: <span class="shared_id">5</span>"thanked"
+                        <tr><td>SURFACE: "thanked"
+                        <tr><td>BASE: "thank"
+                        <tr><td>INPUT_POS: <span class="shared_id">8</span>"VBD"
+                        <tr><td>POS: <span class="shared_id">8</span>
+                        <tr><td>BASE_POS: "VB"
+                        <tr><td>POSITION: <span class="shared_id">9</span>1
+                        </table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                    <td class="rprn" rowspan="3">
+		<tr><td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> ARG1
+		        <td><span class="shared_id">6</span>
+		        <td class="lprn" rowspan="1">
+			<td>
+			<table class="fs">
+			<tr><td rowspan="1">PRED
+			    <td class="lprn" rowspan="1">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="8">LEX_WORD
+			        <td class="lprn" rowspan="8">
+				<td>word
+				<td class="rprn" rowspan="8">
+                            <tr><td>INPUT: <span class="shared_id">1</span>"I"
+			    <tr><td>SURFACE: <span class="shared_id">2</span>"i"
+			    <tr><td>BASE: <span class="shared_id">2</span>
+			    <tr><td>INPUT_POS: <span class="shared_id">3</span>"PRP"
+			    <tr><td>POS: <span class="shared_id">3</span>
+			    <tr><td>BASE_POS: <span class="shared_id">3</span>
+			    <tr><td>POSITION: <span class="shared_id">4</span>0
+			    </table>
+			    <td class="rprn" rowspan="1">
+			</table>
+			<td class="rprn" rowspan="1">
+		    </table>
+		<tr><td>
+		    <table class="fs">
+		    <tr><td rowspan="1"> ARG2
+ 			<span class="shared_id">7</span>
+		        <td class="lprn" rowspan="1">
+			<td>
+			<table class="fs">
+			<tr><td rowspan="1">PRED
+			    <td class="lprn" rowspan="1">
+			    <td>
+			    <table class="fs">
+			    <tr><td rowspan="8">LEX_WORD
+			        <td class="lprn" rowspan="8">
+				<td>word
+				<td class="rprn" rowspan="8">
+                            <tr><td>INPUT: <span class="shared_id">10</span>"him"
+			    <tr><td>SURFACE: <span class="shared_id">11</span>"him"
+			    <tr><td>BASE: <span class="shared_id">11</span>
+			    <tr><td>INPUT_POS: <span class="shared_id">12</span>"PRP"
+			    <tr><td>POS: <span class="shared_id">12</span>
+			    <tr><td>BASE_POS: <span class="shared_id">12</span>
+			    <tr><td>POSITION: <span class="shared_id">13</span>2
+			    </table>
+			    <td class="rprn" rowspan="1">
+			</table>
+			<td class="rprn" rowspan="1">
+		    </table>
+                </table>
+                <td class="rprn" rowspan="2">
+            <tr><td>RELS: &lt &gt
+            </table>
+	</table>  
+    <tr><td>
+        <table class="fs">
+        <tr><td rowspan="1">NONLOCAL
+            <td class="lprn" rowspan="1">
+            <td>
+	    <table class="fs">
+	    <tr><td rowspan="2">INHER
+                <td class="lprn" rowspan="2">
+		<td>REL: &lt &gt
+		<td class="rprn" rowspan="2">			
+            <tr><td>SLASH: &lt &gt
+            </table>
+            <td class="rprn" rowspan="1">
+	</table>
+    </table>
+</table>
+
+<p>
+上の sign の HOOK 素性から，次のような enju の出力が得られます．
+
+<pre>
+ROOT     ROOT   ROOT  ROOT  -1  ROOT  thanked  thank  VBD  VB     1
+thanked  thank  VBD   VB     1  ARG1  I        i      PRP  PRP    0
+thanked  thank  VBD   VB     1  ARG2  him      him    PRP  PRP    2
+
+</pre>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

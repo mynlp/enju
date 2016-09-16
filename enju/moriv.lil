@@ -1,0 +1,285 @@
+%/**********************************************************************
+  * @module    =  enju:moriv
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: moriv.lil,v 1.9 2010-03-25 05:01:05 yusuke Exp $
+  * @version   =  Time-stamp: <2010-03-25 13:57:22 yusuke>
+  * @desc      =  Browsing parse results with MoriV
+  **********************************************************************
+%*/
+
+:- module("enju:moriv").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/morivparser").
+:- ensure_loaded("../mayz/morivchart").
+:- ensure_loaded("../mayz/morivgrammar").
+:- ensure_loaded("lillib/cgiconsole").
+:- ensure_loaded("../mayz/parser").
+
+:- module_implementation.
+
+:- ensure_loaded("display").
+:- ensure_loaded("outputxml").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/io").
+
+:-
+    set_variable('*moriv_toppage_name*', "parser"),
+    set_variable('*moriv_common_menu*',
+		 (xhtml_div & XHTML_CLASS\"menu" &
+		  XHTML_TEXT\[(xhtml_a &
+			       A_HREF\"moriv?page=parser" & XHTML_TEXT\"Parser"),
+			      (xhtml_a &
+			       A_HREF\"moriv?page=chart" & XHTML_TEXT\"Chart"),
+			      (xhtml_a &
+			       A_HREF\"moriv?page=grammar" & XHTML_TEXT\"Grammar"),
+			      (xhtml_a &
+			       A_TARGET\"_blank" & A_HREF\"console?" & XHTML_TEXT\"Console"),
+			      (xhtml_a &
+			       A_HREF\"moriv?" & XHTML_TEXT\"Reset"),
+			      (xhtml_a &
+			       A_TARGET\"_blank" & A_HREF\"/enju-manual/index.html" & XHTML_TEXT\"Manual"),
+			      (xhtml_a &
+			       A_TARGET\"_blank" & A_HREF\"http://www-tsujii.is.s.u-tokyo.ac.jp/enju/" & XHTML_TEXT\"Enju Home Page"),
+			      (xhtml_a &
+			       A_HREF\"/DISCONNECT" & XHTML_TEXT\"Exit")])),
+    set_variable('*moriv_parser_menu*',
+		 xhtml_p &
+		 XHTML_TEXT\["Show",
+			     xhtml_a & A_HREF\"moriv?page=parser&amp;display=semantics" &
+			     XHTML_CLASS\"menu" & XHTML_TEXT\"Semantics"]),
+    set_variable('*moriv_parser_title*', "Enju"),
+    set_variable('*moriv_parser_heading*', "Enju"),
+    set_variable('*moriv_chart_title*', "Enju - chart browser"),
+    set_variable('*moriv_chart_heading*', "Enju - Chart browser"),
+    set_variable('*moriv_grammar_title*', "Enju - grammar browser"),
+    set_variable('*moriv_grammar_heading*', "Enju - Grammar browser").
+
+%% parser_init :-
+%%     environ("ENJU_DIR", $EnjuDir),
+%%     strcat($EnjuDir, "/..", $DocRoot),
+%%     set_variable('*http_document_root*', $DocRoot).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Term representation of semantics
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+encode_varname <- [pred].
+encode_varname($ID, $VarName) :-
+    inttostr($ID, $IDStr),
+    concatenate_string(["<span class=""variable"">$", $IDStr, "</span>"], $VarName).
+
+encode_name <- [pred].
+encode_name(LEX_WORD\INPUT\$Surface1, % & POSITION\$Position,
+	    $Str) :-
+%    inttostr($Position, $PosStr),
+    to_lower($Surface1, $Surface2),
+    encode_xml_string($Surface2, $Surface),
+    concatenate_string(["<span class=""semid"">", $Surface, "</span>"], $Str).
+
+ind_to_term_dispatch <- [pred].
+ind_to_term_dispatch(unknown_relation, "-unknown-", []) :- !.
+ind_to_term_dispatch($Rel & PRED\$Name, $Pred, $Args) :-
+    encode_name($Name, $Pred),
+    findall($Arg,
+	    (member($ArgLabel, [ARG1\, ARG2\, ARG3\, ARG4\, ARG5\, MODARG\]),
+	     follow_if_exists($Rel, $ArgLabel, $Arg)),
+	    $Args).
+
+%% ind_to_term_dispatch(arg0_relation & PRED\$Name, $Atom, []) :-
+%%     !,
+%%     encode_name($Name, $Atom).
+%% ind_to_term_dispatch(arg1_relation & PRED\$Name & ARG1\$Arg1,
+%% 		    $Pred, [$Arg1]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg2_relation & PRED\$Name & ARG2\$Arg2,
+%% 		    $Pred, [$Arg2]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg12_relation & PRED\$Name & ARG1\$Arg1 & ARG2\$Arg2,
+%% 		    $Pred, [$Arg1, $Arg2]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg23_relation & PRED\$Name & ARG2\$Arg2 & ARG3\$Arg3,
+%% 		    $Pred, [$Arg2, $Arg3]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg123_relation & PRED\$Name & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3,
+%% 		    $Pred, [$Arg1, $Arg2, $Arg3]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg1234_relation & PRED\$Name & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3 & ARG4\$Arg4,
+%% 		    $Pred, [$Arg1, $Arg2, $Arg3, $Arg4]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(arg12345_relation & PRED\$Name & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3 & ARG4\$Arg4 & ARG5\$Arg5,
+%% 		    $Pred, [$Arg1, $Arg2, $Arg3, $Arg4, $Arg5]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_relation & PRED\$Name & MODARG\$Mod,
+%% 		    $Pred, [$Mod]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_arg1_relation & PRED\$Name & MODARG\$Mod & ARG1\$Arg1,
+%% 		    $Pred, [$Mod, $Arg1]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_arg12_relation & PRED\$Name & MODARG\$Mod & ARG1\$Arg1 & ARG2\$Arg2,
+%% 		    $Pred, [$Mod, $Arg1, $Arg2]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_arg123_relation & PRED\$Name & MODARG\$Mod & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3,
+%% 		    $Pred, [$Mod, $Arg1, $Arg2, $Arg3]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_arg1234_relation & PRED\$Name & MODARG\$Mod & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3 & ARG4\$Arg4,
+%% 		    $Pred, [$Mod, $Arg1, $Arg2, $Arg3, $Arg4]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(mod_arg12345_relation & PRED\$Name & MODARG\$Mod & ARG1\$Arg1 & ARG2\$Arg2 & ARG3\$Arg3 & ARG4\$Arg4 & ARG5\$Arg5,
+%% 		    $Pred, [$Mod, $Arg1, $Arg2, $Arg3, $Arg4, $Arg5]) :-
+%%     !,
+%%     encode_name($Name, $Pred).
+%% ind_to_term_dispatch(_, _, _) :-
+%%     !,
+%%     fail.
+
+ind_to_term <- [pred].
+semantics_to_termlist <- [pred].
+ind_to_term($Ind, $ID, $ShareList, $IDAssoc,
+	    $PAS, $NewID, $NewShareList, $NewIDAssoc) :-
+    ind_to_term_dispatch($Ind, $Pred, $Args),
+    ($Args = [] ->
+     $PAS = $Pred,
+     $ID = $NewID,
+     $ShareList = $NewShareList,
+     $IDAssoc = $NewIDAssoc
+     ;
+     semantics_to_termlist($Args, $ID, $ShareList, $IDAssoc,
+			   $ArgList, $NewID, $NewShareList, $NewIDAssoc),
+     join($ArgList, ", ", $ArgListStr),
+     concatenate_string([$Pred, "( ", $ArgListStr, " )"], $PAS)).
+
+semantics_to_termlist([], $ID, $ShareList, $IDAssoc,
+		      [], $ID, $ShareList, $IDAssoc).
+semantics_to_termlist([$Ind|$IndList], $ID, $ShareList, $IDAssoc,
+		      [$PAS|$PASList], $NextID, $NextShareList, $NextIDAssoc) :-
+    (assoc_i($Ind, $IDAssoc, $VarName) ->
+     $PAS = $VarName,
+     $NewID = $ID,
+     $NewShareList = $ShareList,
+     $NewIDAssoc = $IDAssoc
+     ;
+     (member_i($Ind, $ShareList) ->
+      encode_varname($ID, $VarName),
+      $NID is $ID + 1,
+      ind_to_term($Ind, $NID, $ShareList, [($Ind, $VarName)|$IDAssoc], $PASOrig, $NewID, $NewShareList, $NewIDAssoc),
+      concatenate_string([$VarName, " ", $PASOrig], $PAS)
+      ;
+      ind_to_term($Ind, $ID, $ShareList, $IDAssoc, $PAS, $NewID, $NewShareList, $NewIDAssoc))),
+    semantics_to_termlist($IndList, $NewID, $NewShareList, $NewIDAssoc,
+			  $PASList, $NextID, $NextShareList, $NextIDAssoc).
+
+remove_identical_nodes <- [pred].
+remove_identical_nodes([], _, []).
+remove_identical_nodes([$Ind|$IndList], $ShareList, $OutIndList) :-
+    (member_i($Ind, $ShareList) ->
+     $OutIndList = $NextIndList ;
+     $OutIndList = [$Ind|$NextIndList]),
+    remove_identical_nodes($IndList, $ShareList, $NextIndList).
+
+semantics_to_terms <- [pred].
+semantics_to_terms(HOOK\$Ind & RELS\$Rest, $TermList) :-
+    sharednodelist([$Ind|$Rest], $ShareList1),
+    remove_identical_nodes($Rest, $ShareList1, $IndList),
+    sharednodelist([$Ind|$IndList], $ShareList2),
+    semantics_to_termlist([$Ind|$IndList], 0, $ShareList2, [],
+			  $TermList, _, _, _).
+
+encode_semantics_page <- [pred].
+encode_semantics_page([], []).
+encode_semantics_page([$Term|$TermList], [(xhtml_p &
+					   XHTML_CLASS\"term" &
+					   XHTML_TEXT\$Term)
+					  |$Text]) :-
+    encode_semantics_page($TermList, $Text).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+make_highlight_script <- [pred].
+make_highlight_script($Args, $ID, $Script) :-
+    findall($On,
+	    (member(XML_REL_LABEL\$ArgLabel & XML_REL_VALUE\$ArgID, $Args),
+	     memberchk($ArgLabel, ["mod", "arg1", "arg2", "arg3", "arg4", "arg5"]),
+	     formattostr("argument_on('~s','~s')", [$ArgLabel, $ArgID], $On)),
+	    $OnScripts),
+    formattostr("predicate_on('~s')", [$ID], $PredOn),
+    join([$PredOn|$OnScripts], ";", $OnScript),
+    findall($Off,
+	    (member(XML_REL_LABEL\$ArgLabel & XML_REL_VALUE\$ArgID, $Args),
+	     memberchk($ArgLabel, ["mod", "arg1", "arg2", "arg3", "arg4", "arg5"]),
+	     formattostr("highlight_off('~s','~s')", [$ArgLabel, $ArgID], $Off)),
+	    $OffScripts),
+    formattostr("highlight_off('pred','~s')", [$ID], $PredOff),
+    join([$PredOff|$OffScripts], ";", $OffScript),
+    concatenate_string([" onmouseover=""", $OnScript, """ onmouseout=""", $OffScript, """ "], $Script).
+
+tree_to_highlight_sentence <- [pred].
+tree_to_highlight_sentence(xml_word & XML_NODE_ID\$ID & XML_SURFACE\$Input1 & XML_POS\$POS1 & XML_REL_LIST\$Args, $HTML) :-
+    encode_xml_string($Input1, $Input),
+    encode_xml_string($POS1, $POS),
+    make_highlight_script($Args, $ID, $Script),
+    formattostr("<span id=""~s""~s>~s/~s</span>", [$ID, $Script, $Input, $POS], $HTML).
+tree_to_highlight_sentence(xml_phrase & XML_NODE_ID\$ID & XML_DTRS\[$UDtr], $HTML) :-
+    !,
+    tree_to_highlight_sentence($UDtr, $DtrHTML),
+    formattostr("<span id=""~s"">~s</span>", [$ID, $DtrHTML], $HTML).
+tree_to_highlight_sentence(xml_phrase & XML_NODE_ID\$ID & XML_DTRS\[$LDtr, $RDtr], $HTML) :-
+    tree_to_highlight_sentence($LDtr, $LeftHTML),
+    tree_to_highlight_sentence($RDtr, $RightHTML),
+    formattostr("<span id=""~s"">~s ~s</span>", [$ID, $LeftHTML, $RightHTML], $HTML).
+
+semantics_highlight <- [pred].
+semantics_highlight(["<span id=""arg1"" style=""visibility: hidden; position: absolute;"">arg1</span>",
+		     "<span id=""arg2"" style=""visibility: hidden; position: absolute;"">arg2</span>",
+		     "<span id=""arg3"" style=""visibility: hidden; position: absolute;"">arg3</span>",
+		     "<span id=""arg4"" style=""visibility: hidden; position: absolute;"">arg4</span>",
+		     "<span id=""arg5"" style=""visibility: hidden; position: absolute;"">arg5</span>",
+		     "<span id=""mod"" style=""visibility: hidden; position: absolute;"">mod</span>",
+		     $Sentence]) :-
+%%     root_edge_id_list([$RootID|_]),
+%%     get_edge_link_tree($RootID, $LinkTree),
+%%     get_xml_parse_tree($LinkTree, $Tree),
+    best_fom_parse_tree($ParseTree, _),
+    parse_tree_to_xml($ParseTree, $Tree),
+    tree_to_highlight_sentence($Tree, $Sentence).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+best_semantics_page <- [pred].
+best_semantics_page([$JavaScript,
+			    xhtml_h3 & XHTML_TEXT\"Best semantics" & XHTML_CLASS\"title"|$Page]) :-
+    $JavaScript = (xml_empty_tag & XML_TAG\"script" &
+		   XML_ATTRIBUTES\[XML_ATTR\"src" & XML_ATTR_VAL\"/enju/pashighlight.js",
+				   XML_ATTR\"type" & XML_ATTR_VAL\"text/javascript"]),
+    (best_fom_sign(_, $Sign, $FOM),
+     $Sign = SYNSEM\LOCAL\CONT\$Sem ->
+     semantics_to_terms($Sem, $TermList),
+     encode_semantics_page($TermList, $SemPage),
+%%     semantics_to_highlight_sentence($Sem, $Highlight),
+     semantics_highlight($Highlight),
+     $Page = [xhtml_p & XHTML_TEXT\["FOM = ", $FOM], $Highlight, $SemPage]
+     ;
+     $Page = ["Cannot make semantic representation"]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+moriv_parser_display("semantics", _, $Page) :-
+    best_semantics_page($Page).
+

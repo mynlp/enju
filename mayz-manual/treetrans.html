@@ -1,0 +1,278 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>treetrans: Tool for tree transformation</title>
+</head>
+
+
+
+<body>
+<h1>treetrans: Tool for tree transformation</h1>
+
+<a href="treetrans.ja.html">Japanese version</a>
+
+<p>
+This is a tool for the conversion of parse trees using pattern rules.
+
+<p>
+<table border=1>
+<tr><td colspan=2>treetrans [options] rule_module input_file output_database
+<tr><td>rule_module<td>lilfes program in which pattern rules are implemented
+<tr><td>input_file<td>Input treebank (text format)
+<tr><td>output_database<td>Output treebank (lildb format)
+<tr><td colspan=2>Options
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+</table>
+
+<p>
+This tool inputs parse trees from a text file, applies tree conversion
+rules to each input tree, and outputs the results into a lildb-style
+database.
+
+<h2>How to input parse trees</h2>
+
+"treetrans" calls 'input_parse_tree/2' and reads parse trees from a
+text file.  'input_parse_tree/2' is defined in "treetrans.lil" as an
+interface of "treetrans".  Its content is not implemented, and should
+be implemented by a grammar developer.  A line in an input file is
+passed to the first argument of 'input_parse_tree/2', and a parse tree
+should be returned in the second argument.  Parse trees must be
+represented with types defined in "treetypes.lil".
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>input_parse_tree(+$String, -$Tree)</tt>
+<tr><td><tt>+$String</tt><td>A line in an input file
+<tr><td><tt>-$Tree</tt><td>A parse tree
+<tr><td colspan=2>Reads a parse tree from a line in the input file
+</table>
+
+<p>
+If parse trees are written in the Penn Treebank-style format, you can
+simply use 'input_ptb_parse_tree/2' defined in "treetrans.lil".  To
+use 'input_ptb_parse_tree/2', you need to implement the following
+interfaces defined in "treeio.lil".
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>ptb_empty_category(-$Category)</tt>
+<tr><td><tt>-$Category</tt><td>The value of "SYM" to be regarded as an
+empty category
+<tr><td colspan=2>Specify a preterminal symbol that should be regarded
+as an empty category.  "SYM" is a feature defined in "treetypes.lil".
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_preprocess_word(+$Input, -$Output)</tt>
+<tr><td><tt>+$Input</tt><td>input word
+<tr><td><tt>-$Output</tt><td>preprocessed input word
+<tr><td colspan=2>Apply preprocessing to an input word.  For example,
+you can replace special characters and convert letters into small
+letters.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_preprocess_pos(+$Input, -$Output)</tt>
+<tr><td><tt>+$Input</tt><td>input POS
+<tr><td><tt>-$Output</tt><td>preprocessed POS
+<tr><td colspan=2>Apply preprocessing to an input POS
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>ptb_delete_pos(-$POS)</tt>
+<tr><td><tt>-$POS</tt><td>POS
+<tr><td colspan=2>Specify a POS that should be ignored.  Partial trees
+that have only ignored POSs are also ignored.  $POS represents results
+of 'ptb_preprocess_pos/2'.
+</table>
+
+<p>
+After implementing them, call 'input_ptb_parse_tree/2' from
+ 'input_parse_tree/2'.  An example is like this.
+
+<blockquote>
+<pre>
+ptb_empty_category("-NONE-").
+ptb_preprocess_word($In, $Out) :- to_lower($In, $Out).
+ptb_preprocess_pos($POS, $POS).
+ptb_delete_pos(".").
+ptb_delete_pos("""").
+input_parse_tree($String, $Tree) :-
+    input_ptb_parse_tree($String, $Tree).
+</pre>
+</blockquote>
+
+<p>
+If an input file is written in another format, implement
+'input_parse_tree/2' by yourself.
+
+<h2>How to write tree conversion rules</h2>
+
+Parse trees are converted in the following steps.
+
+<p>
+<ul>
+  <li>Preprocessing
+  <li>Tree conversion by pattern rules
+  <li>Stemming
+</ul>
+
+<p>
+First, the following interfaces may be used for preprocessing an input
+tree before applying conversion rules.
+
+<table border=1>
+<tr><td colspan=2><tt>delete_tree(+$Tree)</tt>
+<tr><td><tt>+$Tree</tt><td>tree: parse tree
+<tr><td colspan=2>Remove a subtree that is unifiable with +$Tree.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>nonterminal_mapping(+$InSym, -$OutSym)</tt>
+<tr><td><tt>+$InSym</tt><td>nonterminal symbol of an input tree
+<tr><td><tt>-$OutSym</tt><td>nonterminal symbol of an output tree
+<tr><td colspan=2>Convert nonterminal symbol $InSym into $OutSym.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>preterminal_mapping(+$InSurface, +$InSym, -$OutSurface, -$OutSym)</tt>
+<tr><td><tt>+$InSurface</tt><td>input word (surface form)
+<tr><td><tt>+$InSym</tt><td>input nonterminal symbol
+<tr><td><tt>-$OutSurface</tt><td>output word (surface form)
+<tr><td><tt>-$OutSym</tt><td>output nonterminal symbol
+<tr><td colspan=2>Convert a word, $InSurface/$InSym, into $OutSurface/$OutSym.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>preterminal_projection(+$InSym, -$NewSym)</tt>
+<tr><td><tt>+$InSym</tt><td>preterminal symbol
+<tr><td><tt>-$NewSym</tt><td>nonterminal symbol
+<tr><td colspan=2>Insert a nonterminal symbol as the mother of
+preterminal $InSym.
+</table>
+
+<p>
+Pattern rules are implemented as lilfes programs with interfaces
+defined in "treetrans.lil".  Parse trees are represented in feature
+structures defined in "treetypes.lil".  For example, the following
+pattern rule converts a tree like "(... than/IN XXX)" into "(... (PP
+than/IN XXX:argument))".
+
+<blockquote>
+<pre>
+tree_transform_class("than", "topdown", "weak").
+
+tree_subst_pattern("than",
+                   TREE_NODE\$Node & TREE_DTRS\$Dtrs,
+                   TREE_NODE\$Node & TREE_DTRS\$NewDtrs) :-
+    $Dtrs = [$Left & tree_any & ANY_TREES\[_|_],
+             $Than & tree & TREE_NODE\(SYM\"IN" & WORD\SURFACE\"than"),
+             $Right & tree & TREE_NODE\HEAD_MARK\argument],
+    $NewDtrs = [$Left,
+                TREE_NODE\(SYM\"PP" & MOD\[] & ID\[] & HEAD_MARK\modifier) &
+                TREE_DTRS\[$Than, $Right]].
+</pre>
+</blockquote>
+
+<p>
+First, write "<tt>tree_transform_class/3</tt>" in order to specify the
+name of a conversion rule, the order of rule application, and the
+behavior in which the rule application fails.
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_class(+$Name, +$Direction, +$Strict)</tt>
+<tr><td><tt>+$Name</tt><td>The name of the conversion rule
+<tr><td><tt>+$Direction</tt><td>The order of applying the rule
+        <ul>
+	  <li>"topdown": From a root to leaves
+	  <li>"bottomup": From leaves to a root
+	  <li>"rootonly": Only to the root of a tree
+<tr><td><tt>+$Strict</tt><td>The behavior in which the rule
+    application fails
+        <ul>
+          <li>"strict": Fail the conversion of a whole tree
+          <li>"weak": Ignore the failure of this rule
+	</ul>
+</table>
+
+<p>
+Next, write conversion rules with the following interfaces.  In all
+the interfaces, the first argument is the name of a rule that has been
+specified in "<tt>tree_transform_class/3</tt>".
+The <tt>treetrans</tt> tool traverses each node in parse trees and
+applies conversion rules in the order of
+"<tt>tree_transform_class/3</tt>" in the program file.
+
+<table border=1>
+<tr><td colspan=2><tt>tree_ignore(+$Name, ?$Tree)</tt>
+<tr><td><tt>+$Name</tt><td>rule name
+<tr><td><tt>+$Tree</tt><td>tree: parse tree
+<tr><td colspan=2>Remove a subtree that is unifiable with +$Tree.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_transform_rule(+$Name, +$InTree, -$OutTree)</tt>
+<tr><td><tt>+$Name</tt><td>rule name
+<tr><td><tt>+$InTree</tt><td>tree: input parse tree
+<tr><td><tt>-$OutTree</tt><td>tree: output parse tree
+<tr><td colspan=2>Convert $InTree into $OutTree.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_subst_pattern(+$Name, +$InPattern, +$OutPattern)</tt>
+<tr><td><tt>+$Name</tt><td>rule name
+<tr><td><tt>+$InTree</tt><td>tree: pattern of an input tree
+<tr><td><tt>+$OutTree</tt><td>tree: pattern of an output tree
+<tr><td colspan=2>Convert a parse tree that matches with $InTree using
+    "<tt>tree_match/2</tt>" into $OutPattern.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_unify(+$Name, ?$Tree)</tt>
+<tr><td><tt>+$Name</tt><td>rule name
+<tr><td><tt>+$Tree</tt><td>tree: parse tree
+<tr><td colspan=2>Unify $Tree with the target tree.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>tree_match_pattern(+$Name, +$Pattern)</tt>
+<tr><td><tt>+$Name</tt><td>rule name
+<tr><td><tt>+$Tree</tt><td>tree: pattern on a parse tree
+<tr><td colspan=2>Unify $Pattern with the target tree using
+    "<tt>tree_match/2</tt>".
+</table>
+
+<p>
+Conversion rules are applied in the order of definitions 
+by <tt>tree_transform_class/3</tt>.
+For one conversion rule, conversions by the iterfaces are
+tested in the order of <tt>tree_ignore/2,
+tree_transform_rule/3, tree_subst_pattern/3, tree_unify/2,
+tree_match_pattern/2</tt>.
+If a conversion by one interface succeeds, the rest conversions
+for the same rule will not be tested.
+
+<p>
+In conversion rules, you can use several tools such as
+"tree_binarize/2" (implemented in <a
+href="modules.html#binarizer">"binarizer.lil"</a> to binarize a tree)
+and "mark_head/1", "mark_modifier/1" (defined in <a
+href="modules.html#markhead">"markhead.lil"</a> to annotate
+head/modifier/argument marks.
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

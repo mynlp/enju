@@ -1,0 +1,159 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-types.css">
+<title>Data structure used in the toolkit</title>
+</head>
+
+
+
+<body>
+<h1>Data structure used in the toolkit</h1>
+
+<a href="types.ja.html">Japanese version</a>
+
+<p>
+In the MAYZ toolkit, data, such as parse trees and derivations, are
+represented with feature structures.  This page explains the
+definitions of the feature structures.
+
+<ul>
+  <li><a href="#word">Feature structure representing a word</a>
+  <li><a href="#treetypes">Feature structure representing a parse tree</a>
+  <li><a href="#derivtypes">Feature structure representing a derivation</a>
+</ul>
+
+<hr>
+
+<h2><a name="word">Feature structure representing a word</a></h2>
+
+<em>A word</em> in MAYZ corresponds to a terminal node in a parse
+tree.  The information of a word is represented with the following
+feature structure.
+<pre>
+word <- [bot] +
+  [INPUT\string(0),        %% input word itself
+   SURFACE\string(1),      %% preprocessed input word
+   BASE\string(2),         %% base form of the input word
+   INPUT_POS\string(5),    %% input POS itself
+   POS\string(6),          %% preprocessed POS
+   BASE_POS\string(7),     %% POS of the base form of the input word
+   POSITION\integer(10)    %% the position of the input word
+  ].
+</pre>
+
+<hr>
+
+<h2><a name="treetypes">Feature structure representing a parse tree</a></h2>
+
+<p>
+A phrase structure of an input treebank (<a
+href="terms.html#parse_tree">parse tree</a>) is represented with the
+following feature structure.
+
+<pre>
+%% head/argument/modifier marks
+head_mark <- [bot].
+non_head <- [head_mark].   %% other than 'head'
+argument <- [non_head].    %% for argument
+modifier <- [non_head].    %% for modifier
+empty <- [head_mark].      %% for empty trees
+non_empty <- [head_mark].  %% for non-empty trees
+head <- [head_mark, non_empty].    %% head
+non_head_empty <- [non_head, empty].    %% empty non-head
+non_head_non_empty <- [non_head, non_empty].  %% non-empty non-head
+argument_empty <- [argument, non_head_empty]. %% empty argument
+argument_non_empty <- [argument, non_head_non_empty].  %% non-empty argument
+modifier_empty <- [modifier, non_head_empty]. %% empty modifier
+modifier_non_empty <- [modifier, non_head_non_empty].  %% non-empty modifier
+
+%% representation of PropBank-style annotations
+propbank_label <- [bot] +
+  [PROP_ID\integer(0)].    %% ID number uniquely assigned in a sentence
+propbank_arg <- [propbank_label] +  %% annotation for arguments
+  [ARG_POS\string(1)].     %% argument label ("ARG1", ...)
+propbank_rel <- [propbank_label] +  %% annotation for predicates
+  [PRED_NAME\string(1),    %% name of a predicate
+   PRED_SEM_ID\string(2)]. %% semantic ID of a predicate
+
+%% list of 'propbank_label'
+prop_list <- [list].
+prop_cons <- [prop_list, cons] + [hd\propbank_label, tl\prop_list].
+prop_nil <- [prop_list, nil].
+
+%% a node in a parse tree
+tree_node <- [bot] +
+  [SYM\string(0),          %% symbol of the node
+   FUNC\list(1),           %% function labels (SBJ, TPC, etc.)
+   HEAD_MARK\head_mark(2), %% head/argument/modifier marks
+   PROP_LIST\prop_list(5), %% for PropBank-style annotations
+   NODE_SIGN\bot(10),      %% sign corresponding to the node
+   ANNOT\bot(11)           %% other annotations
+  ].
+tree_node_nts <- [tree_node] +  %% nonterminal node
+  [ID\list(3),             %% coindex ID assigned to the node
+   SCHEMA_NAME\bot(4)      %% schema name
+  ].
+tree_node_term <- [tree_node] +  %% terminal node
+  [WORD\word(3)].          %% word corresponding to the node
+tree_node_empty <- [tree_node] +  %% empty terminal node
+  [COIND\list(3),          %% coindex IDs
+   EMPTY_WORD\string(4),   %% string representing an empty word
+   COIND_NODE\list(5)      %% coindexed nodes
+  ].
+
+%% parse tree
+tree_base <- [bot] +
+  [TREE_NODE\tree_node(0)].  %% the node of the tree
+tree <- [tree_base].       %% terminal/nonterminal of the tree
+tree_nts <- [tree] +       %% nonterminal
+  [TREE_NODE\tree_node_nts,
+   TREE_DTRS\list(20)].    %% daughter trees
+tree_term <- [tree] +      %% terminal
+  [TREE_NODE\tree_node_term].
+tree_empty <- [tree] +     %% empty terminal
+  [TREE_NODE\tree_node_empty].
+
+%% used for pattern matching of trees
+tree_any <- [tree_base] +
+  [ANY_TREES\list(10)].    %% a list of matched trees
+</pre>
+
+For 'tree_any', see "<a href="modules.html#treematch">Pattern matching of trees</a>".
+
+<hr>
+
+<h2><a name="derivtypes">Feature structure representing a derivation</a></h2>
+
+A phrase structure of the target grammar theory (<a
+href="terms.html#derivation">derivation</a>) is represented with the
+following feature structure.
+
+<pre>
+derivation <- [bot] +                  %% node in a derivation
+  [DERIV_SIGN\bot(5)].                 %% sign corresponding to the node
+derivation_internal <- [derivation] +  %% internal node of a derivation
+  [DERIV_SCHEMA\bot(0),                %% name of the applied schema
+   DERIV_DTRS\list(10)].               %% daughter derivations
+derivation_terminal <- [derivation] +  %% terminal node of a derivation
+  [TERM_WORD\word(0),                  %% word corresponding to the node
+   TERM_TEMPLATE\lex_template(1),      %% template name assigned to the word
+   LEXENTRY_SIGN\bot(10),              %% sign of a lexical entry
+   LEXEME_SIGN\bot(11)                 %% sign of a lexeme
+  ].
+</pre>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

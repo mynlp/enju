@@ -1,0 +1,39 @@
+Enju: English HPSG parser
+
+Copyright (c) 2005-2010, Tsujii Laboratory, The University of Tokyo.
+All rights reserved.
+
+----------------------------------------------------------------------
+See "COPYING" for license information.
+See "enju-manual/index.html" (or "lib/enju-manual/index.html" in the binary package) for the usage of Enju.
+----------------------------------------------------------------------
+
+Enju is a syntactic analyzer for English. A grammar is based on
+Head-driven Phrase Structure Grammar (HPSG), which is a linguistic
+theory for syntax. Since this system computes more detailed structure
+of sentences than CFG parsers, you can obtain various information such
+as predicate-argument structures.
+
+For example, Enju can parse the following sentence,
+
+It's falling like a stone, said Danny Linger, a pit trader who was
+standing outside the London International Financial Futures Exchange.
+
+and you will get the results that the subject of "said" is "Danny
+Linger" and the complement is "it's falling like a stone", and the
+subject of "standing outside..." is "pit trader".
+
+See "INSTALL" or the manual (enju-manual/index.html) for the
+installation procedure.
+
+----------------------------------------------------------------------
+
+How to run Enju:
+
+1. Run "enju".
+2. Input a sentence in a line.  Each line will be parsed and all
+   predicate-argument relations in the sentence will be output.
+
+For other formats for more detailed output (the XML and stand-off
+formats), see the manual (enju-manual/index.html).
+

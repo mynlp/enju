@@ -1,0 +1,322 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>発展的な使い方</title>
+</head>
+
+
+
+<body>
+<h1>発展的な使い方</h1>
+
+<a href="advanced.html">English version</a>
+
+<p>
+ここでは，パワーユーザのために，Enju の使い方・上級編を紹介します．
+
+<ul>
+  <li><a href="#pos_tagger">自前の品詞タガーを使う</a>
+  <li><a href="#parse_result">構文解析結果にアクセスする</a>
+  <li><a href="#make_grammar">文法を自分で作る</a>
+  <li><a href="#modules">LiLFeS モジュール</a>
+</ul>
+
+<hr>
+
+<h2><a name="pos_tagger">自前の品詞タガーを使う</a></h2>
+
+<p>
+デフォルトでは，Enju は同梱している stepp tagger を使います．
+自分で開発した品詞タガーを使いたいときは，enju 起動時に，-t オプションで品詞タガーを指定してください．
+
+<pre>
+% enju -t your_own_tagger
+</pre>
+
+<p>
+your_own_tagger が実行可能（パスが通っている）である必要があります．
+品詞タガーの入力フォーマットは enju の入力フォーマットと同じ（一行一文）です．
+出力は，以下のようなフォーマットにしてください．
+
+<pre>
+John/NNP walked/VBD slowly/RB ./.
+</pre>
+
+<p>
+単語と品詞は / でつなぎ，各単語はスペース1個で区切ってください．スペースが2個以上あると正常に動作しません．
+
+<p>
+もしくは，あらかじめテキストに品詞タグを付与し，タグ付きテキストを enju に入力してください．この時は，-nt オプションを指定します．
+
+<pre>
+% your_own_tagger < RAW_TEXT > TAGGED_TEXT
+% enju -nt < TAGGED_TEXT
+</pre>
+
+<p>
+TAGGED_TEXT のフォーマットは，上と同じです．
+
+<hr>
+
+<h2><a name="parse_result">構文解析結果にアクセスする</a></h2>
+
+<p>
+Enju の文法は，単一化文法のための高速なパーザ <a href="../mayz-manual/up.ja.html">UP</a> を使うように設計されています．
+UP は，<a href="../mayz-manual/index.ja.html">MAYZ ツールキット</a> で提供されているパーザです．
+従って，UP のインタフェースを使って，構文解析結果にアクセスし，様々な情報を取り出すことができます．
+例えば，HPSG の sign の素性構造や，解析にかかった時間やエッジ数などのプロファイルを得ることができます．
+さらに，これらを利用する LiLFeS プログラムを書くことで，自分用の出力を出させることができます．
+
+<p>
+実際，Enju が出力する述語-項関係や XML 出力は，LiLFeS プログラムで計算されています．
+ソースプログラムはパッケージの <tt>"enju/{outputdep.lil,outputxml.lil}"</tt> にありますので，そちらを参照して下さい．
+また，ネットワーク経由で構文解析を行うための HTTP/CGI サーバも，LiLFeS プログラムで書かれています．
+こちらは，<tt>"enju/cgi.lil"</tt> を見て下さい．
+
+<p>
+UP のインタフェースの詳細については，<a href="../mayz-manual/up.ja.html">UP のマニュアル</a> を参照してください．
+
+<hr>
+
+<h2><a name="make_grammar">文法を自分で作る</a></h2>
+
+<p>
+Enju のソースパッケージには，Penn Treebank から文法および確率モデルを作るためのプログラムが含まれています．
+これらをユーザが書き換えて文法を作り直すことで，文法を改良したり拡張したりすることができます．
+ただし，文法を一から作り直すにはかなりのマシンパワーと時間が必要です
+(3.0 GHz Xeon, 8 GByte メモリで約半日)．
+</p>
+
+<p>
+文法を作るためのプログラムを使いこなすには，MAYZ ツールキットが使える必要があります．
+詳しくは，<a href="../mayz-manual/index.ja.html">MAYZ ツールキットのマニュアル</a>を参照して下さい．
+さらに，<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">amis</a> 4.0 以上がインストールされている必要があります．
+</p>
+
+<p>
+また，リソースとして Penn Treebank II の .mrg ファイル(POS と木構造の両方が付けられたファイル)と，stemming のために WordNet のデータファイル(index.*, *.exc)が必要です．
+これらのファイルをそれぞれ penn/combined/wsj ディレクトリ，wordnet/dict ディレクトリの下に置いて下さい．
+デフォルトの Makefile では，Penn Treebank II のセクション2から21までの.mrg ファイルをまとめた wsj02-21.mrg というファイルを入力することを仮定しています．
+別のファイルを使うときは，"Makefile.am" のはじめの部分で定義されている "CORPUS_NAME" 変数などを書き換えてください．
+
+<p>
+Enju 文法を再構築するためには，configure のオプションに <tt>--with-enju-grmmar</tt> を加える必要があります．
+
+<pre>
+./configure --with-enju-grammar
+</pre>
+
+<p>
+このオプションをつけて configure をすると，Makefile に 文法を作るためのターゲットも含まれるようになります．
+後は，make を実行すると各ソースファイルのタイムスタンプに応じて，文法および確率モデルを作り直してくれます．
+</p>
+
+<p>
+また，GENIA ツリーバンクなど異分野のコーパスを使った再学習を行うときは，configure のオプションに <tt>--with-domain-adaptation</tt> を加えてください．
+
+<pre>
+./configure --with-enju-grammar --with-domain-adaptation
+</pre>
+
+<p>
+デフォルトの Makefile では，異分野コーパスとして GENIA ツリーバンクを使うことを想定しています．
+その場合 genia ディレクトリ以下に {0001-1600}.xml ファイルを置いてください．
+別のコーパスを使う場合は，"Makefile.am" のはじめの部分で定義されている "ADAPT_CORPUS_NAME" 変数などを書き換えてください．
+</p>
+
+<p>
+Enju の文法開発について詳しくは <a href="develindex.ja.html">Enju 開発者マニュアル </a> を参照して下さい．
+</p>
+<hr>
+
+<h2><a name="modules">LiLFeS モジュール</a></h2>
+
+<p>
+Enju のパッケージには，いくつかの便利な LiLFeS モジュールが提供されています．
+これらは，enju の "-l" オプションで指定して，構文解析器に読みこみます．
+(<a href="parser.ja.html">構文解析器の使い方</a>を参照)
+
+<ul>
+  <li><a href="#outputdep">述語-項関係を出力する</a>
+  <li><a href="#outputxml">XML 形式で構文解析結果を出力する</a>
+  <li><a href="#moriv">構文解析結果を GUI でブラウズする</a>
+</ul>
+
+<h3><a name="outputdep">述語-項関係を出力する</a></h3>
+
+<p>
+"enju/outputdep.lil" は，単語の述語-項関係 (predicate-argument relation) をテキスト形式で出力するための LiLFeS モジュールです．
+<tt>enju</tt> を引数なしで起動すると，このモジュールが読み込まれ，<tt>output_dependency_file</tt> が自動的に実行されます．
+
+<p>
+このモジュールでは以下の述語が利用できます．
+出力のフォーマットについては，<a href="parser.ja.html">構文解析器の使い方</a>を参照して下さい．
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency(+$Sentence, +$Stream)</tt>
+<tr><td>$Sentence<td>入力文(string)
+<tr><td>$Stream<td>出力ストリーム(lilfes_stream)
+<tr><td colspan=2>入力文 $Sentence を解析し，predicate-argument
+relation を $Stream に出力します．解析が失敗した場合は，"Parsing failure"という文字列を出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency(+$Sentence)</tt>
+<tr><td>$Sentence<td>入力文(string)
+<tr><td colspan=2>入力文 $Sentence を解析し，predicate-argument
+relation を標準出力に出力します．解析が失敗した場合は，"Parsing failure"という文字列を出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td>$Output<td>出力ファイルの名前
+<tr><td colspan=2>入力ファイルの各行を解析し，結果を出力ファイルに出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file(+$Input)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td colspan=2>入力ファイルの各行を解析し，結果を標準出力に出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_dependency_file</tt>
+<tr><td colspan=2>標準入力の各行を解析し，結果を標準出力に出力します．
+</table>
+
+<h3><a name="outputxml">XML 形式で構文解析結果を出力する</a></h3>
+
+<p>
+"enju/outputxml.lil" は，構文解析結果を XML 形式で出力するための LiLFeS モジュールです．
+<tt>enju</tt> に -xml オプションを与えると <tt>output_xml_file</tt> が，-so オプションを与えると <tt>output_so_file</tt> が自動的に実行されます．
+
+<p>
+このモジュールでは以下の述語が利用できます．
+出力のフォーマットについては，<a href="parser.ja.html">構文解析器の使い方</a>を参照して下さい．
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td>$Output<td>出力ファイルの名前
+<tr><td colspan=2>入力ファイル $Input の各行を解析し，結果を $Output に XML 形式で出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file(+$Input)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td colspan=2>入力ファイル $Input の各行を解析し，結果を標準出力に XML 形式で出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_xml_file</tt>
+<tr><td colspan=2>標準入力の各行を解析し，結果を標準出力に XML 形式で出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file(+$Input, +$Output)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td>$Output<td>出力ファイルの名前
+<tr><td colspan=2>入力ファイル $Input の各行を解析し，結果を $Output
+に stand-off 形式で出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file(+$Input)</tt>
+<tr><td>$Input<td>入力ファイルの名前
+<tr><td colspan=2>入力ファイル $Input の各行を解析し，結果を標準出力に stand-off 形式で出力します．
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>output_so_file</tt>
+<tr><td colspan=2>標準入力の各行を解析し，結果を標準出力に stand-off 形式で出力します．
+</table>
+
+<h3><a name="moriv">構文解析結果を GUI でブラウズする</a></h3>
+
+<p>
+"enju/moriv.lil" は，XHTML/XSLT をサポートしたウェブブラウザ (FireFox など) や <a href="http://www-tsujii.is.s.u-tokyo.ac.jp/moriv">MoriV</a> を使って，構文解析結果の詳細をブラウズするための LiLFeS モジュールです．
+構文木や素性構造をグラフィカルに見ることができます．
+
+<p>
+Enju を起動する時に -moriv オプションを与えると CGI サーバが起動します．
+
+<pre>
+% enju -moriv port_number
+</pre>
+
+<p>
+次に，Enju を起動したホストの指定したポートの，"/cgi-lilfes/moriv?" にブラウザからアクセスして下さい．
+例えば，localhost で Enju を起動した場合は，以下の URL にアクセスします（27109番ポートを指定したと仮定しています）．
+
+<pre>http://localhost:27109/cgi-lilfes/moriv?</pre>
+
+<p>
+すると，構文解析をブラウズするためのページが表示されます．
+ページ上部のフォームに文を入力し，"Parse" ボタンを押すと，左下に構文解析結果の概要（単語数，エッジ数，解析時間など）とメニューが表示されます．
+あとは，メニューの各リンクをクリックすることによって，構文解析結果を様々な形で見ることができます．
+
+<p>
+"Sign/Tree/Tree (with prob.)" は，それぞれ，ルートノードの sign, 構文木，figure-of-merit (FOM) 付きの構文木を表示します．
+"Word lattice" は，入力文の word lattice を表示します．
+"Node list" は構文木中のノードのリストを表示し，さらにそのノードの sign を見ることができます．
+"Semantics" は述語項構造を表示します．
+Prolog の term 形式のほか，文中の単語にマウスカーソルを合わせるとその単語の項になる句をハイライトする表示もします．
+
+<p>
+このほか，ページ上部のリンクをクリックすることで，パーザや文法の様々なデータを表示させることができます．
+
+<dl>
+  <dt>Parser
+  <dd>上で説明したように，パーザの出力を見るページです．
+  <dt>Chart
+  <dd>構文解析で使われるチャートを表示します．チャートの各セルに格納されているエッジをブラウズできます．
+  文を入力すると，まずチャートがページ左下に表示されます．
+  各セルには，そのセルに入っているエッジの数が表示され，リンクになっています．
+  そのリンクをクリックすると，セル中のエッジの一覧がページ右に表示されます．
+  エッジ一覧では，エッジのシンボル(VP, NP など)，FOM や，その句を作った子供たちの ID が表示されます．
+  ここでリンクをクリックすることで，エッジに対応する sign を表示することができます．
+  <dt>Grammar
+  <dd>単語に割り当てられている sign を表示することができます．
+  一つ目のフォームに単語と品詞をスラッシュでつなげて入力する (例えば，"likes/VBZ") と，その単語に割り当てられている語彙項目の一覧がページ左下に表示されます．
+  数字はその語彙項目の FOM です．
+  ここでリンクをクリックすると，右側にその語彙項目の sign が表示されます．
+  ２つ目のフォームには，直接 lexeme の名前を入力することができます．
+  すると，直接右下に lexeme の sign が表示されます．
+  また，"List of all templates" のリンクをクリックすると，すべての語彙項目テンプレートの一覧が表示されます．
+  語彙項目テンプレートの数が多い場合，少し時間がかかる場合があります．
+  <dt>Console
+  <dd>LiLFeS のコンソールを別ページに表示します．
+  <dt>Reset
+  <dd>トップページに戻ります．
+  <dt>Manual
+  <dd>Enju のマニュアルを別ページに表示します．
+  <dt>Enju Home Page
+  <dd>Enju Home Page を別ページに表示します．
+  <dt>Exit
+  <dd>Enju を終了します．
+</dl>
+
+<p>
+以下の例は，Firefox や MoriV などのウェブブラウザで見ることができます．
+<ul>
+  <li><a href="browsetree.xhtml">構文木の表示例</a>
+  <li><a href="browsefs.xhtml">sign の表示例</a>
+  <li><a href="browsepas.xhtml">述語項構造の表示例</a>
+</ul>
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

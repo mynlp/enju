@@ -1,0 +1,117 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>unimaker: Tool for making unigram probability model</title>
+</head>
+
+
+
+<body>
+<h1>unimaker: Tool for making unigram probability model</h1>
+
+<a href="unimaker.ja.html">Japanese version</a>
+
+<p>
+This tool makes an event file for a unigram probability model.
+
+<p>
+<table border=1>
+<tr><td colspan=2>unimaker model_name lilfes_module lexicon template lexbank event_file
+<tr><td>model_name<td>name of a probabilistic model (this will be specified
+    in parsing)
+<tr><td>lilfes_module<td>lilfes program in which predicates for event
+    extraction are implemented
+<tr><td>lexicon<td>lexicon obtained by "lexextract" (lildb format)
+<tr><td>template<td>template database obtained by "lexextract" (lildb format)
+<tr><td>lexbank<td>lexbank obtained by "lexextract" (lildb format)
+<tr><td>event_file<td>output file in an "unfiltered event" style
+(text format or compressed (gz or bz) format)
+<tr><td colspan=2>Options
+<tr><td>-ff<td>output events in feature forest format
+<tr><td>-n threshold<td>limit of the number of events to be output
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+</table>
+
+<p>
+The name of a probabilistic model is assigned to each event file.  If
+you specify different names, you can use multiple event files in a
+parser.
+
+<p>
+Given a grammar (i.e., lexicon and template database) and a lexbank as
+input, this tool supports the development of a maximum entropy model
+of the output probability of lexical entries (i.e., unigram
+probability).  This tool makes an unfiltered event file, which is
+required for training the model.
+
+<p>
+An <em>unfiltered event</em> is represented with a string that has
+several fields separated by "//".
+
+<blockquote>
+<pre>
+in//IN//vp[PPnp]//uni
+</pre>
+</blockquote>
+
+<p>
+The last field (uni) represents a <em>category</em> of the event.  A
+category is used when a filter is applied to an event in the following
+step.  The same filters are applied to events that have the same
+category name.  Thus, the number of fields must be the same for
+events that have the same category name.  That is, if you want to
+incorporate events that have different number of events, use
+different category names.
+
+<p>
+Each unfiltered event is a string expression of a target event.  This
+is made by concatenating elements of a list which is obtained as the
+fourth argument of "extract_lexical_event/4" defined in
+"amismodel.lil".
+
+<table border=1>
+<tr><td colspan=2><tt>extract_lexical_event(+$ModelName, -$Category,
+  +$LexEntry, -$Event)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$LexEntry<td>lexical entry
+<tr><td>$Event<td>a list of strings that represents an event
+<tr><td colspan=2>Extract an event of a lexical entry
+</table>
+
+<p>
+The name of a probabilistic model must be the first command-line
+argument of "<tt>unimaker</tt>".
+
+<p>
+If you want to specify the value of a feature function (integer or
+float), the following interface may be used.
+
+<table border=1>
+<tr><td colspan=2><tt>extract_lexical_event_feature_value(+$ModelName,
+-$Category, +$LexEntry, -$Event, -$Val)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$LexEntry<td>lexical entry
+<tr><td>$Event<td>a list of strings that represents an event
+<tr><td>$Val<td>the value of a feature function
+<tr><td colspan=2>Extract an event of a lexical entry and the
+    corresponding feature value.
+</table>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

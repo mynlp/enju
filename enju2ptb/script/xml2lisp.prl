@@ -1,0 +1,158 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $myself = `basename $0`;
+chomp($myself);
+
+if (@ARGV != 0 && @ARGV != 1) {
+	die "Usage: $myself [-f]\n";
+}
+
+if (@ARGV == 1 && $ARGV[0] ne "-f") {
+	die "$myself: unknown option $ARGV[0]\n";
+}
+
+my $full = (@ARGV > 0);
+
+while (<STDIN>) {
+
+	/^\s*/g; ### skip leading space
+
+	my $t = "";
+
+	my $in_tok = 0;
+    my $fragmental = 0;
+
+	while (/\G([^<]*)(<[^>]*>)/g) {
+		my ($str, $tag) = ($1, $2);
+
+		$str =~ s/^\s+|\s+$//g;
+		if ($str ne "") {
+			if ($in_tok) {
+				$t .= " " . escape_word($str);
+			}
+			elsif ($full) {
+				### The word should be one of {.!?}
+				$t .= " (. " . escape_word($str) . ")";
+			}
+		}
+
+		my ($name, $attrs) = ($tag =~ /<\s*(\S+)(\s+.*)?>/);
+
+		if ($name =~ m|^/|) {
+            if ($name eq "/sentence") {
+                if ($full || $fragmental) {
+                    $t .= ")";
+                    $fragmental = 0;
+                }
+            }
+            else {
+				$t .= ")";
+            }
+
+			$in_tok = 0;
+		}
+		elsif ($name eq "sentence") {
+				
+			if ($attrs =~ /parse_status="success"/) {
+				if ($full) {
+					$t .= "(TOP";
+				}
+			}
+            elsif ($attrs =~ /parse_status="fragmental parse"/) {
+                $t .= "(fragmental";
+                $fragmental = 1;
+            }
+			else {
+				if (/\G([^<]*)<\/sentence>\s*$/g) {
+					my $sentence = $1;
+					$sentence =~ s/^\s+|\s+$//g;
+					my @words = split(/\s+/, $sentence);
+
+					$t = "(error";
+					foreach my $w (@words) {
+						my $ew = escape_word($w);
+						my $pos = recover_pos($ew);
+						$t .= " ($pos $ew)";
+					}
+					$t .= ")";
+
+					last;
+				}
+				else {
+					die "$myself: Unexpected input format for failed sentence";
+				}
+			}
+		}
+		elsif ($name eq "cons") {
+				
+			if ($attrs =~ /\scat="([^"]*)"/ && $1) {
+				$t .= " (" . escape_word($1);
+			}
+			else {
+				die "$myself: cannot find cat attribute in $tag";
+			}
+		}
+		elsif ($name eq "tok") {
+			$in_tok = 1;
+
+			if ($attrs =~ /\spos="([^"]*)"/ && $1) {
+				$t .= " (" . escape_word($1);
+			}
+			else {
+				die "$myself: cannot find pos attribute in $tag";
+			}
+		}
+		else {
+			die "$myself: Unknown tag name: " . $name;
+		}
+	}
+
+	print $t, "\n";
+}
+
+sub escape_word
+{
+	my $w = shift;
+
+    $w =~ s/&amp;/&/g;
+    $w =~ s/&lt;/</g;
+    $w =~ s/&gt;/>/g;
+	$w =~ s/&apos;/'/g;
+	$w =~ s/&quot;/"/g;
+
+	$w =~ s/\(/-LRB-/g;
+	$w =~ s/\)/-RRB-/g;
+	$w =~ s/{/-LCB-/g;
+	$w =~ s/}/-RCB-/g;
+	$w =~ s,/,\\/,g;
+
+	return $w;
+}
+
+sub recover_pos
+{
+	my $w = shift;
+	## Give POS tags for trivially identifiable ones
+	## This is needed before give the result to evalb
+	if ($w eq "." || $w eq "!" || $w eq "?") {
+		return ".";
+	}
+	elsif ($w eq ";" || $w eq ":" || $w eq "--") {
+		return ":";
+	}
+	elsif ($w eq "," || $w eq "``" || $w eq "''") {
+		return $w;
+	}
+	elsif ($w eq "-RRB-") {
+		return "-RRB-";
+	}
+	elsif ($w eq "-LRB-") {
+		return "-LRB-";
+	}
+	else {
+		return "error";
+	}
+}
+

@@ -1,0 +1,258 @@
+%/**********************************************************************
+  * @module    =  mogura:grammar
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: grammar_impl-2_3.lil,v 1.5 2010-06-18 08:53:43 yusuke Exp $
+  * @version   =  
+  * @desc      =  Implementation of grammar for Enju v2.3 grammar
+  **********************************************************************
+%*/
+:- module("mogura:grammar_impl-2_3").
+
+%------------------------------------------------------------------------------
+:- module_interface.
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+:- module_implementation.
+%------------------------------------------------------------------------------
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("../enju/display"). %% for sign_label
+:- ensure_loaded("../enju/forestevent").
+:- ensure_loaded("grammar_interface").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_sign_label($Sign, $Label) :- sign_label($Sign, $Label).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_schema_list(
+    %% left_head
+    [   head_comp_schema,
+        head_mod_schema,
+        head_relative_schema,
+        coord_left_schema,
+        coord_right_schema      ],
+    %% right_head
+    [   subj_head_schema,
+        spec_head_schema,
+        mod_head_schema,
+        filler_head_schema      ],
+    %% unary
+    [   empty_filler_head_schema,
+        empty_spec_head_schema,
+        free_relative_schema    ]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% key = POS
+get_model_key_index(3).
+
+%% INPUT and POS field
+get_input_word_index(0).
+get_pos_index(3).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+add_feature_name_loop <- [pred].
+add_feature_name_loop([], [], []).
+add_feature_name_loop([$V|$Vs], [$N|$Ns], [$NV|$NVs]) :-
+    join([$N, $V], "", $NV),
+    add_feature_name_loop($Vs, $Ns, $NVs).
+
+add_feature_name <- [pred].
+add_feature_name($Vals, $NameVals) :-
+    add_feature_name_loop(
+        $Vals,
+        [
+            "ej.ds=",   %% 1. distance
+            "ej.dp=",   %% 2. depth
+            "ej.ca=",   %% 3. comma adjacency
+            "ej.cb=",   %% 4. comma boundary
+            "ej.pa=",   %% 5. pos adjacency
+            "ej.op=",   %% 6. outside pos
+            "ej.le1=",  %% 7. left-dtr length
+            "ej.nc1=",  %% 8. left-dtr number of commas
+            "ej.le2=",  %% 9. right-dtr length
+            "ej.nc2="   %% 10. right-dtr number of commas
+        ],
+        $NameVals).
+
+
+enju_sign_features <- [pred].
+enju_sign_features(
+    PROB_FEATURE\(
+        L_ADJAC\BOUND_POSITION\$LPosition &
+        R_ADJAC\BOUND_POSITION\$RPosition &
+        NUM_COMMA\$NumComma1),
+    $Len,
+    $NumComma
+) :-
+    'enju:forestevent':word_distance($LPosition, $RPosition, $Len),
+    'enju:forestevent':encode_num_comma($NumComma1, $NumComma).
+
+
+%% stack.size() == 0
+get_enju_feature($LSign, $RSign, $Fv) :-
+    equivalent(bot, $LSign),
+    equivalent(bot, $RSign),
+    % !,
+    add_feature_name(
+        [ "null", "null", "null", "null", "null",
+          "null", "null", "null", "null", "null" ],
+        $Fv).
+%% stack.size() == 1
+get_enju_feature($LSign, $RSign, $Fv) :-
+    equivalent(bot, $LSign),
+    % !,
+    enju_sign_features($RSign, $RLen, $RNumComma),
+    add_feature_name(
+        [ "unary", "unary", "unary", "unary", "unary",
+          "unary", "unary", "unary", $RLen, $RNumComma ],
+        $Fv).
+%% stack.size() >= 2
+get_enju_feature($LSign, $RSign, $Fv) :-
+    'enju:forestevent':encode_distance($LSign, $RSign, $Dist),
+    'enju:forestevent':encode_depth($LSign, $RSign, $Depth),
+    'enju:forestevent':encode_comma_adjacency($LSign, $RSign, $CommaAdj),
+    'enju:forestevent':encode_comma_boundary($LSign, $RSign, $CommaBound),
+    'enju:forestevent':encode_pos_adjacency($LSign, $RSign, $LPos, $RPos),
+    join([$LPos, $RPos], "+", $LRPos),
+    'enju:forestevent':encode_outside_pos($LSign, $RSign, $LBPos, $RBPos),
+    join([$LBPos, $RBPos], "+", $LRBPos),
+    enju_sign_features($LSign, $LLen, $LNumComma),
+    enju_sign_features($RSign, $RLen, $RNumComma),
+    add_feature_name(
+        [
+            $Dist,
+            $Depth,
+            $CommaAdj,
+            $CommaBound,
+            $LRPos,
+            $LRBPos,
+            $LLen,
+            $LNumComma,
+            $RLen,
+            $RNumComma
+        ],
+        $Fv).
+%/*
+get_enju_feature($LSign, $RSign, _) :-
+    printAVM("get_enju_feature failed"),
+    printAVM($LSign),
+    printAVM($RSign),
+    fail.
+*/%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+my_head_symbol <- [pred].
+my_head_symbol(hpsg_verb, "vp") :- !.
+my_head_symbol(hpsg_noun, "np") :- !.
+my_head_symbol(hpsg_det,  "dt") :- !.
+my_head_symbol(hpsg_adj,  "aj") :- !.
+my_head_symbol(hpsg_adv,  "av") :- !.
+my_head_symbol(hpsg_prep, "pp") :- !.
+my_head_symbol(hpsg_pl,   "pl") :- !.
+my_head_symbol(hpsg_punct, "pu") :- !.
+my_head_symbol(hpsg_comma, "cm") :- !.
+my_head_symbol(hpsg_conj,  "cj") :- !.
+my_head_symbol(hpsg_comp,  "cp") :- !.
+my_head_symbol(hpsg_subc,  "sc") :- !.
+my_head_symbol(hpsg_gerund, "ge") :- !.
+my_head_symbol(_, "x") :- !.
+
+my_cat_symbol <- [pred].
+my_cat_symbol(HEAD\$Head, "x") :-
+    type_equal($Head, hpsg_head),
+    !.
+my_cat_symbol($S, "s") :-
+    unifiable($S, HEAD\hpsg_verb & VAL\(SUBJ\[] & COMPS\[])),
+    !.
+my_cat_symbol(HEAD\$Head, $Str) :-
+    %my_head_symbol($Head, $Str).
+    type_toptype($Head, $HeadType),
+    my_head_symbol($HeadType, $Str).
+
+my_cat_mapping_loop <- [pred].
+my_cat_mapping_loop([], []).
+my_cat_mapping_loop([LOCAL\CAT\$Cat|$List], [$Str|$StrList]) :-
+    my_cat_symbol($Cat, $Str),
+    my_cat_mapping_loop($List, $StrList).
+
+make_local_list1_feature_dl <- [pred].
+make_local_list1_feature_dl($Name, [CAT\ $Cat], [$Feat | $X], $X) :-
+    !,
+    my_cat_symbol($Cat, $CatStr),
+    concatenate_string($Name, $CatStr, $Feat).
+make_local_list1_feature_dl(_, _, $X, $X).
+
+make_synsem_list_feature_dl <- [pred].
+make_synsem_list_feature_dl(_, [], $X, $X) :- !.
+make_synsem_list_feature_dl($Name, $SynSemList, [$Feat | $X], $X) :-
+    my_cat_mapping_loop($SynSemList, $SynSemStrList),
+    join($SynSemStrList, ",", $ValStr),
+    concatenate_string($Name, $ValStr, $Feat).
+
+get_conj_str_dl <- [pred].
+get_conj_str_dl([], $X, $X) :- !.
+get_conj_str_dl([$LConj], [$LConjFeat |$X], $X) :-
+    !,
+    $LConj = LOCAL\CAT\$LCat,
+    my_cat_symbol($LCat, $LConjStr),
+    concatenate_string("v.lcj=", $LConjStr, $LConjFeat).
+get_conj_str_dl([$RConj, $LConj], [$RConjFeat, $LConjFeat |$X], $X) :-
+    !,
+    $RConj = LOCAL\CAT\$RCat,
+    $LConj = LOCAL\CAT\$LCat,
+    my_cat_symbol($RCat, $RConjStr),
+    concatenate_string("v.rcj=", $RConjStr, $RConjFeat),
+    my_cat_symbol($LCat, $LConjStr),
+    concatenate_string("v.lcj=", $LConjStr, $LConjFeat).
+get_conj_str_dl(_, $X, $X).
+
+get_val_feature(
+    SYNSEM\ (
+        LOCAL\CAT\ (
+            HEAD\ (
+                MOD\$Mod &
+                POSTHEAD\$PostHead) &
+            VAL\ (
+                SUBJ\$Subj &
+                COMPS\$Comps &
+                SPR\$Spr &
+                SPEC\$Spec &
+                CONJ\$Conj)) &
+        NONLOCAL\ (
+            INHER\ (
+                QUE\$InherQue &
+                SLASH\$InherSlash &
+                REL\$InherRel &
+                F_REL\$InherFRel) &
+            TO_BIND\ (
+                QUE\$TobindQue &
+                SLASH\$TobindSlash &
+                REL\$TobindRel &
+                F_REL\$TobindFRel))),
+    $Fv
+) :-
+    (equivalent($PostHead, hpsg_minus)
+        -> $ModR = $Mod, $ModL = []
+        ;  $ModL = $Mod, $ModR = []),
+    make_local_list1_feature_dl("v.lmod=", $ModL, $Fv,  $Fv1),
+    make_local_list1_feature_dl("v.rmod=", $ModR, $Fv1, $Fv2),
+    append($Subj, $Spr, $Specifiers),
+    make_synsem_list_feature_dl("v.spcs=", $Specifiers, $Fv2, $Fv3),
+    make_synsem_list_feature_dl("v.cmps=", $Comps, $Fv3, $Fv4),
+    make_synsem_list_feature_dl("v.spr=",  $Spec,  $Fv4, $Fv5),
+    get_conj_str_dl($Conj, $Fv5, $Fv6),
+    make_local_list1_feature_dl("v.ih.que=",  $InherQue,    $Fv6, $Fv7),
+    make_local_list1_feature_dl("v.ih.slsh=", $InherSlash,  $Fv7, $Fv8),
+    make_local_list1_feature_dl("v.ih.rel=",  $InherRel,    $Fv8, $Fv9),
+    make_local_list1_feature_dl("v.ih.frel=", $InherFRel,   $Fv9, $Fv10),
+    make_local_list1_feature_dl("v.tb.que=",  $TobindQue,   $Fv10, $Fv11),
+    make_local_list1_feature_dl("v.tb.slsh=", $TobindSlash, $Fv11, $Fv12),
+    make_local_list1_feature_dl("v.tb.rel=",  $TobindRel,   $Fv12, $Fv13),
+    make_local_list1_feature_dl("v.tb.frel=", $TobindFRel,  $Fv13, []).

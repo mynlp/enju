@@ -1,0 +1,92 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>前処理</title>
+</head>
+
+<body>
+<h1>前処理</h1>
+
+<a href="preprocess.html">English version</a>
+
+<p>
+前処理では入力文字列に品詞タグ付けや stemming を行い，word lattice に変換して up に渡します．
+Word lattice は 'extent' 型のリストであり，ひとつの 'extent' が多くの場合一単語に対応します．
+前処理は <tt>sentence_to_word_lattice/2</tt> という述語で行われていて，
+Enju の場合の実装は "enju/preproc.lil" にあります．
+"enju/preproc.lil" の実装を変更すれば，自分なりの前処理を行うことができます．
+
+<p>
+Enju の場合，前処理は以下のように行われます．
+<ol>
+  <li>入力文に品詞タガーをかける
+  <li>単語ごとに区切る
+  <li>各単語から 'extent' を作る
+</ol>
+以下，それぞれについて説明します．
+</p>
+
+
+<h2><a name="tagging">品詞タグ付け</a></h2>
+
+<p>
+Enju では入力文に品詞タグ付けをするために外部の品詞タガーを利用しています．
+外部の品詞タガーを使うために，MAYZ ツールキットで提供されている <tt>external_tagger/2</tt> という述語が使われています．
+この述語の第1引数に入力文を渡すと，それをタガーの標準入力に渡しタガーによる出力を第２引数に返すようになっています．
+初期化述語 <tt>initialize_external_tagger/2</tt>で外部タガーを起動した後，この述語を呼ぶようにしてください．
+</p>
+
+<p>
+Enju のデフォルトの品詞タガーはEnju と同時に配布されている"stepp" になっていますが，"ENJU_TAGGER" 環境変数や"-t" オプションで変更することができます．
+</p>
+
+<h2><a name="split">単語区切り</a></h2>
+
+<p>
+Enju では次にタガーの出力 (述語 <tt>external_tagger/2</tt> の第２引数) を単語ごとに区切る処理を行います．
+デフォルトのタガーはスペースを区切り文字として出力するので，単純にスペースごとに文字列を切ることで単語に切り分けています．
+</p>
+
+<h2><a name="extent">各単語への 'extent' の生成</a></h2>
+
+<p>
+Enju では次に各単語の文字列や品詞などの情報を 'extent' 型に格納し，そのリストを word lattice として up に渡します．
+Enju のデフォルトタガーの出力を使った場合，各単語は "単語文字列/品詞1|品詞2|..." という形になっています．
+品詞タグは PennTreebank のものであり，"|" で区切られて並んでいる品詞1、品詞2 というのは単語に対する品詞の候補です．
+各単語から 'extent' 型を生成するために，述語 <tt>token_to_word_lattice</tt>, <tt>token_to_word/4</tt> を定義して以下のような処理を行っています．
+
+<ol>
+  <li>単語文字列と品詞の候補を分ける．
+  <li>品詞の候補のうち，述語 <tt>delete_pos/1 </tt> に指定されていない品詞で最初に出てくるものを使って以下の処理を行う．
+  <ol>
+    <li> 単語文字列，品詞をもとに stemming を行い，単語の基本形や，基本形の品詞を得る．
+    <li> 単語文字列，品詞，単語の基本形，基本形の品詞などを 'word' 型に格納する．
+  </ol>
+  <li>単語の 'extent' 型を用意し，その word 素性に上で作った 'word' 型を格納する．また単語の位置を計算して 'extent' の left_position, right_position 素性の下に格納する．
+</ol>
+
+Stemming は品詞タグ付けと同様に外部プログラムを利用して行っています．
+Enju のデフォルトの stemmer は Enju と同時に配布されている "enju-morph" ですが，"ENJU_MORPH" 環境変数や "-m" オプションで変更することができます．
+</p>
+
+<p>
+述語 <tt>token_to_word_lattice</tt> では，括弧の処理も行います．
+タガーの出力に品詞なしの "\(" や "\)" を含めておくと，括弧で囲まれた範囲に対して 'extent_bracket' 型が生成されます．
+'extent_bracket' を含む word lattice を up に渡すと，構文解析時に括弧をやぶるような constituent を作らなくなるため構文解析の高速化が期待できます．
+</p>
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,109 @@
+%/**********************************************************************
+  * @module    =  enju:forestprob
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: forestprob.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   =  Time-stamp: <2005-10-04 02:35:57 yusuke>
+  * @desc      =  Computing probability by feature forest model
+  **********************************************************************
+%*/
+
+:- module("enju:forestprob").
+
+:- module_interface.
+
+import_forest_model <- [pred].
+
+deriv_weight_terminal <- [pred].
+deriv_weight_unary <- [pred].
+deriv_weight_binary <- [pred].
+root_weight <- [pred].
+semantics_weight <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("forestevent").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+event_weight_loop <- [pred].
+event_weight_loop([], _, $Prob, $Prob).
+event_weight_loop([$Event|$EventList], $Category, $InProb, $OutProb) :-
+    amis_event_weight("hpsg-forest", $Category, $Event, $Prob),
+    %printAVM([$Event, $Prob]),
+    $NextProb is $InProb + $Prob,
+    event_weight_loop($EventList, $Category, $NextProb, $OutProb).
+
+event_weight_loop_feature_value <- [pred].
+event_weight_loop_feature_value([], _, $Prob, $Prob).
+event_weight_loop_feature_value([[$Event, $Val]|$EventList], $Category, $InProb, $OutProb) :-
+    amis_event_weight("hpsg-forest", $Category, $Event, $Prob),
+    %printAVM([$Event, $Prob]),
+    $NextProb is $InProb + $Prob * $Val,
+    event_weight_loop($EventList, $Category, $NextProb, $OutProb).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Syntactic preference
+
+deriv_weight_terminal($Sign, $Prob) :-
+    extract_hpsg_terminal_event($Sign, $Event),
+    !,
+    amis_event_weight("hpsg-forest", "term", $Event, $Prob).
+deriv_weight_terminal(_, 0.0).
+%% for auxiliary distribution
+%%     findall([$Event, $FOM],
+%% 	    extract_hpsg_aux_event($Sign, $Event, $FOM),
+%% 	    $EventList2),
+%%     event_weight_loop_feature_value($EventList2, "aux", $Prob1, $Prob).
+deriv_weight_unary($RuleName, $Sign, $Prob) :-
+    extract_hpsg_unary_event($RuleName, $Sign, $Event),
+    !,
+    amis_event_weight("hpsg-forest", "unary", $Event, $Prob).
+deriv_weight_unary(_, _, 0.0).
+deriv_weight_binary($RuleName, $LSign, $RSign, $Prob) :-
+%%     start_prof("extract binary event"),
+%%     findall($Event,
+%% 	    extract_hpsg_binary_event($RuleName, $LSign, $RSign, $Event),
+%% 	    $EventList),
+%%     stop_prof("extract binary event"),
+%%     event_weight_loop($EventList, "bin", 0.0, $Prob).
+    extract_hpsg_binary_event($RuleName, $LSign, $RSign, $Event),
+    !,
+    amis_event_weight("hpsg-forest", "bin", $Event, $Prob).
+deriv_weight_binary(_, _, _, 0.0).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Root preference
+root_weight($Sign, $Prob) :-
+    extract_hpsg_root_event($Sign, $Event),
+    !,
+    amis_event_weight("hpsg-forest", "root", $Event, $Prob).
+root_weight(_, 0.0).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Semantic preference
+
+semantics_weight_loop <- [pred].
+semantics_weight_loop([], $Prob, $Prob).
+semantics_weight_loop([$Event|$EventList], $InProb, $OutProb) :-
+    amis_event_weight("hpsg-forest", "sem", $Event, $Prob),
+    $NextProb is $InProb + $Prob,
+    semantics_weight_loop($EventList, $NextProb, $OutProb).
+semantics_weight($Inactives, $Prob) :-
+    findall($Event,
+	    extract_hpsg_sem_event($Inactives, $Event),
+	    $EventList),
+    semantics_weight_loop($EventList, 0.0, $Prob).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Import model
+
+import_forest_model($ModelFile) :-
+    init_amis_model("hpsg-forest", $ModelFile).
+

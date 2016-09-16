@@ -1,0 +1,122 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Preprocessing</title>
+</head>
+
+
+
+<body>
+<h1>Preprocessing</h1>
+
+<a href="preprocess.ja.html">Japanese version</a>
+
+<p>
+Preprocessing is handled by the <tt>sentence_to_word_lattice/2</tt> predicate found in the file
+"grammar/grammar.lil"．Escaping special characters is handled by the file  "grammar/preproc.lil" . Stemming is handled by the file
+"grammar/stem.lil"．It is possible to do the preprocessing you like by changing  "grammar/grammar.lil"．
+
+<p>
+Preprocessing is done in the following order'
+
+<ol>
+  <li>Tagging
+  <li>Segmentation
+  <li>Building extents from words
+</ol>
+
+<p>
+In the following, I would explain each of the above:
+<h2><a name="tagging">Tagging</a></h2>
+
+<p>
+In order to use a tagger, the <tt>external tagger/2</tt> predicate included in the MAYZ toolkit has to succeed.  Use the <tt>initialize_external_tagger/2</tt> predicate to start an external tagger and call <tt>external tagger/2</tt>. The first argument would be pass to the external tagger as input and the second argument would return the output from the external tagger. 
+
+<p>
+The initialization of the tagger is done by <tt>initialize_external_tagger/2</tt>, which is found in the file "grammar/grammar.lil". If the environmental variable "ENJU_TAGGER" is assigned a value, it would run the tagger specified by that value. If the environmental variable "ENJU_TAGGER" is not assigned a value, an external tagger cannot be used. 
+
+
+<p>
+The environmental variable "ENJU_TAGGER" is set by the enju  command("parser/enju.cc") before initiializing up. By default, it is set to be "uptagger". Users can change the value assigned to  "ENJU_TAGGER". Running ENJU with the -t option can also specify a tagger to be used with ENJU.
+
+
+<p>
+The output of the tagger will be stored in the array named '*enju_tagged_sentence*'．
+
+<h2><a name="split">Segmentation</a></h2>
+
+<p> The output of the tagger(the second argument of external_tagger/2) is assumed to be a string separated by the space character. The output string is segmented into words by single space characters. 
+
+
+<p>
+A single space is taken as a separator. Multiple spaces are taken as the space character itself. 
+
+<h2><a name="extent">Building extents from words</a></h2>
+
+<p>
+All words are now put in "WORD/POS" format. POS stands for POS given in the Penn Treebank. The <tt>sentence_to_word_lattice/2</tt> predicate would turn them into a list that constitutes an 'extent'(defined in mayz/parser.lil). This list is the second argument of  <tt>sentence_to_word_lattice/2</tt>. To be more precise, it is the <tt>token_to_word_lattice</tt> clause under  <tt>sentence_to_word_lattice/2</tt> that generates the actual list. 
+
+<p>
+<tt>token_to_word_lattice</tt> would process each word in the following order:
+
+
+<ol>
+  <li>Extract the word and its corresponding POS
+  <li>Calculate the position of the word in the input sentence．
+  <li>Escape special characters in the word or its corresponding POS label(the actual processing is done by "grammar/preproc.lil". 
+  <li>Ignore words assigned POS labels specified by delete_pos/1（Currently, words assigned the POS label "."  are ignored. 
+  <li>stemming (The actual processing is done by  "grammar/stem.lil"．The stem database used for this process is  "DATA/Enju.dict".）
+  <li>Input word/POS, escape sequence of the input/POS and stem of the Input word/POS are  assigned to the INPUT/INPUT_POS feature, the SURFACE/POS feature and the  BASE/BASE_POS feature. The position of the input word is assigned to the POSITION feature. The feature structure containing these features are defined in 
+  "mayz/word.lil"．
+</ol>
+
+<p>
+When multiple POSs are assigned to the same word, the POSs are divided by  "|". For each of the POS, a feature structure of 
+'word' type is created. All words are represented by a list of feature structures of the 'word' type. 
+
+<p>
+Lists of 'word's created this way are assigned to the 'word' feature of feature strucutres of the 'extent_word' type.  The  'extent_word' type is a subtype of the 'extent' type and it inherits from the 'extent' type the features 
+'left_pos' and 'right_pos', which are assigned the beginning position and the ending position of the 'extent'. Below is a feature structure of the 'extent' type:
+
+<table class="fs">
+<tr>
+    <td class="lprn" rowspan="3">
+    <td>extent
+
+    <table class="fs">
+    <tr><td>LEFT_POS: 
+    <tr><td>RIGHT_POS:  
+    </table>    
+    <td class="rprn" rowspan="3">    
+</table>
+
+and a feature structure of the 'extent_word' type:
+
+<table class="fs">
+<tr>
+    <td class="lprn" rowspan="3">
+    <td>extent_word
+
+    <table class="fs">
+    <tr><td>WORD: &lt &gt
+    
+    </table>    
+    <td class="rprn" rowspan="3">    
+</table>
+<p>
+<tt>token_to_word_lattice</tt> also deals with the processing of brackets．If a  tagged sentence contains a "\(" and  a "\)", a feature structure of the 'extent_bracket' type corresponding to  the bracketed fragment is created. This would prevent up from generating constituents that  cross brackets and increas the speed of parsing. In other words, if the tagger assigns a certain level of syntactic structure to the input sentence by bracketing fragements of the input sentence, the parser's performance can be enhanced．
+<hr>
+<a href="develindex.html">Enju Developers' Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,913 @@
+%/**********************************************************************
+  * @module    =  enju:outputxml
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  To output parse results in XML format
+  **********************************************************************
+%*/
+
+:- module("enju:outputxml").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+:- ensure_loaded("types").
+:- ensure_loaded("xmltypes").
+:- ensure_loaded("display").
+:- ensure_loaded("partial").
+
+parse_tree_to_xml <- [pred].
+get_xml_partial_parses <- [pred].
+
+%% get_edge_link_tree <- [pred].
+%% get_xml_parse_tree <- [pred].
+xml_parse_tree <- [pred].
+output_xml <- [pred].
+output_so <- [pred].
+
+output_xml_file <- [pred].
+'output_xml_file/0' <- ['pred/0', output_xml_file].
+'output_xml_file/1' <- ['pred/1', 'output_xml_file/0'].
+'output_xml_file/2' <- ['pred/2', 'output_xml_file/1'].
+
+output_so_file <- [pred].
+'output_so_file/0' <- ['pred/0', output_so_file].
+'output_so_file/1' <- ['pred/1', 'output_so_file/0'].
+'output_so_file/2' <- ['pred/2', 'output_so_file/1'].
+
+init_id_numbers <- [pred].
+phrase_id <- [pred].
+word_id <- [pred].
+sentence_id <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+%% parser_init :-
+%%     set_limit_sentence_length(100),
+%%     set_limit_edge_number(50000).
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+:- ensure_loaded("lillib/io").
+:- ensure_loaded("lillib/debug").
+
+'*phrase_id_number*' <- [variable].
+'*word_id_number*' <- [variable].
+'*sentence_id_number*' <- [variable].
+'*file_offset*' <- [variable].
+
+:-
+    init_integer_variable('*phrase_id_number*'),
+    init_integer_variable('*word_id_number*'),
+    init_integer_variable('*sentence_id_number*'),
+    init_integer_variable('*file_offset*').
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Data structure for XML encoding
+%%
+
+tense <- [bot].
+tense_past <- [tense].
+tense_present <- [tense].
+aspect <- [bot].
+aspect_progressive <- [aspect].
+aspect_perfect <- [aspect].
+aspect_perfect_progressive <- [aspect_progressive, aspect_perfect].
+word_features <- [bot] + [TENSE\tense(1), ASPECT\aspect(2), PTYPE\hpsg_type(3)].
+
+'*max_proj_id*' <- [pred].
+'*word_features*' <- [pred].
+:-
+    declare_array('*max_proj_id*'(key_inthash, array_value_string)),
+    declare_array('*word_features*'(key_inthash, array_value)).
+
+clear_temporal_arrays <- [pred].
+clear_temporal_arrays :-
+    clear_array('*max_proj_id*'(_, _)),
+    clear_array('*word_features*'(_, _)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Make ID numbers
+%%
+
+init_id_numbers :-
+    set_variable('*phrase_id_number*', 0),
+    set_variable('*word_id_number*', 0),
+    set_variable('*sentence_id_number*', 0).
+
+phrase_id($PhraseID) :- 
+    inc_variable('*phrase_id_number*', $IntID),
+    inttostr($IntID, $StrID),
+    strcat("c", $StrID, $PhraseID).
+
+word_id($WordID) :- 
+    inc_variable('*word_id_number*', $IntID),
+    inttostr($IntID, $StrID),
+    strcat("t", $StrID, $WordID).
+
+sentence_id($IdStr) :-
+    inc_variable('*sentence_id_number*', $Id),
+    inttostr($Id, $Str1),
+    strcat("s", $Str1, $IdStr).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  create attributes/values for XML format
+%%
+
+xcat_symbol <- [pred].
+xcat_symbol($Sign, "IMP") :- imperative_sentence($Sign).
+xcat_symbol($Sign, "INV") :- subj_verb_inversion($Sign).
+xcat_symbol($Sign, "Q") :- interrogative_sentence($Sign).
+xcat_symbol($Sign, "REL") :- relativizer_included($Sign).
+xcat_symbol($Sign, "FREL") :- free_relative_included($Sign).
+xcat_symbol($Sign, "TRACE") :- trace_included($Sign).
+xcat_symbol($Sign, "WH") :- wh_included($Sign).
+xcat_list <- [pred].
+xcat_list($Sign, $XCatList) :-
+    findall($XCat,
+	    xcat_symbol($Sign, $XCat),
+	    $XCatList).
+
+arglabel_mapping <- [pred].
+arglabel_mapping(MODARG\, "mod").
+arglabel_mapping(ARG1\, "arg1").
+arglabel_mapping(ARG2\, "arg2").
+arglabel_mapping(ARG3\, "arg3").
+arglabel_mapping(ARG4\, "arg4").
+arglabel_mapping(ARG5\, "arg5").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Support functions for creating XML format
+%%
+
+%% find main predicate of the word
+find_main_pas <- [pred].
+find_main_pas([], _, hpsg_relation).
+find_main_pas([$Sem & PRED\$Pred|_], $LexName, $Sem) :-
+    identical($Pred, $LexName),
+    !.
+find_main_pas([_|$Sems], $LexName, $Sem) :-
+    find_main_pas($Sems, $LexName, $Sem).
+
+%% the relation is unknown or unspecified
+is_unknown <- [pred].
+is_unknown(unknown_relation) :- !.
+is_unknown($Rel) :-
+    type_directsubtypes($Rel, [_|_]).
+
+%% collect argument relations from the predicate
+collect_args <- [pred].
+collect_args([], _, [], []).
+collect_args([$Feature|$Features], $Sem, $NodeMap, $RelList) :-
+    (follow($Sem, $Feature, $Arg) ->
+     arglabel_mapping($Feature, $ArgLabel),
+     (is_unknown($Arg) ->
+      $NodeMap = $NextNodeMap,
+      $RelList = [XML_REL_LABEL\$ArgLabel & XML_REL_VALUE\"unk"|$NextRelList]
+      ;
+      $Arg = PRED\LEX_WORD\POSITION\$ArgWordPosition,
+      $NodeMap = [($ArgWordPosition, $ArgID)|$NextNodeMap],
+      $RelList = [XML_REL_LABEL\$ArgLabel & XML_REL_VALUE\$ArgID|$NextRelList])
+     ;
+     $NodeMap = $NextNodeMap,
+     $RelList = $NextRelList),
+    collect_args($Features, $Sem, $NextNodeMap, $NextRelList).
+
+%% collect arguments and other attributes
+collect_rel_list <- [pred].
+collect_rel_list(_, $Sem, [], []) :-
+    \+ type_directsubtypes($Sem, []),  %% i.e., uninstantiated
+    !.
+collect_rel_list($Sign, $Sem, $NodeMap, $RelList) :-
+%%     (tense_symbol($Sem, $TenseSym) ->
+%%      $RelList = [XML_REL_LABEL\"tense" & XML_REL_VALUE\$TenseSym|$List1] ;
+%%      $RelList = $List1),
+%%     (aspect_symbol($Sem, $AspectSym) ->
+%%      $List1 = [XML_REL_LABEL\"aspect" & XML_REL_VALUE\$AspectSym|$List2] ;
+%%      $List1 = $List2),
+    $RelList = $List2,
+    (voice_symbol($Sign, $VoiceSym) ->
+     $List2 = [XML_REL_LABEL\"voice" & XML_REL_VALUE\$VoiceSym|$List3] ;
+     $List2 = $List3),
+    (aux_symbol($Sign, $AuxSym) ->
+     $List3 = [XML_REL_LABEL\"aux" & XML_REL_VALUE\$AuxSym|$List4] ;
+     $List3 = $List4),
+    (\+ type_subsume(verb_relation_base, $Sem),
+     \+ type_equal(aux_arg12_relation, $Sem),
+     \+ type_equal(aux_mod_arg12_relation, $Sem),
+     $Sign = SYNSEM\LOCAL\CAT\HEAD\TYPE\$Type,
+     type_symbol($Type, $TypeSym) ->
+     $List4 = [XML_REL_LABEL\"type" & XML_REL_VALUE\$TypeSym|$List5] ;
+     $List4 = $List5),
+    collect_args([MODARG\, ARG1\, ARG2\, ARG3\, ARG4\, ARG5\], $Sem, $NodeMap, $List5).
+
+%% merge node mapping table
+merge_node_map_sub <- [pred].
+merge_node_map_sub([], _, _, $NodeMap, $NodeMap).
+merge_node_map_sub([($Arg, $ArgID)|$Args], $Arg1, $ArgID, $NodeMap, $NodeMapTail) :-
+    $Arg = $Arg1,
+    !,
+    merge_node_map_sub($Args, $Arg, $ArgID, $NodeMap, $NodeMapTail).
+merge_node_map_sub([$Map|$Args], $Arg, $ArgID, [$Map|$NodeMap], $NodeMapTail) :-
+    merge_node_map_sub($Args, $Arg, $ArgID, $NodeMap, $NodeMapTail).
+merge_node_map <- [pred].
+merge_node_map($LeftNodeMap, $LeftHeadSem, $LeftID, $RightNodeMap, $RightHeadSem, $RightID, $NodeMap) :-
+    merge_node_map_sub($LeftNodeMap, $RightHeadSem, $RightID, $NodeMap, $NodeMapTail),
+    merge_node_map_sub($RightNodeMap, $LeftHeadSem, $LeftID, $NodeMapTail, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Set word features
+%%
+
+make_tense_aspect <- [pred].
+make_tense_aspect(hpsg_verb & VFORM\$VForm, ASPECT\aspect_progressive) :-
+    type_equal(hpsg_pres_part, $VForm),
+    !.
+make_tense_aspect(hpsg_verb & VFORM\$VForm, ASPECT\aspect_perfect) :-
+    type_equal(hpsg_past_part, $VForm),
+    !.
+make_tense_aspect(hpsg_verb & VFORM\$VForm, TENSE\tense_present) :-
+    type_subsume(hpsg_fin_pres, $VForm),
+    !.
+make_tense_aspect(hpsg_verb & VFORM\$VForm, TENSE\tense_past) :-
+    type_subsume(hpsg_fin_past, $VForm),
+    !.
+make_tense_aspect(_, _).
+
+coerce_tense_aspect <- [pred].
+coerce_tense_aspect($Sem, $Sign) :-
+    type_subsume(verb_relation_base, $Sem),
+    !,
+    $Sign = SYNSEM\LOCAL\CAT\HEAD\($Head & TYPE\$Type),
+    $Sem = PRED\LEX_WORD\POSITION\$WordID,
+    (get_array('*word_features*'($WordID, $WordFeatures)) -> true; true),
+    make_tense_aspect($Head, $WordFeatures),
+    type_copy($Type, $PType),
+    $WordFeatures = PTYPE\$PType,
+    set_array('*word_features*'($WordID, $WordFeatures)).
+coerce_tense_aspect($Sem, $Sign) :-
+    (type_equal(aux_arg12_relation, $Sem) ;
+     type_equal(aux_mod_arg12_relation, $Sem)),
+    !,
+    $Sem = ARG2\$MainVerb,
+    coerce_tense_aspect($MainVerb, $Sign).
+coerce_tense_aspect($Sem, $Sign) :-
+    type_equal(coord_arg12_relation, $Sem),
+    !,
+    $Sem = ARG1\$Conj1 & ARG2\$Conj2,
+    coerce_tense_aspect($Conj1, $Sign),
+    coerce_tense_aspect($Conj2, $Sign).
+coerce_tense_aspect(_, _).
+
+set_word_features <- [pred].
+set_word_features($Sem & PRED\LEX_WORD\POSITION\$WordID, $Sign, $NodeMap, $WordMap, $RelList) :-
+    (coerce_tense_aspect($Sem, $Sign) -> true ; true),  %% this should not fail...
+    (type_subsume(verb_relation_base, $Sem) ->
+     $WordMap = [($WordID, [$Tense, $Aspect, $PredType])],
+     $RelList = [XML_REL_LABEL\"tense" & XML_REL_VALUE\$Tense,
+		 XML_REL_LABEL\"aspect" & XML_REL_VALUE\$Aspect,
+		 XML_REL_LABEL\"type" & XML_REL_VALUE\$PredType
+		 |$RelList1]
+     ;
+     $WordMap = [],
+     $RelList = $RelList1),
+    collect_rel_list($Sign, $Sem, $NodeMap, $RelList1).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Semantic head
+%%
+
+detect_semantic_head <- [pred].
+detect_semantic_head($LeftHeadPosition, _, $LeftDtrID, _,
+		     SYNSEM\LOCAL\CONT\HOOK\PRED\LEX_WORD\POSITION\$LeftHeadPosition,
+		     $LeftHeadPosition, $LeftDtrID) :- !.
+detect_semantic_head(_, $RightHeadPosition, _, $RightDtrID,
+		     SYNSEM\LOCAL\CONT\HOOK\PRED\LEX_WORD\POSITION\$RightHeadPosition,
+		     $RightHeadPosition, $RightDtrID) :- !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Make XML-style parse tree
+%%
+
+parse_tree_to_xml_sub <- [pred].
+parse_tree_to_xml_sub(parse_tree_terminal &
+		      EDGE_SIGN\($Sign &
+				 SYNSEM\LOCAL\(CAT\HEAD\$Head &
+					       CONT\(HOOK\$Hook & RELS\$Rels))) &
+		      EDGE_LINK\(LEX_NAME\($LexName &
+					   LEX_WORD\(INPUT\$Input &
+						     INPUT_POS\$POS &
+						     BASE\$Base &
+						     POSITION\$Position) &
+					   LEX_TEMPLATE\$LexTempLabel)),
+		      $XMLTree, $Position, $NodeMap, $WordMap) :-
+    $XMLTree = (xml_phrase &
+		XML_NODE_ID\$PhraseID &
+		XML_CAT\$PhraseCat &
+		XML_XCAT\$PhraseXCat &
+		XML_HEAD_ID\$WordID &
+		XML_SEM_HEAD_ID\$WordID &
+		XML_SCHEMA\"" &
+		XML_DTRS\[(xml_word &
+			   XML_NODE_ID\$WordID &
+			   XML_CAT\$WordCat &
+			   XML_SURFACE\$Input &
+			   XML_POS\$POS &
+			   XML_BASE\$Base &
+			   XML_LEXENTRY\$LexTempLabel &
+			   XML_PRED\$Pred &
+			   XML_REL_LIST\$RelList)]),
+%%printAVM("b0"),
+    phrase_id($PhraseID),
+    word_id($WordID),
+%%printAVM("b1"),
+    find_main_pas([$Hook|$Rels], $LexName, $Sem),
+%%printAVM("b2"),
+    relation_label($Sem, $Pred),
+%%    collect_rel_list($Sign, $Sem, $NodeMap, $RelList),
+%%printAVM("b3"),
+    set_word_features($Sem, $Sign, $NodeMap, $WordMap, $RelList),
+%%printAVM("b4"),
+    sign_label($Sign, $PhraseCat),
+    xcat_list($Sign, $PhraseXCat),
+    head_symbol($Head, $WordCat).
+%%printAVM("b5"),
+%%    lex_template_label($LexTemplate, $LexTempLabel).
+parse_tree_to_xml_sub(parse_tree_nonterminal_unary &
+		      EDGE_SIGN\$Sign &
+		      EDGE_LINK\APPLIED_SCHEMA\$Schema &
+		      U_TREE\$UTree,
+		      $XMLTree, $HeadPosition, $NodeMap, $WordMap) :-
+    $XMLTree = (xml_phrase &
+		XML_NODE_ID\$PhraseID &
+		XML_CAT\$Cat &
+		XML_XCAT\$XCat &
+		XML_HEAD_ID\$DtrID &
+		XML_SEM_HEAD_ID\$DtrID &
+		XML_SCHEMA\$SchemaStr &
+		XML_DTRS\[$DtrXML]),
+%%printAVM("c0"),
+    phrase_id($PhraseID),
+%%printAVM("c1"),
+    parse_tree_to_xml_sub($UTree, $DtrXML & XML_NODE_ID\$DtrID, $HeadPosition, $NodeMap, $WordMap),
+%%printAVM("c2"),
+    sign_label($Sign, $Cat),
+    xcat_list($Sign, $XCat),
+%%printAVM("c3"),
+    schema_label($Schema, $SchemaStr).
+parse_tree_to_xml_sub(parse_tree_nonterminal_binary &
+		      EDGE_SIGN\$Sign &
+		      EDGE_LINK\APPLIED_SCHEMA\$Schema &
+		      L_TREE\$LTree &
+		      R_TREE\$RTree,
+		      $XMLTree, $HeadPosition, $NodeMap, $WordMap) :-
+    $XMLTree = (xml_phrase &
+		XML_NODE_ID\$PhraseID &
+		XML_CAT\$Cat &
+		XML_XCAT\$XCat &
+		XML_HEAD_ID\$HeadID &
+		XML_SEM_HEAD_ID\$SemHeadID &
+		XML_SCHEMA\$SchemaStr &
+		XML_DTRS\[$LeftXML, $RightXML]),
+%%printAVM("d0"),
+    phrase_id($PhraseID),
+%%printAVM("d1"),
+    parse_tree_to_xml_sub($LTree, $LeftXML & XML_NODE_ID\$LeftDtrID, $LeftHeadPosition, $LeftNodeMap, $LeftWordMap),
+%%printAVM("d2"),
+    parse_tree_to_xml_sub($RTree, $RightXML & XML_NODE_ID\$RightDtrID, $RightHeadPosition, $RightNodeMap, $RightWordMap),
+%%printAVM("d3"),
+    merge_node_map($LeftNodeMap, $LeftHeadPosition, $LeftDtrID, $RightNodeMap, $RightHeadPosition, $RightDtrID, $NodeMap),
+%%printAVM("d4"),
+    append($LeftWordMap, $RightWordMap, $WordMap),
+%%printAVM("d5"),
+    sign_label($Sign, $Cat),
+    (coordinating_schema($Schema) -> $XCat = ["COOD"|$XCat1] ; $XCat = $XCat1),
+%%printAVM("d6"),
+    xcat_list($Sign, $XCat1),
+    schema_label($Schema, $SchemaStr),
+    %% detect syntactic head
+%%printAVM("d7"),
+    ($Schema = hpsg_schema_left_head ->
+     $HeadID = $LeftDtrID,
+     $NonHeadID = $RightDtrID,
+     set_array('*max_proj_id*'($RightHeadPosition, $RightDtrID))
+     ;
+     $HeadID = $RightDtrID,
+     $NonHeadID = $LeftDtrID,
+     set_array('*max_proj_id*'($LeftHeadPosition, $LeftDtrID))),
+    %% detect semantic head
+%%printAVM("d8"),
+    (detect_semantic_head($LeftHeadPosition, $RightHeadPosition, $LeftDtrID, $RightDtrID, $Sign, $HeadPosition, $SemHeadID) ->
+     true ;
+     ($Schema = hpsg_schema_left_head ->
+      $SemHeadID = $LeftDtrID,
+      $HeadPosition = $LeftHeadPosition ;
+      $SemHeadID = $RightDtrID,
+      $HeadPosition = $RightHeadPosition)).
+
+%%     $Sign = SYNSEM\LOCAL\CONT\HOOK\PRED\LEX_WORD\POSITION\$MotherHeadPosition,
+%% printAVM("d9"),
+%%     ($LeftHeadPosition =:= $MotherHeadPosition ->
+%%      $SemHeadID = $LeftDtrID,
+%%      $HeadPosition = $LeftHeadPosition ;
+%%      ($RightHeadPosition =:= $MotherHeadPosition ->
+%%       $SemHeadID = $RightDtrID,
+%%       $HeadPosition = $RightHeadPosition ;
+%%       ($Schema = hpsg_schema_left_head ->
+%%        $SemHeadID = $LeftDtrID,
+%%        $HeadPosition = $LeftHeadPosition ;
+%%        $SemHeadID = $RightDtrID,
+%%        $HeadPosition = $RightHeadPosition))).
+
+%% fill unfilled arguments with max projections
+fill_args <- [pred].
+fill_args([]).
+fill_args([($WordPosition, $ArgID)|$NodeMap]) :-
+    get_array('*max_proj_id*'($WordPosition, $ArgID)),
+    fill_args($NodeMap).
+
+%% fill unfilled attributes
+tense_symbol_table <- [pred].
+:-
+    declare_array(tense_symbol_table(key_type, array_value_string)),
+    set_array(tense_symbol_table(tense, "untensed")),
+    set_array(tense_symbol_table(tense_present, "present")),
+    set_array(tense_symbol_table(tense_past, "past")).
+
+aspect_symbol_table <- [pred].
+:-
+    declare_array(aspect_symbol_table(key_type, array_value_string)),
+    set_array(aspect_symbol_table(aspect, "none")),
+    set_array(aspect_symbol_table(aspect_perfect, "perfect")),
+    set_array(aspect_symbol_table(aspect_progressive, "progressive")),
+    set_array(aspect_symbol_table(aspect_perfect_progressive, "perfect-progressive")).
+
+fill_word_features <- [pred].
+fill_word_features([]).
+fill_word_features([($WordID, [$TenseSym, $AspectSym, $PredTypeSym])|$List]) :-
+    get_array('*word_features*'($WordID, TENSE\$Tense & ASPECT\$Aspect & PTYPE\$PredType)),
+    get_array(tense_symbol_table($Tense, $TenseSym)),
+    get_array(aspect_symbol_table($Aspect, $AspectSym)),
+    (type_symbol($PredType, $PredTypeSym) -> true; $PredTypeSym = "none"),
+    fill_word_features($List).
+
+%% main routine
+parse_tree_to_xml($ParseTree, $XMLTree) :-
+%%printAVM("a0"),
+    clear_temporal_arrays,
+%%printAVM("a1"),
+    parse_tree_to_xml_sub($ParseTree, $XMLTree, _, $NodeMap, $WordMap),
+%%printAVM("a2"),
+%%printAVM($NodeMap),
+%%printAVM($MaxProjs),
+    fill_args($NodeMap),
+%%printAVM("a3"),
+    fill_word_features($WordMap).
+%%printAVM("a4").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Partial parse results
+
+get_xml_partial_parses([], []).
+get_xml_partial_parses([$ID|$IDList], [$XML|$XMLList]) :-
+%%    get_edge_link_tree($ID, $LinkTree),
+%%    get_xml_parse_tree($LinkTree, $XML),
+    get_parse_tree($ID, $ParseTree),
+    parse_tree_to_xml($ParseTree, $XML),
+    !,
+    get_xml_partial_parses($IDList, $XMLList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Parse sentence and output xml parse tree
+
+xml_parse_tree($Sentence, $XML) :-
+    sentence_id($SentenceIdStr),
+    (regex_match("^[[:space:]]*$", $Sentence) ->
+     $XML = xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\"empty line"
+     ;
+     (parse($Sentence),
+%      root_edge_id_list([_|_]) ->
+      best_fom_parse_tree($ParseTree, $FOM) ->
+      start_prof("output_xml"),
+%%       (get_edge_link_tree($RootID, $LinkTree),
+%%        get_xml_parse_tree($LinkTree, $XMLTree) ->
+%      (best_fom_parse_tree($ParseTree, $FOM),
+      (parse_tree_to_xml($ParseTree, $XMLTree) ->
+       $ParseStatus = "success" ;
+       $ParseStatus = "XML encoding error"),
+      $XML = xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\$ParseStatus & XML_FOM\$FOM & XML_PARSE_TREE\$XMLTree,
+      stop_prof("output_xml")
+      ;
+      start_prof("output_xml"),
+      get_parse_status($Status),
+      (partial_parse_status($Status),
+       collect_partial_parse($IDList, $FOM) ->
+       (get_xml_partial_parses($IDList, $XMLTree) ->
+	$ParseStatus = "fragmental parse" ;
+	$ParseStatus = "XML encoding error")
+       ;
+       error_type_string($Status, $ParseStatus)),
+      $XML = xml_sentence & XML_SENTENCE_ID\$SentenceIdStr & XML_PARSE_STATUS\$ParseStatus & XML_FOM\$FOM & XML_PARSE_TREE\$XMLTree,
+      stop_prof("output_xml"))).
+
+output_xml($Sentence, $Output) :-
+    xml_parse_tree($Sentence, $XML),
+    output_xml_parse_tree($Sentence, $XML, $Output).
+
+output_so($Offset, $Sentence, $Output) :-
+    xml_parse_tree($Sentence, $XML),
+    output_so_parse_tree($Offset, $Sentence, $XML, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Output XML file
+
+output_xml_loop <- [pred].
+output_xml_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_xml_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    output_xml($Sentence, $Output),
+    fail.
+output_xml_loop($Input, $Output) :-
+    output_xml_loop($Input, $Output).
+
+output_xml_file($InputFile, $OutputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    init_id_numbers,
+    output_xml_loop($Input, $Output),
+    close($Output),
+    close($Input).
+
+output_xml_file($InputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    init_id_numbers,
+    output_xml_loop($Input, $StdOut),
+    close($Input).
+
+output_xml_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    init_id_numbers,
+    output_xml_loop($Input, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Output stand-off file
+
+output_so_loop <- [pred].
+output_so_loop($Input, _) :-
+    eof_stream($Input),
+    !.
+output_so_loop($Input, $Output) :-
+    readln_string($Input, $Sentence),
+    get_variable('*file_offset*', $Offset),
+    output_so($Offset, $Sentence, $Output),
+    strlen($Sentence, $Len),
+    $NewOffset is $Offset + $Len + 1,
+    set_variable('*file_offset*', $NewOffset),
+    fail.
+output_so_loop($Input, $Output) :-
+    output_so_loop($Input, $Output).
+
+output_so_file($InputFile, $OutputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    open_file_stream($OutputFile, "w", $Output),
+    init_id_numbers,
+    set_variable('*file_offset*', 0),
+    output_so_loop($Input, $Output),
+    close($Output),
+    close($Input).
+
+output_so_file($InputFile) :-
+    open_file_stream($InputFile, "r", $Input),
+    stdout_stream($StdOut),
+    init_id_numbers,
+    set_variable('*file_offset*', 0),
+    output_so_loop($Input, $StdOut),
+    close($Input).
+
+output_so_file :-
+    stdin_stream($Input),
+    stdout_stream($Output),
+    init_id_numbers,
+    set_variable('*file_offset*', 0),
+    output_so_loop($Input, $Output).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%% OBSOLETE!!! %%%%%%%%%%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%
+%% %%  Make tag IDs
+
+%% init_id_numbers <- [pred].
+%% init_id_numbers :-
+%%     set_variable('*phrase_id_number*', 0),
+%%     set_variable('*word_id_number*', 0),
+%%     set_variable('*sentence_id_number*', 0).
+
+%% phrase_id_str <- [pred].
+%% phrase_id_str($IntID, $PhraseID) :- 
+%%     inttostr($IntID, $StrID),
+%%     strcat("c", $StrID, $PhraseID).
+%% word_id_str <- [pred].
+%% word_id_str($IntID, $WordID) :- 
+%%     inttostr($IntID, $StrID),
+%%     strcat("t", $StrID, $WordID).
+%% sentence_id_str <- [pred].
+%% sentence_id_str($Id, $IdStr) :-
+%%     inttostr($Id, $Str1),
+%%     strcat("s", $Str1, $IdStr).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%
+%% %%  Predicates to manipulate predicate argument structure
+%% %%
+
+%% main_pas <- [pred].
+%% main_pas([], hpsg_relation).
+%% main_pas([$Sem|$SemList], $MainPas) :-
+%% %%    (type_subsume($Sem, verb_mod_arg1234_relation_base) ->
+%% %%     main_pas($SemList, $MainPas) ;
+%% %%     $MainPas = $Sem).
+%%     (type_directsubtypes($Sem, []) ->  %% i.e. leaf type
+%%      $MainPas = $Sem ;
+%%      main_pas($SemList, $MainPas)).
+
+%% semantic_arguments_loop <- [pred].
+%% semantic_arguments_loop([], _, _, []).
+%% semantic_arguments_loop([$Feature|$Features], $Sem, $NodeID, $SemArgs) :-
+%%     (follow($Sem, $Feature, $SemArg) ->
+%%      $SemArgs = [[$NodeID, $Feature, $SemArg]|$NextSemArgs] ;
+%%      $SemArgs = $NextSemArgs),
+%%     semantic_arguments_loop($Features, $Sem, $NodeID, $NextSemArgs).
+%% semantic_arguments <- [pred].
+%% semantic_arguments($Sem, _, []) :-
+%% %%    type_subsume($Sem, pred_relation),
+%% %%    type_subsume($Sem, verb_mod_arg1234_relation_base),
+%%     \+ type_directsubtypes($Sem, []),
+%%     !.
+%% semantic_arguments($Sem, $NodeID, $SemArgs) :-
+%%     semantic_arguments_loop([MODARG\, ARG1\, ARG2\, ARG3\, ARG4\, ARG5\],
+%% 			    $Sem, $NodeID, $SemArgs).
+%% semantic_arguments_list <- [pred].
+%% semantic_arguments_list([], _, []).
+%% semantic_arguments_list([$Sem|$SemList], $NodeID, $SemArgs) :-
+%%     semantic_arguments($Sem, $NodeID, $SemArgs1),
+%%     append($SemArgs1, $SemArgs2, $SemArgs),
+%%     semantic_arguments_list($SemList, $NodeID, $SemArgs2).
+
+%% is_filled <- [pred].
+%% is_filled($SemArg) :-
+%% %%    \+ type_subsume($SemArg, verb_mod_arg1234_relation_base).
+%%     type_directsubtypes($SemArg, []).
+%% %%is_filled($SemArg) :-
+%% %%    $SemArg \= inactive_relation.
+
+%% search_max_projection <- [pred].
+%% search_max_projection([(LEX_SPEC\$LexName, $NodeID)|_], $LexName, $NodeID) :- !.
+%% search_max_projection([_|$ProjList], $LexName, $NodeID) :-
+%%     search_max_projection($ProjList, $LexName, $NodeID).
+
+%% check_new_arguments <- [pred].
+%% check_new_arguments([], _, _, _, [], []).
+%% check_new_arguments([[$NodeID, $Feature, $SemArg]|$SemArgs], $Sign, $ArgID, $ProjList,
+%% 		    $OutSemArgs, [[$NodeID, $Feature, "unk"]|$NewArgs]) :-    
+%%     type_equal($SemArg, unknown_relation),
+%%     !,
+%%     check_new_arguments($SemArgs, $Sign, $ArgID, $ProjList, $OutSemArgs, $NewArgs).
+%% check_new_arguments([[$NodeID, $Feature, $SemArg]|$SemArgs], $Sign, $ArgID, $ProjList,
+%% 		    $OutSemArgs, [[$NodeID, $Feature, $ArgNodeID]|$NewArgs]) :-
+%%     is_filled($SemArg),
+%%     !,
+%%     ($Sign = SYNSEM\LOCAL\CONT\HOOK\$HeadSem,
+%%      identical($SemArg, $HeadSem) ->
+%%      %% head is an argument
+%%      $ArgNodeID = $ArgID ;
+%%      %% head is not an argument; search for the max proj. of the argument
+%%      $SemArg = PRED\$ArgName,
+%%      search_max_projection($ProjList, $ArgName, $ArgNodeID)),
+%%     check_new_arguments($SemArgs, $Sign, $ArgID, $ProjList, $OutSemArgs, $NewArgs).
+%% check_new_arguments([$SemArg|$SemArgs], $Sign, $ArgID, $ProjList, [$SemArg|$OutSemArgs], $NewArgs) :-
+%%     check_new_arguments($SemArgs, $Sign, $ArgID, $ProjList, $OutSemArgs, $NewArgs).
+
+%% detect_syntactic_head_left <- [pred].
+%% detect_syntactic_head_left(hpsg_schema_left_head).
+
+%% detect_semantic_head_left <- [pred].
+%% detect_semantic_head_left(SYNSEM\LOCAL\CONT\HOOK\$HeadSem, _, $Schema) :-
+%% %    type_subsume($HeadSem, pred_relation),
+%% %%    type_subsume($HeadSem, verb_mod_arg1234_relation_base),
+%%     \+ type_directsubtypes($HeadSem, []),
+%%     !,
+%%     detect_syntactic_head_left($Schema).
+%% detect_semantic_head_left(SYNSEM\LOCAL\CONT\HOOK\PRED\$Pred, $LeftPred, _) :-
+%%     equivalent($Pred, $LeftPred).
+
+%% collect_semantic_arguments <- [pred].
+%% collect_semantic_arguments(terminal &
+%% 			   LEX_NAME\($LexName &
+%% 				     LEX_WORD\(INPUT\$Input &
+%% 					       INPUT_POS\$POS &
+%% 					       BASE\$Base) &
+%% 				     LEX_TEMPLATE\$LexTemplate),
+%% 			   [],
+%% 			   $InNodeID, $InTermID, 
+%% 			   $Sign & SYNSEM\LOCAL\(CAT\HEAD\$Head &
+%% 						 CONT\(HOOK\$Hook & RELS\$Rels)),
+%% 			   $XMLTree, $SemArgs, [], [], $OutNodeID, $OutTermID) :-
+%%     $XMLTree = (xml_phrase &
+%% 		XML_SIGN\$Sign &
+%% 		XML_NODE_ID\$PhraseID &
+%% 		XML_CAT\$PhraseCat &
+%% 		XML_XCAT\$PhraseXCat &
+%% 		XML_HEAD_ID\$WordID &
+%% 		XML_SEM_HEAD_ID\$WordID &
+%% 		XML_SCHEMA\"" &
+%% 		XML_DTRS\[$WordTree]),
+%%     $WordTree = (xml_word &
+%% 		 XML_SIGN\$Sign &
+%% 		 XML_NODE_ID\$WordID &
+%% 		 XML_CAT\$WordCat &
+%% 		 XML_SURFACE\$Input &
+%% 		 XML_POS\$POS &
+%% 		 XML_BASE\$Base &
+%% 		 XML_LEXENTRY\$LexTempLabel &
+%% 		 XML_SEM\$Sem),
+%%     lexical_entry_sign($LexName, $Sign),
+%%     phrase_id_str($InNodeID, $PhraseID),
+%%     $OutNodeID is $InNodeID + 1,
+%%     word_id_str($InTermID, $WordID),
+%%     $OutTermID is $InTermID + 1,
+%%     main_pas([$Hook|$Rels], $Sem),
+%%     semantic_arguments_list([$Sem], $WordID, $SemArgs),
+%%     sign_label($Sign, $PhraseCat),
+%%     xcat_list($Sign, $PhraseXCat),
+%%     head_symbol($Head, $WordCat),
+%%     lex_template_label($LexTemplate, $LexTempLabel).
+%% collect_semantic_arguments(nonterminal_unary & APPLIED_SCHEMA\$Schema,
+%% 			   [[$DtrEdgeLink|$DtrLinks]],
+%% 			   $InNodeID, $InTermID, 
+%% 			   $Sign,
+%% 			   $XMLTree, $SemArgs, $Args, $ProjList, $OutNodeID, $OutTermID) :-
+%%     $XMLTree = (xml_phrase &
+%% 		XML_SIGN\$Sign &
+%% 		XML_NODE_ID\$PhraseID &
+%% 		XML_CAT\$Cat &
+%% 		XML_XCAT\$XCat &
+%% 		XML_HEAD_ID\$DtrPhraseID &
+%% 		XML_SEM_HEAD_ID\$DtrPhraseID &
+%% 		XML_SCHEMA\$SchemaStr &
+%% 		XML_DTRS\[$DtrTree]),
+%%     $DtrNodeID is $InNodeID + 1,
+%%     phrase_id_str($InNodeID, $PhraseID),
+%%     phrase_id_str($DtrNodeID, $DtrPhraseID),
+%%     collect_semantic_arguments($DtrEdgeLink, $DtrLinks, $DtrNodeID, $InTermID, $DtrSign, $DtrTree, $DtrSemArgs, $DtrArgs, $ProjList, $OutNodeID, $OutTermID),
+%%     id_schema_unary($Schema, $DtrSign, $Sign, $DCP),
+%%     call($DCP),
+%%     check_new_arguments($DtrSemArgs, $DtrSign, $DtrPhraseID, $ProjList, $SemArgs, $NewArgs),
+%%     append($NewArgs, $DtrArgs, $Args),
+%%     sign_label($Sign, $Cat),
+%%     (coordinating_schema($Schema) -> $XCat = ["COOD"|$XCat1] ; $XCat = $XCat1),
+%%     xcat_list($Sign, $XCat1),
+%%     schema_label($Schema, $SchemaStr).
+%% collect_semantic_arguments(nonterminal_binary & APPLIED_SCHEMA\$Schema,
+%% 			   [[$LEdgeLink|$LLinks], [$REdgeLink|$RLinks]],
+%% 			   $InNodeID, $InTermID, 
+%% 			   $Sign,
+%% 			   $XMLTree, $SemArgs, $Args,
+%% 			   [($NonHeadSign, $NonHeadID)|$ProjList], $OutNodeID, $OutTermID) :-
+%%     $XMLTree = (xml_phrase &
+%% 		XML_SIGN\$Sign &
+%% 		XML_NODE_ID\$PhraseID &
+%% 		XML_CAT\$Cat &
+%% 		XML_XCAT\$XCat &
+%% 		XML_HEAD_ID\$HeadID &
+%% 		XML_SEM_HEAD_ID\$SemHeadID &
+%% 		XML_SCHEMA\$SchemaStr &
+%% 		XML_DTRS\[$LeftTree, $RightTree]),
+%%     phrase_id_str($InNodeID, $PhraseID),
+%%     $LeftNodeID is $InNodeID + 1,
+%%     collect_semantic_arguments($LEdgeLink, $LLinks, $LeftNodeID, $InTermID, $LeftSign, $LeftTree, $LDtrSemArgs, $LeftArgs, $LeftProjList, $RightNodeID, $RightTermID),
+%%     collect_semantic_arguments($REdgeLink, $RLinks, $RightNodeID, $RightTermID, $RightSign, $RightTree, $RDtrSemArgs, $RightArgs, $RightProjList, $OutNodeID, $OutTermID),
+%%     $LeftSign = SYNSEM\LOCAL\CONT\HOOK\PRED\$LeftPred1,
+%%     copy($LeftPred1, $LeftPred),
+%%     id_schema_binary($Schema, $LeftSign, $RightSign, $Sign, $DCP),
+%%     call($DCP),
+%%     phrase_id_str($RightNodeID, $RightDtrID),
+%%     phrase_id_str($LeftNodeID, $LeftDtrID),
+%%     check_new_arguments($LDtrSemArgs, $RightSign, $RightDtrID, $RightProjList, $LeftSemArgs, $LeftNewArgs),
+%%     check_new_arguments($RDtrSemArgs, $LeftSign, $LeftDtrID, $LeftProjList, $RightSemArgs, $RightNewArgs),
+%%     append($LeftSemArgs, $RightSemArgs, $SemArgs),
+%%     append_list([$LeftNewArgs, $RightNewArgs, $LeftArgs, $RightArgs], $Args),
+%%     append($LeftProjList, $RightProjList, $ProjList),
+%%     sign_label($Sign, $Cat),
+%%     (coordinating_schema($Schema) -> $XCat = ["COOD"|$XCat1] ; $XCat = $XCat1),
+%%     xcat_list($Sign, $XCat1),
+%%     schema_label($Schema, $SchemaStr),
+%%     (detect_syntactic_head_left($Schema) ->
+%%      $HeadID = $LeftDtrID,
+%%      $NonHeadID = $RightDtrID,
+%%      $NonHeadSign = $RightSign ;
+%%      $HeadID = $RightDtrID,
+%%      $NonHeadID = $LeftDtrID,
+%%      $NonHeadSign = $LeftSign),
+%%     (detect_semantic_head_left($Sign, $LeftPred, $Schema) ->
+%%      $SemHeadID = $LeftDtrID ;
+%%      $SemHeadID = $RightDtrID).
+
+%% fill_unknown_arguments <- [pred].
+%% fill_unknown_arguments([], $Args, $Args).
+%% fill_unknown_arguments([[$NodeID, $Feature, _]|$SemArgs], $Args, [[$NodeID, $Feature, "unk"]|$NextArgs]) :-
+%%     fill_unknown_arguments($SemArgs, $Args, $NextArgs).
+
+%% xml_arguments <- [pred].
+%% xml_arguments($Args, $ID, $List) :-
+%%     findall(XML_REL_LABEL\$ArgLabel & XML_REL_VALUE\$ArgID,
+%% 	    (member([$ID, $Feature, $ArgID], $Args),
+%% 	     arglabel_mapping($Feature, $ArgLabel)),
+%% 	    $List).
+
+%% fill_semantic_relations <- [pred].
+%% fill_semantic_relations(xml_word &
+%% 			XML_NODE_ID\$ID &
+%% 			XML_PRED\$Pred &
+%% 			XML_REL_LIST\$List &
+%% 			XML_SEM\$Sem &
+%% 			XML_SIGN\$Sign,
+%% 			$Args) :-
+%%     relation_label($Sem, $Pred),
+%%     (tense_symbol($Sem, $TenseSym) ->
+%%      $List = [XML_REL_LABEL\"tense" & XML_REL_VALUE\$TenseSym|$List1] ;
+%%      $List = $List1),
+%%     (aspect_symbol($Sem, $AspectSym) ->
+%%      $List1 = [XML_REL_LABEL\"aspect" & XML_REL_VALUE\$AspectSym|$List2] ;
+%%      $List1 = $List2),
+%%     (voice_symbol($Sign, $VoiceSym) ->
+%%      $List2 = [XML_REL_LABEL\"voice" & XML_REL_VALUE\$VoiceSym|$List3] ;
+%%      $List2 = $List3),
+%%     (aux_symbol($Sign, $AuxSym) ->
+%%      $List3 = [XML_REL_LABEL\"aux" & XML_REL_VALUE\$AuxSym|$List4] ;
+%%      $List3 = $List4),
+%%     xml_arguments($Args, $ID, $List4).
+
+%% fill_semantic_relations(xml_phrase & XML_DTRS\[$UDtr], $Args) :-
+%%     fill_semantic_relations($UDtr, $Args).
+%% fill_semantic_relations(xml_phrase & XML_DTRS\[$LDtr, $RDtr], $Args) :-
+%%     fill_semantic_relations($LDtr, $Args),
+%%     fill_semantic_relations($RDtr, $Args).
+
+%% get_xml_parse_tree([$EdgeLink|$Dtrs], $Tree) :-
+%%     get_variable('*phrase_id_number*', $PhraseIDStart),
+%%     get_variable('*word_id_number*', $WordIDStart),
+%%     collect_semantic_arguments($EdgeLink, $Dtrs, $PhraseIDStart, $WordIDStart, _, $Tree, $RestArgs, $Args1, _, $PhraseIDEnd, $WordIDEnd),
+%%     fill_unknown_arguments($RestArgs, $Args1, $Args),
+%%     set_variable('*phrase_id_number*', $PhraseIDEnd),
+%%     set_variable('*word_id_number*', $WordIDEnd),
+%%     fill_semantic_relations($Tree, $Args).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%
+%% %%  Tree of edge links
+
+%% get_edge_link_tree_dispatch <- [pred].
+%% get_edge_link_tree_dispatch($Term & terminal, [$Term]).
+%% get_edge_link_tree_dispatch($Unary & nonterminal_unary & U_DTR\$ID,
+%% 			    [$Unary, $Dtr]) :-
+%%     get_edge_link_tree($ID, $Dtr).
+%% get_edge_link_tree_dispatch($Binary & nonterminal_binary & L_DTR\$LID & R_DTR\$RID,
+%% 			    [$Binary, $LDtr, $RDtr]) :-
+%%     get_edge_link_tree($LID, $LDtr),
+%%     get_edge_link_tree($RID, $RDtr).
+%% get_edge_link_tree($ID, $Tree) :-
+%%     edge_link_id_list($ID, [$LinkID|_]),
+%%     edge_link($LinkID, $Link),
+%%     get_edge_link_tree_dispatch($Link, $Tree).
+

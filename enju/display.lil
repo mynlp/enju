@@ -1,0 +1,353 @@
+%/**********************************************************************
+  * @module    =  enju:display
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  Pretty printing (implementation of "mayz:display")
+  **********************************************************************
+%*/
+
+:- module("enju:display").
+
+:- module_interface.
+
+%:- ensure_loaded("../mayz/lextemplate").
+:- ensure_loaded("../mayz/display").
+:- ensure_loaded("types").
+
+head_symbol <- [pred].
+sign_terminal_string <- [pred].
+coordinating_schema <- [pred].
+imperative_sentence <- [pred].
+interrogative_sentence <- [pred].
+subj_verb_inversion <- [pred].
+relativizer_included <- [pred].
+free_relative_included <- [pred].
+trace_included <- [pred].
+wh_included <- [pred].
+%% tense_symbol <- [pred].
+%% aspect_symbol <- [pred].
+voice_symbol <- [pred].
+aux_symbol <- [pred].
+type_symbol <- [pred].
+relation_label <- [pred].
+
+error_type_string <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("macro").
+:- ensure_loaded("../mayz/lexentry").
+:- ensure_loaded("../mayz/parser").
+:- ensure_loaded("lillib/strings").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% template & word label
+
+word_label(INPUT\$Input & INPUT_POS\$POS, $Label) :-
+    concatenate_string([$Input, "/", $POS], $Label).
+
+%% lexicon_key_label(BASE\$Base & POS\$POS, $Label) :-
+%%     (is_string($Base) ->
+%%      true ;
+%%      $Base = "UNKNOWN"),
+%%     concatenate_string([$Base, "/", $POS], $Label).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% schema labels
+
+schema_edge_label_binary(subj_head_schema, "SUBJ", "HEAD").
+schema_edge_label_binary(head_comp_schema, "HEAD", "COMP").
+schema_edge_label_binary(spec_head_schema, "SPEC", "HEAD").
+schema_edge_label_binary(head_mod_schema, "HEAD", "MOD").
+schema_edge_label_binary(mod_head_schema, "MOD", "HEAD").
+schema_edge_label_binary(filler_head_schema, "FILLER", "HEAD").
+schema_edge_label_binary(head_relative_schema, "HEAD", "REL").
+schema_edge_label_binary(coord_left_schema, "LCONJ", "CONJ").
+schema_edge_label_binary(coord_right_schema, "CONJ", "RCONJ").
+%%schema_edge_label_unary(filler_insertion_schema, "INSERTION").
+schema_edge_label_unary(empty_filler_head_schema, "EMPTY_FILLER").
+schema_edge_label_unary(empty_spec_head_schema, "EMPTY_SPEC").
+schema_edge_label_unary(free_relative_schema, "FREE_REL").
+
+schema_label(subj_head_schema, "subj_head").
+schema_label(head_comp_schema, "head_comp").
+schema_label(spec_head_schema, "spec_head").
+schema_label(head_mod_schema, "head_mod").
+schema_label(mod_head_schema, "mod_head").
+schema_label(filler_head_schema, "filler_head").
+schema_label(head_relative_schema, "head_relative").
+schema_label(coord_left_schema, "coord_left").
+schema_label(coord_right_schema, "coord_right").
+%%schema_label(filler_insertion_schema, "filler_insertion").
+schema_label(empty_filler_head_schema, "empty_filler_head").
+schema_label(empty_spec_head_schema, "empty_spec_head").
+schema_label(free_relative_schema, "free_relative").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% nonterminal symbol
+
+head_symbol_table <- [pred].
+:-
+    declare_array(head_symbol_table(key_fs, array_value_string)),
+    set_array(head_symbol_table(hpsg_head, "X")),
+    set_array(head_symbol_table(hpsg_verbal, "V")),
+    set_array(head_symbol_table(hpsg_nominal, "N")),
+    set_array(head_symbol_table(hpsg_verb, "V")),
+    set_array(head_symbol_table(hpsg_noun, "N")),
+    set_array(head_symbol_table(hpsg_det, "D")),
+    set_array(head_symbol_table(hpsg_adj, "ADJ")),
+    set_array(head_symbol_table(hpsg_adv, "ADV")),
+    set_array(head_symbol_table(hpsg_prep, "P")),
+    set_array(head_symbol_table(hpsg_pl, "PRT")),
+    set_array(head_symbol_table(hpsg_punct, "PN")),
+    set_array(head_symbol_table(hpsg_comma, "PN")),
+    set_array(head_symbol_table(hpsg_conj, "CONJ")),
+    set_array(head_symbol_table(hpsg_comp, "C")),
+    set_array(head_symbol_table(hpsg_subc, "SC")),
+    set_array(head_symbol_table(hpsg_gerund, "N")).
+
+head_symbol($Head, $Str) :-
+    type_toptype($Head, $HeadType),
+    get_array(head_symbol_table($HeadType, $Str)).
+
+coordinating_schema(coord_left_schema).
+
+imperative_sentence($Sign) :-
+    is_S($Sign),
+    unifiable($Sign, SYNSEM\LOCAL\CAT\HEAD\VFORM\hpsg_imp).
+
+interrogative_sentence($Sign) :-
+    is_S($Sign),
+    unifiable($Sign, SYNSEM\LOCAL\CAT\HEAD\VFORM\hpsg_intr).
+
+subj_verb_inversion($Sign) :-
+    is_S($Sign),
+    unifiable($Sign, SYNSEM\LOCAL\CAT\HEAD\INV\hpsg_plus).
+
+relativizer_included($Sign) :-
+    unifiable($Sign, SYNSEM\NONLOCAL\INHER\REL\[_|_]), !.
+
+free_relative_included($Sign) :-
+    unifiable($Sign, SYNSEM\NONLOCAL\INHER\F_REL\[_|_]).
+
+trace_included($Sign) :-
+    unifiable($Sign, SYNSEM\NONLOCAL\INHER\SLASH\[_|_]).
+
+wh_included($Sign) :-
+    unifiable($Sign, SYNSEM\NONLOCAL\INHER\QUE\[_|_]).
+
+is_part_of_coordination <- [pred].
+is_part_of_coordination(SYNSEM\LOCAL\CAT\(HEAD\$Head & VAL\$Val)) :-
+    unifiable($Head, hpsg_conj),
+    unifiable($Val, CONJ\[_]).
+
+symbol_without_suffix <- [pred].
+symbol_without_suffix("PN").
+symbol_without_suffix("PRT").
+
+saturated_phrase <- [pred].
+saturated_phrase("N", $Val & SPR\$Spr) :-
+    !,
+    unifiable($Val, COMPS\[]),
+%%    type_subsume(hpsg_synsem_exp, $Spr).
+    \+ unifiable($Spr, hpsg_synsem_cons).
+saturated_phrase("V", $Val) :-
+    !, unifiable($Val, COMPS\[]).
+saturated_phrase("D", $Val) :-
+    !, unifiable($Val, SUBJ\[]).
+saturated_phrase("CONJ", $Val) :-
+    !, unifiable($Val, SUBJ\[] & COMPS\[] & SPR\[] & SPEC\[]).
+saturated_phrase("ADJ", $Val) :-
+    !, unifiable($Val, SUBJ\_ & COMPS\[] & SPR\[] & SPEC\[]).
+saturated_phrase("ADV", $Val) :-
+    !, unifiable($Val, SUBJ\_ & COMPS\[] & SPR\[] & SPEC\[]).
+saturated_phrase("P", $Val) :-
+    !, unifiable($Val, SUBJ\_ & COMPS\[] & SPR\[] & SPEC\[]).
+saturated_phrase(_, $Val) :-
+    unifiable($Val, SUBJ\[] & COMPS\[] & SPR\[] & SPEC\[] & CONJ\[]).
+
+sign_to_string_sub <- [pred].
+sign_to_string_sub([], []).
+sign_to_string_sub([$Surf|$TokenList], [$Surf|$SurfList]) :-
+    sign_to_string_sub($TokenList, $SurfList).
+sign_terminal_string(PHON\$Phon, $String) :-
+    sign_to_string_sub($Phon, $SurfList),
+    join($SurfList, " ", $String).
+
+sign_label($Sign, $Sym) :-
+    is_S($Sign), !, $Sym = "S".
+sign_label($Sign, $Sym) :-
+    is_part_of_coordination($Sign), !, $Sym = "COOD".
+sign_label(SYNSEM\LOCAL\CAT\(HEAD\$Head & VAL\$Val), $Sym) :-
+    head_symbol($Head, $Str),
+    (symbol_without_suffix($Str) ->
+     $Str = $Sym ;
+     (saturated_phrase($Str, $Val) ->
+      strcat($Str, "P", $Sym) ;
+      strcat($Str, "X", $Sym))).    
+
+%% tense_symbol_table <- [pred].
+%% :-
+%%     declare_array(tense_symbol_table(key_fs, array_value_string)),
+%%     set_array(tense_symbol_table(hpsg_tense, "untensed")),
+%%     set_array(tense_symbol_table(hpsg_pres, "present")),
+%%     set_array(tense_symbol_table(hpsg_past, "past")).
+
+%% tense_symbol($Sem, $Sym) :-
+%%     type_subsume($Sem, verb_relation_base) ->
+%%     fail ;    
+%%     ($Sem = TENSE\$Tense,
+%%      get_array(tense_symbol_table($Tense, $Sym))).
+
+%% aspect_symbol_table <- [pred].
+%% :-
+%%     declare_array(aspect_symbol_table(key_fs, array_value_string)),
+%%     set_array(aspect_symbol_table(hpsg_aspect, "none")),
+%%     set_array(aspect_symbol_table(hpsg_perf, "perfect")),
+%%     set_array(aspect_symbol_table(hpsg_prog, "progressive")),
+%%     set_array(aspect_symbol_table(hpsg_perf_prog, "perfect-progressive")).
+
+%% aspect_symbol($Sem, $Sym) :-
+%%     type_subsume($Sem, verb_relation_base) ->
+%%     fail ;
+%%     ($Sem = ASPECT\$Aspect,
+%%      get_array(aspect_symbol_table($Aspect, $Sym))).
+
+voice_symbol(SYNSEM\LOCAL\CAT\HEAD\$Head, $Sym) :-
+    unifiable($Head, AUX\hpsg_aux_minus) ->
+    (unifiable($Head, VFORM\hpsg_passive_part) ->
+     $Sym = "passive" ;
+     $Sym = "active" )
+    ;
+    fail.
+
+aux_symbol_table <- [pred].
+:-
+    declare_array(aux_symbol_table(key_fs, array_value_string)),
+    set_array(aux_symbol_table(hpsg_aux, "minus")),
+    set_array(aux_symbol_table(hpsg_be, "minus")),
+    set_array(aux_symbol_table(hpsg_aux_plus, "plus")),
+    set_array(aux_symbol_table(hpsg_aux_modal, "modal")),
+    set_array(aux_symbol_table(hpsg_aux_have, "have")),
+    set_array(aux_symbol_table(hpsg_aux_be, "be")),
+    set_array(aux_symbol_table(hpsg_aux_do, "do")),
+%%    set_array(aux_symbol_table(hpsg_aux_to, "to")),
+    set_array(aux_symbol_table(hpsg_aux_other, "plus")),
+    set_array(aux_symbol_table(hpsg_aux_minus, "minus")),
+    set_array(aux_symbol_table(hpsg_aux_none, "minus")),
+    set_array(aux_symbol_table(hpsg_copular_be, "copular")).
+
+aux_symbol(SYNSEM\LOCAL\CAT\HEAD\$Head, $Sym) :-
+    unifiable($Head, hpsg_verbal) ->
+    ($Head = AUX\$Aux,
+     get_array(aux_symbol_table($Aux, $Sym)))
+    ;
+    fail.
+
+type_table <- [pred].
+:-
+    declare_array(type_table(key_fs, array_value_string)),
+    set_array(type_table(hpsg_predicative, "pred")),
+    set_array(type_table(hpsg_noun_modifier, "noun_mod")),
+    set_array(type_table(hpsg_verb_modifier, "verb_mod")),
+    set_array(type_table(hpsg_adj_modifier, "adj_mod")),
+    set_array(type_table(hpsg_prep_modifier, "prep_mod")),
+    set_array(type_table(hpsg_other_modifier, "other_mod")),
+    set_array(type_table(hpsg_predicative_modifier, "pred_mod")).
+
+type_symbol($Type, $Symbol) :-
+    get_array(type_table($Type, $Symbol)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% relation labels
+
+relation_symbol_table <- [pred].
+:-
+    declare_array(relation_symbol_table(key_fs, array_value_string)),
+    set_array(relation_symbol_table(noun_arg0_relation, "noun_arg0")),
+    set_array(relation_symbol_table(noun_arg1_relation, "noun_arg1")),
+    set_array(relation_symbol_table(noun_arg2_relation, "noun_arg2")),
+    set_array(relation_symbol_table(noun_arg12_relation, "noun_arg12")),
+%%    set_array(relation_symbol_table(noun_arg23_relation, "noun_arg23")),
+%%    set_array(relation_symbol_table(noun_arg123_relation, "noun_arg123")),
+    set_array(relation_symbol_table(it_arg1_relation, "it_arg1")),
+    set_array(relation_symbol_table(there_arg0_relation, "there_arg0")),
+    set_array(relation_symbol_table(quote_arg2_relation, "quote_arg2")),
+    set_array(relation_symbol_table(quote_arg12_relation, "quote_arg12")),
+    set_array(relation_symbol_table(quote_arg23_relation, "quote_arg23")),
+    set_array(relation_symbol_table(quote_arg123_relation, "quote_arg123")),
+    set_array(relation_symbol_table(poss_arg2_relation, "poss_arg2")),
+    set_array(relation_symbol_table(poss_arg12_relation, "poss_arg12")),
+    set_array(relation_symbol_table(aux_arg12_relation, "aux_arg12")),
+    set_array(relation_symbol_table(aux_mod_arg12_relation, "aux_mod_arg12")),
+    set_array(relation_symbol_table(verb_arg1_relation, "verb_arg1")),
+    set_array(relation_symbol_table(verb_arg12_relation, "verb_arg12")),
+    set_array(relation_symbol_table(verb_arg123_relation, "verb_arg123")),
+    set_array(relation_symbol_table(verb_arg1234_relation, "verb_arg1234")),
+    set_array(relation_symbol_table(verb_mod_arg1_relation, "verb_mod_arg1")),
+    set_array(relation_symbol_table(verb_mod_arg12_relation, "verb_mod_arg12")),
+    set_array(relation_symbol_table(verb_mod_arg123_relation, "verb_mod_arg123")),
+    set_array(relation_symbol_table(verb_mod_arg1234_relation, "verb_mod_arg1234")),
+    set_array(relation_symbol_table(adj_arg1_relation, "adj_arg1")),
+    set_array(relation_symbol_table(adj_arg12_relation, "adj_arg12")),
+%%    set_array(relation_symbol_table(adj_arg123_relation, "adj_arg123")),
+    set_array(relation_symbol_table(adj_mod_arg1_relation, "adj_mod_arg1")),
+    set_array(relation_symbol_table(adj_mod_arg12_relation, "adj_mod_arg12")),
+    set_array(relation_symbol_table(conj_arg1_relation, "conj_arg1")),
+    set_array(relation_symbol_table(conj_arg12_relation, "conj_arg12")),
+    set_array(relation_symbol_table(conj_arg123_relation, "conj_arg123")),
+    set_array(relation_symbol_table(coord_arg12_relation, "coord_arg12")),
+    set_array(relation_symbol_table(det_arg1_relation, "det_arg1")),
+    set_array(relation_symbol_table(prep_arg12_relation, "prep_arg12")),
+    set_array(relation_symbol_table(prep_arg123_relation, "prep_arg123")),
+    set_array(relation_symbol_table(prep_mod_arg12_relation, "prep_mod_arg12")),
+    set_array(relation_symbol_table(prep_mod_arg123_relation, "prep_mod_arg123")),
+    set_array(relation_symbol_table(lgs_arg2_relation, "lgs_arg2")),
+    set_array(relation_symbol_table(dtv_arg2_relation, "dtv_arg2")),
+    set_array(relation_symbol_table(punct_arg1_relation, "punct_arg1")),
+    set_array(relation_symbol_table(app_arg12_relation, "app_arg12")),
+    set_array(relation_symbol_table(lparen_arg123_relation, "lparen_arg123")),
+    set_array(relation_symbol_table(rparen_arg0_relation, "rparen_arg0")),
+    set_array(relation_symbol_table(comp_arg1_relation, "comp_arg1")),
+    set_array(relation_symbol_table(comp_arg12_relation, "comp_arg12")),
+    set_array(relation_symbol_table(comp_mod_arg1_relation, "comp_mod_arg1")),
+    set_array(relation_symbol_table(relative_arg1_relation, "relative_arg1")),
+    set_array(relation_symbol_table(relative_arg12_relation, "relative_arg12")).
+
+relation_label($Rel, $Label) :-
+    type_toptype($Rel, $RelType),
+    get_array(relation_symbol_table($RelType, $Label)).
+
+%%     (get_array(relation_symbol_table($RelType, $Str)) ->
+%%      $Label = $Str ;
+%%      $Label = "x").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% terminal symbol
+
+lexname_label(LEX_WORD\$Word & LEX_TEMPLATE\$Template, $Label) :-
+    word_label($Word, $WordLabel),
+%%    lex_template_label($Template, $TemplateLabel),
+    concatenate_string([$WordLabel, " ", $Template], $Label).
+
+extent_label(LEXENT\LEX_WORD\$Word, $Label) :-
+    word_label($Word, $Label).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+error_type_string(not_parsed_yet, "not parsed yet") :- !.
+error_type_string(parse_success, "no successful parse") :- !.
+error_type_string(word_analysis_error, "POS tagging error") :- !.
+error_type_string(lexent_analysis_error, "lexical entry assignment error") :- !.
+error_type_string(parse_error_too_long, "sentence length limit exceeded") :- !.
+error_type_string(parse_error_edge_limit, "edge number limit exceeded") :- !.
+error_type_string(parse_error_time_limit, "time limit exceeded") :- !.
+error_type_string(parse_error_search_limit, "search limit exceeded") :- !.
+error_type_string(parse_error_unknown, "unknown error") :- !.
+error_type_string(_, "fatal error").
+

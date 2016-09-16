@@ -1,0 +1,217 @@
+%/**********************************************************************
+  * @module    =  enju:reduction
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @cvs       =  $Id: reduction.lil,v 1.5 2010-08-06 12:48:53 yusuke Exp $
+  * @version   =  Time-stamp: <2010-08-06 13:50:40 yusuke>
+  * @desc      =  Implementation of 'reduce_sign/3'
+  **********************************************************************
+%*/
+
+:- module("enju:reduction").
+
+:- module_interface.
+
+:- ensure_loaded("../mayz/parser").
+
+:- module_implementation.
+
+:- ensure_loaded("types").
+
+is_active <- [pred].
+is_active(invalid_relation) :- !.
+is_active(MODARG\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_active(ARG1\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_active(ARG2\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_active(ARG3\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_active(ARG4\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_active(ARG5\PRED\LEX_WORD\INPUT\$Str) :- \+ is_string($Str).
+is_inactive <- [pred].
+is_inactive($Ind) :-
+    \+ is_active($Ind).
+
+%% inactivate_semantics_node <- [pred].
+%% inactivate_semantics_node(unknown) :- !.
+%% inactivate_semantics_node($Ind) :-
+%%     $Ind = NAME\$Name,
+%%     restriction_node_($Ind),
+%%     $Ind = (inactive & NAME\$Name).
+%% inactivate_semantics_node_list <- [pred].
+%% inactivate_semantics_node_list([], []).
+%% inactivate_semantics_node_list([$Ind|$IndList], $OutIndList) :-
+%%     (is_semantic_node($Ind) ->
+%%      $OutIndList = [$Ind|$NextIndList],
+%%      (is_inactive($Ind) ->
+%%       inactivate_semantics_node($Ind) ;
+%%       true)
+%%      ;
+%%      $OutIndList = $NextIndList),
+%%     inactivate_semantics_node_list($IndList, $NextIndList).
+
+%% is_inactivated <- [pred].
+%% is_inactivated(inactive).
+
+%% remove_inactivated <- [pred].
+%% remove_inactivated([], _, [], []).
+%% remove_inactivated([$Ind|$IndList], $Main, $OutIndList, $OutRemoved) :-
+%%     (identical($Ind, $Main) ->
+%%      $OutIndList = $NextIndList
+%%      ;
+%%      (is_inactivated($Ind) ->
+%%       $OutIndList = $NextIndList,
+%%       $OutRemoved = [$Ind|$NextRemoved] ;
+%%       $OutIndList = [$Ind|$NextIndList],
+%%       $OutRemoved = $NextRemoved)),
+%%     remove_inactivated($IndList, $Main, $NextIndList, $NextRemoved).
+
+%% remove_inactives($InSem, $OutSem) :-
+%%     subnodelist($InSem, $SubNodes),
+%%     inactivate_semantics_node_list($SubNodes, $IndList),
+%%     $InSem = IND\$Ind,
+%%     remove_inactivated($IndList, $Ind, $OutRest),
+%%     $OutSem = IND\$Ind & REST\$OutRest.
+%% remove_inactives($InSem, $OutSem, $Removed) :-
+%%     subnodelist($InSem, $SubNodes),
+%%     inactivate_semantics_node_list($SubNodes, _),
+%%     $InSem = IND\$Ind & REST\$InRest,
+%%     remove_inactivated($InRest, $Ind, $OutRest, $Removed),
+%%     $OutSem = IND\$Ind & REST\$OutRest.
+
+restriction_args <- [pred].
+restriction_args($Ind) :-
+    restriction($Ind, MODARG\),
+    restriction($Ind, ARG1\),
+    restriction($Ind, ARG2\),
+    restriction($Ind, ARG3\),
+    restriction($Ind, ARG4\),
+    restriction($Ind, ARG5\).
+
+copy_ind <- [pred].
+copy_ind(unknown_relation, unknown_relation).
+copy_ind(PRED\$Name, inactive_relation & PRED\$Name).
+copy_argument <- [pred].
+copy_argument(PRED\$Name, PRED\$Name).
+copy_argument(MODARG\$Ind, MODARG\$Copy) :- copy_ind($Ind, $Copy).
+copy_argument(ARG1\$Ind, ARG1\$Copy) :- copy_ind($Ind, $Copy).
+copy_argument(ARG2\$Ind, ARG2\$Copy) :- copy_ind($Ind, $Copy).
+copy_argument(ARG3\$Ind, ARG3\$Copy) :- copy_ind($Ind, $Copy).
+copy_argument(ARG4\$Ind, ARG4\$Copy) :- copy_ind($Ind, $Copy).
+
+unify_arg_copies <- [pred].
+unify_arg_copies([], _).
+unify_arg_copies([$Copy|$Copies], $Copy) :-
+    unify_arg_copies($Copies, $Copy).
+copy_semantics_node <- [pred].
+copy_semantics_node($Ind, $SemNode) :-
+    type_copy($Ind, $SemNode),
+    findall($ArgCopy,
+	    copy_argument($Ind, $ArgCopy),
+	    $ArgCopies),
+    unify_arg_copies($ArgCopies, $SemNode).
+
+is_inactivated <- [pred].
+is_inactivated($Ind) :-
+    type_equal($Ind, inactive_relation).
+
+remove_inactives_loop <- [pred].
+remove_inactives_loop([], _, [], []).
+remove_inactives_loop([$Ind|$IndList], $Main, $OutIndList, $OutRemoved) :-
+    is_inactivated($Ind),
+    !,
+    remove_inactives_loop($IndList, $Main, $OutIndList, $OutRemoved).
+remove_inactives_loop([$Ind|$IndList], $Main, $OutIndList, $OutRemoved) :-
+    identical($Ind, $Main),
+    !,
+    remove_inactives_loop($IndList, $Main, $OutIndList, $OutRemoved).
+remove_inactives_loop([$Ind|$IndList], $Main, $OutIndList, [$Copy|$OutRemoved]) :-
+    is_inactive($Ind),
+    !,
+    copy_semantics_node($Ind, $Copy),
+    restriction_args($Ind),
+    remove_inactives_loop($IndList, $Main, $OutIndList, $OutRemoved).
+remove_inactives_loop([$Ind|$IndList], $Main, [$Ind|$OutIndList], $OutRemoved) :-
+    remove_inactives_loop($IndList, $Main, $OutIndList, $OutRemoved).
+
+%% remove_inactives <- [pred].
+%% remove_inactives(HOOK\$Ind & XARG\$XArg & RELS\$InRest,
+%% 		 HOOK\$Ind & XARG\$XArg & RELS\$OutRest,
+%% 		 $Removed) :-
+%%     is_inactivated($Ind),
+%%     !,
+%%     remove_inactives_loop($InRest, $Ind, $OutRest, $Removed).
+%% remove_inactives(HOOK\$InInd & XARG\$XArg & RELS\$InRest,
+%% 		 HOOK\$OutInd & XARG\$XArg & RELS\$OutRest,
+%% 		 [$Copy|$Removed]) :-
+%%     is_inactive($InInd),
+%%     !,
+%%     $InInd = PRED\$Name,
+%%     copy_semantics_node($InInd, $Copy),
+%%     $OutInd = inactive_relation & PRED\$Name,
+%%     remove_inactives_loop($InRest, $InInd, $OutRest, $Removed).
+%% remove_inactives(HOOK\$Ind & XARG\$XArg & RELS\$InRest,
+%% 		 HOOK\$Ind & XARG\$XArg & RELS\$OutRest,
+%% 		 $Removed) :-
+%%     remove_inactives_loop($InRest, $Ind, $OutRest, $Removed).
+
+%% remove_inactives(HOOK\$InInd & XARG\$InXArg & RELS\$InRest,
+%% 		 HOOK\$OutInd & XARG\$OutXArg & RELS\$OutRest,
+%% 		 $Removed) :-
+%%     ((is_inactivated($InInd) ; \+ is_inactive($InInd)) ->
+%%      $InInd = $OutInd,
+%%      $Removed = $OutRemoved
+%%      ;
+%%      $InInd = PRED\$IndName,
+%%      copy_semantics_node($InInd, $Copy),
+%%      $OutInd = inactive_relation & PRED\$IndName,
+%%      $Removed = [$Copy|$OutRemoved]),
+%%     ((is_inactivated($InXArg) ; \+ is_inactive($InXArg)) ->
+%%      $InXArg = $OutXArg ;
+%%      $InXArg = PRED\$XArgName,
+%%      $OutXArg = inactive_relation & PRED\$XArgName),
+%%     remove_inactives_loop($InRest, $InInd, $OutRest, $OutRemoved).
+
+inactivate <- [pred].
+inactivate($InRel & PRED\$Name, inactive_relation & PRED\$Name) :-
+    $InRel \= inactive_relation,
+    is_inactive($InRel).
+
+%% Use the following reduce_sign/3 when PAS features are used
+%/*
+reduce_sign($Sign, $Sign, $Removed) :-
+    restriction($Sign, DTRS\),
+    $Sign = SYNSEM\LOCAL\CONT\(HOOK\$InHook &
+			       XARG\$InXArg &
+			       RELS\$InRels),
+    restriction($Sign, [SYNSEM\, LOCAL\, CONT\]),
+%printAVM(["before", $Sem]),
+%%    remove_inactives($Sem, $Sem1, $Removed),
+    (inactivate($InHook, $OutHook) ->
+     copy_semantics_node($InHook, $Copy),
+     $Removed = [$Copy|$Removed2] ;
+     $InHook = $OutHook,
+     $Removed = $Removed2),
+    (inactivate($InXArg, $OutXArg) -> true ; $InXArg = $OutXArg),
+    remove_inactives_loop($InRels, $InHook, $OutRels, $Removed2),
+%printAVM(["after", $Sem1]),
+%printAVM(["removed", $Removed]),
+    $Sign = SYNSEM\LOCAL\CONT\(HOOK\$OutHook &
+			       XARG\$OutXArg &
+			       RELS\$OutRels).
+%*/
+
+%% Simpler version: remove all arguments
+inactivate_all <- [pred].
+inactivate_all($InRel & PRED\$Name, inactive_relation & PRED\$Name) :-
+    $InRel \= inactive_relation.
+    
+reduce_sign($Sign, $Sign, []) :-
+    restriction($Sign, DTRS\),
+    $Sign = SYNSEM\LOCAL\CONT\(HOOK\$InHook &
+			       XARG\$InXArg),
+    restriction($Sign, [SYNSEM\, LOCAL\, CONT\]),
+    (inactivate_all($InHook, $OutHook) -> true ; $OutHook = $InHook),
+    (inactivate_all($InXArg, $OutXArg) -> true ; $OutXArg = $InXArg),
+    $Sign = SYNSEM\LOCAL\CONT\(HOOK\$OutHook &
+			       XARG\$OutXArg &
+			       RELS\[]).
+

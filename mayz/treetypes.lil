@@ -1,0 +1,82 @@
+%/**********************************************************************
+  * @module    = mayz:treetypes
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @version   = Time-stamp: <2009-06-23 14:50:43 yusuke>
+  * @desc      = Type hierarchy for parse trees
+  * This module defines types and features for describing parse trees.
+  * The types have a symbol of the node, a mark for distinction of 
+  * the construction (head/substitution/adjunction), some other information
+  * (corpus-specific), and links to daughters.
+  * It also includes co-indexing relations via ID numbers.
+  **********************************************************************
+%*/
+
+:- module("mayz:treetypes").
+
+:- module_interface.
+
+:- ensure_loaded("word").
+
+head_mark <- [bot] ./ extendable.
+
+non_head <- [head_mark] ./extendable.
+argument <- [non_head] ./ extendable.
+modifier <- [non_head] ./ extendable.
+
+empty <- [head_mark] ./ extendable.
+non_empty <- [head_mark] ./ extendable.
+
+head <- [head_mark, non_empty].
+non_head_empty <- [non_head, empty].
+non_head_non_empty <- [non_head, non_empty].
+
+argument_empty <- [argument, non_head_empty].
+argument_non_empty <- [argument, non_head_non_empty].
+
+modifier_empty <- [modifier, non_head_empty].
+modifier_non_empty <- [modifier, non_head_non_empty].
+
+propbank_label <- [bot] + [PROP_ID\integer(0)].
+propbank_arg <- [propbank_label] + [ARG_POS\string(1)].
+propbank_rel <- [propbank_label] + [PRED_NAME\string(1), PRED_SEM_ID\string(2)].
+
+prop_list <- [list].
+prop_cons <- [prop_list, cons] + [hd\propbank_label, tl\prop_list].
+prop_nil <- [prop_list, nil].
+
+tree_node <- [bot] + [SYM\string(0), FUNC\list(1), HEAD_MARK\head_mark(2), PROP_LIST\prop_list(5), NODE_SIGN\bot(10), ANNOT\bot(11)].
+tree_node_nts <- [tree_node] + [ID\list(3), ID2\list(4), SCHEMA_NAME\bot(5)].
+tree_node_term <- [tree_node] + [WORD\word(3)].
+tree_node_empty <- [tree_node] + [COIND\list(3), EMPTY_WORD\string(4), COIND_NODE\list(5)].
+
+tree_base <- [bot] + [TREE_NODE\tree_node(0)].
+tree <- [tree_base].
+tree_nts <- [tree] + [TREE_NODE\tree_node_nts, TREE_DTRS\list(20)].
+tree_term <- [tree] + [TREE_NODE\tree_node_term].
+tree_empty <- [tree] + [TREE_NODE\tree_node_empty].
+
+tree_pattern <- [tree_base].
+tree_any <- [tree_pattern] + [ANY_TREES\list(10)].
+tree_path <- [tree_pattern] + [PATH_DTR\tree_base(10), PATH_TREES\list(11)].
+
+tree_span_string <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("lillib/strings").
+
+span_string_sub <- [pred].
+span_string_sub(tree_term & TREE_NODE\WORD\INPUT\$Input,
+		$Input).
+span_string_sub(tree_nts & TREE_DTRS\$Dtrs, $String) :-
+    member($Dtr, $Dtrs),
+    span_string_sub($Dtr, $String).
+
+tree_span_string($Tree, $Span) :-
+    findall($String,
+	    span_string_sub($Tree, $String),
+	    $Words),
+    join($Words, " ", $Span).
+

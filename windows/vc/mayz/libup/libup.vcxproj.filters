@@ -1,0 +1,327 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\liblilfes">
+      <UniqueIdentifier>{d8e6d484-0e5d-4f4e-8b57-07f6b1884da0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\mayz-src\QuickCheck.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\mayz-src\AmisBuiltin.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\mayz-src\AmisModel.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\mayz-src\DataConv.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\mayz-src\ParserBuiltin.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\mayz-src\Qc.cc">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\xml.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\basic.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\bfstream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\builtin.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\cell.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\code.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\codelist.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\config_liblilfes.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\CppPred.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\errors.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ftype.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\gfstream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\hash.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\in.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\initial.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lconfig.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lconfig_win.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-cell.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-core.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-db.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-hash.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-list.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldbm-type.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\ldlfcn_win.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lexer.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-basic.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-cell.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-c-if.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-core.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-db.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-dbtree.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-env.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-schema.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lildbm-type.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lilfes.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lregex.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\lstring.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\machine.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\memalloc.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\module.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\option.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\outform.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\parse.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\proc.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\procstream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\profile.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\rl_stream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\sockstream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\stream.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\structur.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\tokenizer.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\ll\include\liblilfes\utility.h">
+      <Filter>ヘッダー ファイル\liblilfes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\WordCounter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\AmisBuiltin.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\AmisFilter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\AmisModel.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\config_mayz_win.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\DataConv.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Derivation.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Derivbank.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\DerivMaker.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Edge.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Extent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ForestMaker.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\FSArray.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Grammar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Initializer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexAnalyzer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexAnalyzerBasic.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexAnalyzerLilfes.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexAnalyzerPipe.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexEntry.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexExtractor.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\LexiconTable.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\mayzutil.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\mconfig.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\MorphAnalyzerExternal.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Parser.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ParserBasic.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ParserBuiltin.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ParserCkyFom.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ParseStatus.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\ParseTree.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\PosTaggerExternal.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\pvector.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\QuickCheck.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Supertagger.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\SupertaggerExternal.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\TaggedTokenSplitter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\TemplateTable.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Tree.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Treebank.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\TreeConverter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\mayz-src\Word.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,271 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="stylesheet" type="text/css" href="style-tool.css">
+<title>forestmaker: Tool for making feature forest model</title>
+</head>
+
+
+
+<body>
+<h1>forestmaker: Tool for making feature forest model</h1>
+
+<a href="forestmaker.ja.html">Japanese version</a>
+
+<p>
+This is a tool for making event files of feature forest models.
+
+<p>
+<table border=1>
+<tr><td colspan=2>forestmaker model_name grammar_module derivbank event_file
+<tr><td>model_name<td>name of a probabilistic model (this will be used
+in parsing)
+<tr><td>grammar_module<td>lilfes program in which a grammar and
+predicates for event extraction are implemented
+<tr><td>derivbank<td>derivbank obtained by "lexextract" (lildb format)
+<tr><td>event_file<td>file to output unfiltered events
+(text format or compressed (gz or bz) format)
+<tr><td colspan=2>Options
+<tr><td>-r file_name<td>file to output reference distribution 
+<tr><td>-n threshold<td>limit number of events to be output
+<tr><td>-v<td>print debug messages
+<tr><td>-vv<td>print many debug messages
+</table>
+
+<p>
+The name of a probabilistic model must be assigned to each event
+file.  This means that by assigning different names, you can use
+multiple models in parsing.  For example, if you incorporate a unigram
+model as a reference distribution into a feature forest model, you
+must assign different names to the models.
+
+<p>
+This tool supports the construction of a maximum entropy model of a
+derivation, given a grammar and a derivbank.  This tool makes
+unfiltered events that will be required for the estimation of a
+probabilistic model.
+
+<p>
+An unfiltered event is a string that has several fields separated by
+"//".  An example is as follows.
+
+<blockquote>
+<pre>
+SUBJ//plays//VBZ//[npVPnp]//haag//NNP//[NP]_2//binary
+</pre>
+</blockquote>
+
+<p>
+The last field ("binary") denotes the <em>category</em> of this event.
+A category will be used in the later steps, such as for applying masks
+to the events.  Events that have the same category name must have the
+same number of fieds, since the same masks are applied to them.  This
+means that you must use different category names for events that have
+different number of fields.  For example, the numbers of fields must
+be different for binary and unary rule applications, because they
+should be represented with the different number of fields.
+
+<p>
+An unfiltered event represents a derivation forest for a sentence with
+a feature forest format.  The model estimation requires derivation
+forests for all sentences in a training data (i.e., derivbank), the
+tool parses all sentences and outputs forests of probabilistic events
+by extracting probabilistic events for each node in derivation
+forests.  Hence, this tool requires the implementaiton of the
+interfaces for parsing and for extracting probabilistic events from
+derivations.
+
+<p>
+First, in order to parse sentences, you must implement the interfaces
+defined in "UP" (such as id_schema_binary).  For details, see <a
+href="usegrammar.html">"How to use a grammar"</a> and <a
+href="up.html">the manual of UP</a>.
+
+<p>
+In addition, you must implement the following predicates defined in
+"mayz/forestmake.lil", which substitute for
+<tt>sentence_to_word_lattice/2</tt> and <tt>lexical_entry/2</tt>.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fm_derivation_to_word_lattice(+$Derivation, -$WordLattice)</tt>
+<tr><td>$Derivation<td>derivation
+<tr><td>$WordLattice<td>word lattice (list of 'extent')
+<tr><td colspan=2>Make a word lattice from a derivation.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>fm_lexical_entry(+$Lex, -$LexName)</tt>
+<tr><td>$Lex<td>input word and the named of a template that will be assigned to the
+word (lex_entry)
+<tr><td>$LexName<td>LEX_NAME (the second argument of 'lexical_entry/2')
+<tr><td colspan=2>Provide lexical entries that are assinged to a word.
+</table>
+
+<p>
+The above predicates may be implemented like
+"<tt>sentence_to_word_lattice/2</tt>" and "<tt>lexical_entry/2</tt>".
+However, they provide us information that is necessary for the correct
+derivation, and this information may be exploited.  For example, since
+"<tt>fm_lexical_entry/2</tt>" gives the name of the correct lexical
+entry, we can cut off lexical entries with low probabilities by
+returning the correct lexical entry and other lexical entries with
+high probabilities.  This technique greatly reduces the time for
+parsing training sentences, and hence for making an event file.  Note
+that correct lexical entries must be included in assigned lexical
+entries because a derivation forest must include a correct derivation
+tree.
+
+<p>
+The following predicte must also be implemented to make correct
+derivation trees.  While derivations in a derivbank are used for
+making correct derivation trees, the following predicate is necessary
+for providing lexical entries corresponding to terminal nodes.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>fm_correct_lexical_entry(+$Term, -$LexName)</tt>
+<tr><td>$Term<td>terminal node of a derivation (derivation_terminal)
+<tr><td>$LexName<td>LEX_NAME (the second argument of lexical_entry/2)
+<tr><td colspan=2>Returns the correct lexical entry corresponding to a
+terminal node of a derivation.
+</table>
+
+<p>
+Next, the following interfaces defined in "mayz/amismodel.lil" are
+required for extracting probabilistic events.  They extract an event
+from each node in a derivation forest.  An event is represented as a
+list of strings.  "<tt>forestmaker</tt>" calls these predicates for
+each node in a derivation forest, and the results are output into an
+event file in a feature forest format.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>extract_terminal_event(+$ModelName, -$Category,
++$LexName, +$Sign, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$LexName<td>LEX_NAME (the second argument of "lexical_entry/2")
+<tr><td>$Sign<td>lexical entry
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Event<td>event (a list of strings)
+<tr><td colspan=2>Extract an event of a terminal node.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_unary_event(+$ModelName, -$Category,
++$SchemaName, +$Dtr, +$Mother, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$SchemaName<td>name of a schema
+<tr><td>$Dtr<td>daughter sign
+<tr><td>$Mother<td>mother sign
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Event<td>event (a list of strings)
+<tr><td colspan=2>Extract an event of a unary rule application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_binary_event(+$ModelName, -$Category,
++$SchemaName, +$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Event)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$SchemaName<td>name of a schema
+<tr><td>$LeftDtr<td>sign of a left daughter
+<tr><td>$RightDtr<td>sign of a right daughter
+<tr><td>$Mother<td>sign of a mother
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Event<td>event (a list of strings)
+<tr><td colspan=2>Extract an event of a binary rule application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>extract_root_event(+$ModelName, -$Category, +$Sign, -$Event)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Category<td>name of a category
+<tr><td>$Sign<td>name of a schema
+<tr><td>$Event<td>sign of a root node
+<tr><td colspan=2>Extract an event of a root node.
+</table>
+
+<p>
+The name of a probabilistic model must be the same as the first
+command-line argument of "<tt>forestmaker</tt>".
+
+<p>
+For each interface, we also provide a version in which the value of a
+feature function (integer or float) can be specified.  Add the feature
+value as the last argument.
+
+<ul>
+  <li><tt>extract_terminal_event_feature_value/7</tt>
+  <li><tt>extract_unary_event_feature_value/8</tt>
+  <li><tt>extract_binary_event_feature_value/9</tt>
+  <li><tt>extract_root_event_feature_value/5</tt>
+</ul>
+
+<p>
+"<tt>forestmaker</tt>" allows for the development of an event file
+with a reference distribution.  Specify the file name of a reference
+distribution in the "-r" option, and implement the following
+interfaces.
+
+<p>
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_terminal(+$ModelName, +$LexName,
++$Sign, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$LexName<td>LEX_NAME (the second argument of "lexical_entry/3")
+<tr><td>$Sign<td>sign of a terminal node
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Prob<td>reference probability of a terminal node
+<tr><td colspan=2>Returns a reference probability of a terminal node.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_unary(+$ModelName, +$SchemaName,
++$Dtr, +$Mother, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$SchemaName<td>name of a schema
+<tr><td>$Dtr<td>daughter sign
+<tr><td>$Mother<td>mother sign
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>Returns a reference probability of a unary rule application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_binary(+$ModelName, +$SchemaName,
++$LeftDtr, +$RightDtr, +$Mother, +$SignPlus, -$Prob)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$SchemaName<td>name of a schema
+<tr><td>$LeftDtr<td>sign of a left daughter
+<tr><td>$RightDtr<td>sign of a right daughter
+<tr><td>$Mother<td>sign of a mother
+<tr><td>$SignPlus<td>SIGN_PLUS (the third argument of "reduce_sign/3")
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>Returns a reference probability of a binary rule application.
+</table>
+
+<table border=1>
+<tr><td colspan=2><tt>reference_prob_root(+$ModelName, +$Sign, -$Prob)</tt>
+<tr><td>$ModelName<td>name of a probabilistic model
+<tr><td>$Sign<td>sign of a root node
+<tr><td>$Prob<td>reference probability
+<tr><td colspan=2>Returns a reference probability of a root node.
+</table>
+
+<hr>
+<a href="index.html">MAYZ Toolkit Manual</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/mayz/">MAYZ Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Laboratory</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FE8F579D-ED32-4BB2-A55A-E7BC61477F0D}</ProjectGuid>
+    <RootNamespace>mogura</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\..\..\Debug\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\..\..\bin\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\..\mayz-src\;..\..\..\..\mogura-src\;..\..\..\..\enju-src\;..\..\..\ext\zlib-1.2.8\;..\..\..\ext\bzip2-1.0.5-bin\include;..\..\..\..\ll\include\;..\..\..\..\ll\include\liblilfes\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>liblilfes.lib;bzip2.lib;zdll.lib;libup.lib;libmayz.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\ext\zlib-1.2.8\;..\..\..\ext\bzip2-1.0.5-bin\lib\;..\..\..\ext\boost_1_55_0\stage\lib;..\..\..\Debug\</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\..\..\mayz-src\;..\..\..\..\enju-src\;..\..\..\ext\zlib-1.2.8\;..\..\..\ext\bzip2-1.0.5-bin\include;..\..\..\..\ll\include\;..\..\..\..\ll\include\liblilfes\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>..\..\..\ext\zlib-1.2.8\;..\..\..\ext\bzip2-1.0.5-bin\lib\;..\..\..\ext\boost_1_55_0\stage\lib;..\..\..\lib\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblilfes.lib;bzip2.lib;zdll.lib;libup.lib;libmayz.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\enju-src\outputxml.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\CfgGrammar.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\diffEncode.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\mogura.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\MoguraDriver.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\MoguraParser.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\parseCky.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\ParserAction.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\ParserGuide.cc" />
+    <ClCompile Include="..\..\..\..\mogura-src\SeqEnumerator.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\mogura-src\BitStream.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\CfgGrammar.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\CfgParser.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ChunkFinder.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\diffEncode.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\EventExtractor.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\fopen.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\MoguraDriver.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\MoguraGrammar.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\MultVpModel.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ParserAction.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ParserFeature.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ParserGuide.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ParserState.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\PennTree.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\PkiRerankVp.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\ProgressBar.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\Restrictor.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\Schema.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\SeqEnumerator.h" />
+    <ClInclude Include="..\..\..\..\mogura-src\SymbolTable.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

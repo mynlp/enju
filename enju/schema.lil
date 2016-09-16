@@ -1,0 +1,843 @@
+%/**********************************************************************
+  * @module    =  enju:schema
+  * @copyright =  Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright =  All rights reserved.
+  * @desc      =  Implementation of ID schemas
+  **********************************************************************
+%*/
+
+:- module("enju:schema").
+
+:- module_interface.
+
+:- ensure_loaded("types").
+%:- ensure_loaded("../mayz/lextemplate").
+:- ensure_loaded("../mayz/lexicon").
+:- ensure_loaded("../mayz/parser").
+
+make_lexical_entry_sign <- [pred].
+lexical_entry <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/ordsets").
+:- ensure_loaded("lillib/lists").
+:- ensure_loaded("macro").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  word-level parser interface
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+word_to_lookup_keys(BASE\(string & $Base) & POS\$POS, $Keys) :-
+    (equivalent($Base, string) ->
+        $Keys = $Keys1
+        ;
+        $Keys = [$Key1 | $Keys1],
+        concatenate_string([$Base, "/", $POS], $Key1)),
+    $Keys1 = [$Key2 | $Keys2],
+    concatenate_string(["@UNK@", "/", $POS], $Key2),
+    ($POS = "NN" ->
+        $Keys2 = []
+        ;
+        $Keys2 = ["@UNK@/NN"]).
+
+enju_word_rep <- [pred].
+%enju_word_rep([ $Input, $Surface, $Base, $InputPos, $Pos, $BasePos ],
+enju_word_rep([ $Input, $InputPos, $Surface, $Pos, $Base, $BasePos ],
+              INPUT\$Input & SURFACE\$Surface & BASE\$Base & INPUT_POS\$InputPos & POS\$Pos & BASE_POS\$BasePos).
+
+strlist_to_word($StrList, $Begin, _, $Word) :- enju_word_rep($StrList, $Word & POSITION\$Begin).
+word_to_strlist($Word, $StrList) :- enju_word_rep($StrList, $Word).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Root condition (root_sign/1)
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+root_sign($Sign) :- is_root_sign($Sign).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Lexical entry
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+boundary_comma <- [pred].
+boundary_comma("-COMMA-", hpsg_plus) :- !.
+boundary_comma(_, hpsg_minus).
+%% num_clause <- [pred].
+%% num_clause(SYNSEM\LOCAL\CAT\HEAD\(hpsg_verb & ADJ\hpsg_minus), 1) :- !.
+%% num_clause(_, 0).
+make_lexical_entry_sign($LexName & LEX_WORD\(INPUT\$Input & POSITION\$Position & POS\$POS),
+			$Sign) :-
+    $Sign = (PHON\[$Input] & LEX_SPEC\$LexName &
+	     PROB_FEATURE\(L_ADJAC\(BOUND_POSITION\$Position & BOUND_POS\$POS & BOUND_COMMA\$BoundComma) &
+			   R_ADJAC\(BOUND_POSITION\$Position & BOUND_POS\$POS & BOUND_COMMA\$BoundComma) &
+			   NUM_COMMA\hpsg_minus)),
+%%			   NUM_CLAUSE\$NumClause)),
+    boundary_comma($POS, $BoundComma).
+%%    num_clause($Sign, $NumClause).
+
+%% lexical_entry($Word, LEX_WORD\$Word & LEX_TEMPLATE\$TempName) :-
+%%     lookup_lexicon($Word, $TempNameList),
+%%     member($TempName, $TempNameList).
+
+lexical_entry_sign($LexName & LEX_TEMPLATE\$TempName, $Sign) :-
+    lookup_template($TempName, $Sign),
+    make_lexical_entry_sign($LexName, $Sign).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Principles
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Principles unified with schemas
+
+head_feature_principle <- [pred].
+head_feature_principle(SYNSEM\LOCAL\CAT\HEAD\$Head, SYNSEM\LOCAL\CAT\HEAD\$Head).
+
+principles <- [pred].
+principles(_, _, $Head, _, $Mother) :-
+    head_feature_principle($Head, $Mother).
+
+principles_unary <- [pred].
+principles_unary($Unary, $Mother) :-
+    head_feature_principle($Unary, $Mother).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Principles after schema application
+
+%% only one of SLASH, REL, F_REL can be non-empty
+nonlocal_feature_constraints <- [pred].
+nonlocal_feature_constraints([], [], []).
+nonlocal_feature_constraints([_], [], []).
+nonlocal_feature_constraints([], [_], []).
+nonlocal_feature_constraints([], [], [_]).
+nonlocal_feature_principle <- [pred].
+nonlocal_feature_principle(SYNSEM\NONLOCAL\INHER\(SLASH\$Slash & REL\$Rel & F_REL\$FRel)) :-
+    %% what-1 we know how to make *T*-1 (No. 862) -- only one exception in sec 02-21
+    nonlocal_feature_constraints($Slash, $Rel, $FRel).  
+
+%% construction of CONT
+semantic_binary_principle <- [pred].
+semantic_binary_principle($Head, $NonHead, $Mother) :-
+    $Head = (SYNSEM\LOCAL\CONT\(HOOK\$Hook &
+				XARG\$XArg &
+				RELS\$LeftRels) &
+	     LEX_SPEC\$HeadLex),
+    $NonHead = (SYNSEM\LOCAL\CONT\(HOOK\$NonHeadHook &
+				   RELS\$RightRels)),
+    ord_union($LeftRels, $RightRels, $Rels1),
+    ord_add_element($Rels1, $NonHeadHook, $Rels),
+    $Mother = (SYNSEM\LOCAL\CONT\(HOOK\$Hook &
+				  XARG\$XArg &
+				  RELS\$Rels) &
+	       LEX_SPEC\$HeadLex).
+
+semantic_coordination_principle <- [pred].
+semantic_coordination_principle($Head, $NonHead, $Mother) :-
+    $Head = (SYNSEM\LOCAL\CONT\(HOOK\$HeadHook &
+				XARG\$XArg &
+				RELS\$LeftRels) &
+	     LEX_SPEC\$HeadLex),
+    $NonHead = (SYNSEM\LOCAL\CONT\(HOOK\$NonHeadHook &
+				   RELS\$RightRels)),
+    ord_union($LeftRels, $RightRels, $Rels1),
+    ord_add_element($Rels1, $HeadHook, $Rels),
+    $Mother = (SYNSEM\LOCAL\CONT\(HOOK\$NonHeadHook &
+				  XARG\$XArg &
+				  RELS\$Rels) &
+	       LEX_SPEC\$HeadLex).
+
+semantic_unary_principle <- [pred].
+semantic_unary_principle($Unary, $Mother) :-
+    $Unary = (SYNSEM\LOCAL\CONT\(HOOK\$Hook &
+				 XARG\$XArg &
+				 RELS\$Rels) &
+	      LEX_SPEC\$HeadLex),
+    $Mother = (SYNSEM\LOCAL\CONT\(HOOK\$Hook &
+				  XARG\$XArg &
+				  RELS\$Rels) &
+	       LEX_SPEC\$HeadLex).
+
+semantic_nonheaded_principle <- [pred].
+semantic_nonheaded_principle($Unary, $Mother) :-
+    $Unary = (SYNSEM\LOCAL\CONT\(HOOK\$Hook &
+				 RELS\$Rels) &
+	      LEX_SPEC\$HeadLex),
+    $Mother = (SYNSEM\LOCAL\CONT\(HOOK\_ &
+				  RELS\[$Hook|$Rels]) &
+	       LEX_SPEC\$HeadLex).
+
+%% PHON
+phonology_principle <- [pred].
+phonology_principle(PHON\$LeftPhon, PHON\$RightPhon, PHON\$Phon) :-
+    append($LeftPhon, $RightPhon, $Phon).
+
+phonology_principle_unary <- [pred].
+phonology_principle_unary(PHON\$Phon, PHON\$Phon).
+
+%% features used for statistical disambiguation
+adjacency_principle <- [pred].
+adjacency_principle(PROB_FEATURE\L_ADJAC\$Left, PROB_FEATURE\R_ADJAC\$Right,
+		    PROB_FEATURE\(L_ADJAC\$Left & R_ADJAC\$Right)).
+
+comma_principle <- [pred].
+comma_principle(PROB_FEATURE\NUM_COMMA\hpsg_plus, _, PROB_FEATURE\NUM_COMMA\hpsg_plus) :- !.
+comma_principle(_, PROB_FEATURE\NUM_COMMA\hpsg_plus, PROB_FEATURE\NUM_COMMA\hpsg_plus) :- !.
+comma_principle(hpsg_phrase & PROB_FEATURE\R_ADJAC\BOUND_COMMA\hpsg_plus, _, PROB_FEATURE\NUM_COMMA\hpsg_plus) :- !.
+comma_principle(_, hpsg_phrase & PROB_FEATURE\L_ADJAC\BOUND_COMMA\hpsg_plus, PROB_FEATURE\NUM_COMMA\hpsg_plus) :- !.
+comma_principle(_, _, PROB_FEATURE\NUM_COMMA\hpsg_minus).
+
+%% num_clause_principle <- [pred].
+%% num_clause_principle(PROB_FEATURE\NUM_CLAUSE\$LNum, PROB_FEATURE\NUM_CLAUSE\$RNum,
+%% 		     PROB_FEATURE\NUM_CLAUSE\$Num) :-
+%%     $Num is $LNum + $RNum.
+%% num_clause_principle_unary <- [pred].
+%% num_clause_principle_unary(PROB_FEATURE\NUM_CLAUSE\$Num,
+%% 			   PROB_FEATURE\NUM_CLAUSE\$Num).
+
+comma_principle_unary <- [pred].
+comma_principle_unary(PROB_FEATURE\NUM_COMMA\$Comma, PROB_FEATURE\NUM_COMMA\$Comma) :- !.
+comma_principle_unary(_, PROB_FEATURE\NUM_COMMA\hpsg_minus).
+
+%% principle application
+
+post_principles <- [pred].
+post_principles($Left, $Right, $Head, $NonHead, $Mother) :-
+    nonlocal_feature_principle($Mother),
+    adjacency_principle($Left, $Right, $Mother),
+    comma_principle($Left, $Right, $Mother),
+%%    num_clause_principle($Left, $Right, $Mother),
+    phonology_principle($Left, $Right, $Mother),
+    semantic_binary_principle($Head, $NonHead, $Mother).
+
+post_principles_coordination <- [pred].
+post_principles_coordination($Left, $Right, $Head, $NonHead, $Mother) :-
+    nonlocal_feature_principle($Mother),
+    adjacency_principle($Left, $Right, $Mother),
+    comma_principle($Left, $Right, $Mother),
+%%    num_clause_principle($Left, $Right, $Mother),
+    phonology_principle($Left, $Right, $Mother),
+    semantic_coordination_principle($Head, $NonHead, $Mother).
+
+post_principles_unary <- [pred].
+post_principles_unary($Unary, $Mother) :-
+    adjacency_principle($Unary, $Unary, $Mother),
+    comma_principle_unary($Unary, $Mother),
+%%    num_clause_principle_unary($Unary, $Mother),
+    phonology_principle_unary($Unary, $Mother),
+    semantic_unary_principle($Unary, $Mother).
+
+post_principles_unary_nonheaded <- [pred].
+post_principles_unary_nonheaded($Unary, $Mother) :-
+    adjacency_principle($Unary, $Unary, $Mother),
+    comma_principle_unary($Unary, $Mother),
+%%    num_clause_principle_unary($Unary, $Mother),
+    phonology_principle_unary($Unary, $Mother),
+    semantic_nonheaded_principle($Unary, $Mother).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% predicates for further constraints
+
+%% slash_union(+$LeftSlash, +$RightSlash, -$MotherSlash)
+slash_union <- [pred].
+slash_union([], [], []).
+slash_union([], [$S], [$S]).
+slash_union([$S], [], [$S]).
+
+%% slash_bind(+$DtrSlash, +$DtrToBind, -$MotherSlash, $MotherToBind)
+slash_bind <- [pred].
+slash_bind([], $S, [], $S).
+slash_bind([$S], [], [$S], []).
+slash_bind([$S], [$S], [], []).
+
+%% que_union
+que_union <- [pred].
+que_union($LeftQue, $RightQue, $Que) :-
+    append($LeftQue, $RightQue, $Que).
+
+control_principle <- [pred].
+control_principle([], _).
+%control_principle([$Subj], [$Subj]).
+control_principle([_], [_]).
+control_principle([_], []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%  Schemas
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+id_schema_binary(subj_head_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  slash_union($LeftSlash, $RightSlash, $Slash),
+		  slash_union($LeftRel, $RightRel, $Rel),
+		  slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Right, $Left, $Mother))) :-
+    $Left = (SYNSEM\($Subj &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$LeftRel &
+				      SLASH\$LeftSlash &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\[$Subj|$SubjTail & []] &
+				     COMPS\($Comps & []) &
+				     SPR\($Spr & []) &
+				     SPEC\$Spec &
+				     CONJ\($Conj & [])) &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$RightRel &
+				       SLASH\$RightSlash &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$SubjTail &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Right & NONHEAD_DTR\$Left)),
+    $RightRel = [],
+    $RightFRel = [],
+    $LeftSlash = [],
+    principles($Left, $Right, $Right, $Left, $Mother).
+
+id_schema_binary(head_comp_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  slash_union($LeftSlash, $RightSlash, $Slash1),
+		  slash_bind($LeftToBind, $Slash1, $ToBind, $Slash),
+		  slash_union($LeftRel, $RightRel, $Rel),
+		  slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Left, $Right, $Mother))) :-
+    $Left = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				    COMPS\[$Comp|$Comps] &
+				    SPR\$Spr &
+				    SPEC\$Spec &
+				    CONJ\($Conj & [])) &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$LeftRel &
+				      SLASH\$LeftSlash &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\$LeftToBind &
+					F_REL\[])))),
+    $Right = (SYNSEM\($Comp &
+		      LOCAL\CAT\VAL\SUBJ\$CompSubj &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$RightRel &
+				       SLASH\$RightSlash &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\$ToBind &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Left & NONHEAD_DTR\$Right)),
+    $LeftRel = [],
+    $LeftFRel = [],
+    control_principle($CompSubj, $Subj),
+    principles($Left, $Right, $Left, $Right, $Mother).
+
+id_schema_binary(spec_head_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  slash_union($LeftSlash, $RightSlash, $Slash),
+		  slash_union($LeftRel, $RightRel, $Rel),
+		  slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Right, $Left, $Mother))) :-
+    $Left = (SYNSEM\($Spr &
+		     LOCAL\CAT\VAL\(SUBJ\[] &
+				    COMPS\[] &
+				    SPR\[] &
+				    SPEC\[$RightSynsem] &
+				    CONJ\[]) &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$LeftRel &
+				      SLASH\$LeftSlash &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\($RightSynsem &
+		      LOCAL\(CAT\VAL\(SUBJ\($Subj & []) &
+				      COMPS\($Comps & []) &
+				      SPR\[$Spr|$SprTail & hpsg_synsem_exp_nil] &
+				      SPEC\($Spec & []) &
+				      CONJ\($Conj & []))) &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$RightRel &
+				       SLASH\$RightSlash &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$SprTail &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Right & NONHEAD_DTR\$Left)),
+%%    $RightRel = [],
+    $LeftSlash = [],
+    principles($Left, $Right, $Right, $Left, $Mother).
+
+id_schema_binary(head_mod_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  slash_union($LeftSlash, $RightSlash, $Slash),
+		  slash_union($LeftRel, $RightRel, $Rel),
+		  slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Left, $Right, $Mother))) :-
+    $Left = (SYNSEM\(LOCAL\($Mod &
+			    CAT\VAL\(SUBJ\$Subj &
+				     COMPS\$Comps &
+				     SPR\$Spr &
+				     SPEC\$Spec &
+				     CONJ\$Conj)) &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$LeftRel &
+				      SLASH\$LeftSlash &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\$ToBind &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\CAT\(HEAD\(MOD\[$Mod] &
+				       POSTHEAD\hpsg_plus) &
+				 VAL\(SUBJ\[] &
+				      COMPS\[] &
+				      SPR\[] &
+				      SPEC\[] &
+				      CONJ\[])) &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$RightRel &
+				       SLASH\$RightSlash &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\$ToBind &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Left & NONHEAD_DTR\$Right)),
+    $LeftRel = [],
+    principles($Left, $Right, $Left, $Right, $Mother).
+
+id_schema_binary(mod_head_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  slash_union($LeftSlash, $RightSlash, $Slash),
+		  slash_union($LeftRel, $RightRel, $Rel),
+		  slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Right, $Left, $Mother))) :-
+    $Left = (SYNSEM\(LOCAL\CAT\(HEAD\(MOD\[$Mod] &
+				      POSTHEAD\hpsg_minus) &
+				VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[])) &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$LeftRel &
+				      SLASH\$LeftSlash &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\($Mod &
+			     CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj)) &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$RightRel &
+				       SLASH\$RightSlash &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\$ToBind &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\$ToBind &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Right & NONHEAD_DTR\$Left)),
+    %%$RightRel = [],
+    principles($Left, $Right, $Right, $Left, $Mother).
+
+id_schema_binary(filler_head_schema, $Left, $Right, $Mother,
+		 (slash_union($LeftFRel, $RightFRel, $FRel),
+		  post_principles($Left, $Right, $Right, $Left, $Mother))) :-
+    $Left = (SYNSEM\(LOCAL\$Filler &
+		     NONLOCAL\(INHER\(QUE\$Que &
+				      REL\$Rel &
+				      SLASH\[] &
+				      F_REL\$LeftFRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\($Subj & []) &
+				     COMPS\($Comps &[]) &
+				     SPR\($Spr & []) &
+				     SPEC\($Spec & []) &
+				     CONJ\($Conj & [])) &
+		      NONLOCAL\(INHER\(QUE\[] &
+				       REL\[] &
+				       SLASH\[$Filler] &
+				       F_REL\$RightFRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\[] &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Right & NONHEAD_DTR\$Left)),
+    $RightFRel = [],
+    principles($Left, $Right, $Right, $Left, $Mother).
+
+id_schema_binary(head_relative_schema, $Left, $Right, $Mother,
+		 post_principles($Left, $Right, $Left, $Right, $Mother)) :-
+    $Left = (SYNSEM\(LOCAL\($Rel &
+			    CAT\VAL\(SUBJ\$Subj &
+				     COMPS\$Comps &
+				     SPR\$Spr &
+				     SPEC\$Spec &
+				     CONJ\$Conj)) &
+		     NONLOCAL\(INHER\(QUE\[] &
+				      REL\[] &
+				      SLASH\[] &
+				      F_REL\[]) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\CAT\(HEAD\(hpsg_verb &
+				       VFORM\hpsg_decl &
+				       MOD\[]) &
+				 VAL\(SUBJ\[] &
+				      COMPS\[] &
+				      SPR\[] &
+				      SPEC\[] &
+				      CONJ\[])) &
+		      NONLOCAL\(INHER\(QUE\[] &
+				       REL\[$Rel] &
+				       SLASH\[] &
+				       F_REL\[]) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\[] &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[]) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Left & NONHEAD_DTR\$Right)),
+    principles($Left, $Right, $Left, $Right, $Mother).
+
+id_schema_binary(coord_right_schema, $Left, $Right, $Mother,
+		 post_principles($Left, $Right, $Left, $Right, $Mother)) :-
+    $Left = (SYNSEM\(LOCAL\CAT\(HEAD\AGR\$Agr &
+				VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[$RConj, $LConj])) &
+		     NONLOCAL\(INHER\(QUE\[] &
+				      REL\[] &
+				      SLASH\[] &
+				      F_REL\[]) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[])))),
+    $Right = (SYNSEM\($RConj &
+		      LOCAL\CAT\(HEAD\(AGR\$Agr &
+				       MOD\$Mod) &
+				 VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\[])) &
+		      NONLOCAL\(INHER\(QUE\$Que &
+				       REL\$Rel &
+				       SLASH\$Slash &
+				       F_REL\$FRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\$ToBind &
+					 F_REL\[])))),
+    $LConj = LOCAL\CAT\(HEAD\MOD\$Mod &
+			VAL\(SUBJ\$Subj &
+			     COMPS\$Comps &
+			     SPR\$Spr &
+			     SPEC\$Spec)),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\[] &
+				      COMPS\[] &
+				      SPR\[] &
+				      SPEC\[] &
+				      CONJ\[$LConj]) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\$ToBind &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Left & NONHEAD_DTR\$Right)),
+    principles($Left, $Right, $Left, $Right, $Mother).
+
+id_schema_binary(coord_left_schema, $Left, $Right, $Mother,
+		 (que_union($LeftQue, $RightQue, $Que),
+		  post_principles_coordination($Left, $Right, $Left, $Right, $Mother))) :-
+%%		  post_principles($Left, $Right, $Left, $Right, $Mother))) :-
+    $Left = (SYNSEM\($LConj &
+		     LOCAL\CAT\VAL\(SUBJ\$Subj &
+				    COMPS\$Comps &
+				    SPR\$Spr &
+				    SPEC\$Spec &
+				    CONJ\$Conj) &
+		     NONLOCAL\(INHER\(QUE\$LeftQue &
+				      REL\$Rel &
+				      SLASH\$Slash &
+				      F_REL\$FRel) &
+			       TO_BIND\(QUE\[] &
+					REL\[] &
+					SLASH\$ToBind &
+					F_REL\[])))),
+    $Right = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\[] &
+				     COMPS\[] &
+				     SPR\[] &
+				     SPEC\[] &
+				     CONJ\[$LConj]) &
+		      NONLOCAL\(INHER\(QUE\$RightQue &
+				       REL\$Rel &
+				       SLASH\$Slash &
+				       F_REL\$FRel) &
+				TO_BIND\(QUE\[] &
+					 REL\[] &
+					 SLASH\$ToBind &
+					 F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\$Rel &
+					SLASH\$Slash &
+					F_REL\$FRel) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\$ToBind &
+					  F_REL\[]))) &
+	       DTRS\(HEAD_DTR\$Left & NONHEAD_DTR\$Right)),
+    principles($Left, $Right, $Left, $Right, $Mother).
+
+%% Unary schemas
+
+id_schema_unary(empty_filler_head_schema, $Daughter, $Mother,
+		post_principles_unary($Daughter, $Mother)) :-
+    $Daughter = (SYNSEM\(LOCAL\CAT\(HEAD\hpsg_verb &
+				    VAL\(SUBJ\($Subj & []) &
+					 COMPS\($Comps & []) &
+					 SPR\($Spr & []) &
+					 SPEC\($Spec & []) &
+					 CONJ\($Conj & []))) &
+			 NONLOCAL\(INHER\(QUE\[] &
+					  REL\[] &
+					  SLASH\[CAT\(HEAD\(hpsg_nominal &
+							    MOD\[]) &
+						      VAL\(SUBJ\[] &
+							   COMPS\[] &
+							   SPR\[] &
+							   SPEC\[] &
+							   CONJ\[])) &
+						 CONT\HOOK\$Hook] &
+					  F_REL\[]) &
+				   TO_BIND\(QUE\[] &
+					    REL\[] &
+					    SLASH\[] &
+					    F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$Spr &
+				      SPEC\$Spec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\[] &
+					REL\[CAT\(HEAD\(hpsg_nominal &
+							MOD\[]) &
+						  VAL\(SUBJ\[] &
+						       COMPS\[] &
+						       SPR\hpsg_synsem_unexp_cons &
+						       SPEC\[] &
+						       CONJ\[])) &
+					     CONT\HOOK\$Hook] &
+					SLASH\[] &
+					F_REL\[]) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(hpsg_dtrs_unary & HEAD_DTR\$Daughter)),
+    principles_unary($Daughter, $Mother).
+
+id_schema_unary(empty_spec_head_schema,
+		$Daughter, $Mother,
+		post_principles_unary($Daughter, $Mother)) :-
+    $Daughter = (SYNSEM\($Spec &
+			 LOCAL\CAT\(HEAD\hpsg_nominal &
+				    VAL\(SUBJ\($Subj & []) &
+					 COMPS\($Comps & []) &
+					 SPR\[LOCAL\(CAT\(HEAD\hpsg_det &
+							  VAL\(SUBJ\[] &
+							       COMPS\[] &
+							       SPR\[] &
+							       SPEC\[$Spec] &
+							       CONJ\[])) &
+						     CONT\HOOK\unknown_relation)
+					      |$SprTail & hpsg_synsem_exp_nil] &
+					 SPEC\($RightSpec & []) &
+					 CONJ\($Conj & []))) &
+			 NONLOCAL\(INHER\(QUE\$Que &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]) &
+				   TO_BIND\(QUE\[] &
+					    REL\[] &
+					    SLASH\[] &
+					    F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\CAT\VAL\(SUBJ\$Subj &
+				      COMPS\$Comps &
+				      SPR\$SprTail &
+				      SPEC\$RightSpec &
+				      CONJ\$Conj) &
+		       NONLOCAL\(INHER\(QUE\$Que &
+					REL\[] &
+					SLASH\[] &
+					F_REL\[]) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(hpsg_dtrs_unary & HEAD_DTR\$Daughter)),
+    principles_unary($Daughter, $Mother).
+
+id_schema_unary(free_relative_schema,
+		$Daughter, $Mother,
+		post_principles_unary_nonheaded($Daughter, $Mother)) :-
+    $Daughter = (SYNSEM\(LOCAL\CAT\(HEAD\(hpsg_verb_or_comp & MOD\[]) &
+				    VAL\(SUBJ\[] &
+					 COMPS\[] &
+					 SPR\[] &
+					 SPEC\[] &
+					 CONJ\[])) &
+			 NONLOCAL\(INHER\(QUE\[] &
+					  REL\[] &
+					  SLASH\$Slash &
+					  F_REL\[$FRel &
+						 CAT\(HEAD\(hpsg_noun &
+%%							    ADJ\hpsg_minus &
+							    MOD\_) & %%[]) &
+						      VAL\(SUBJ\[] & COMPS\[] & SPR\hpsg_synsem_exp_nil & SPEC\[] & CONJ\[]))]) &
+				   TO_BIND\(QUE\[] &
+					    REL\[] &
+					    SLASH\[] &
+					    F_REL\[])))),
+    $Mother = (SYNSEM\(LOCAL\$FRel &
+		       NONLOCAL\(INHER\(QUE\[] &
+					REL\[] &
+					SLASH\$Slash &
+					F_REL\[]) &
+				 TO_BIND\(QUE\[] &
+					  REL\[] &
+					  SLASH\[] &
+					  F_REL\[]))) &
+	       DTRS\(hpsg_dtrs_unary & HEAD_DTR\$Daughter)),
+    $Slash = [].  %% what-1 we know how to make *T*-1 (No. 862)
+

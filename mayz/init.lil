@@ -1,0 +1,67 @@
+%/**********************************************************************
+  * @module    = mayz:init
+  * @copyright = Copyright (c) 2005, Tsujii Laboratory, The University of Tokyo.
+  * @copyright = All rights reserved.
+  * @cvs       = $Id: init.lil,v 1.1.1.1 2007-04-17 12:12:25 yusuke Exp $
+  * @version   = Time-stamp: <2005-06-21 19:37:44 yusuke>
+  * @desc      = Interface for initialization and termination
+  **********************************************************************
+%*/
+
+:- module("init.lil").
+
+%/**
+  * @interface = mayz_init
+  * @desc      = specify a program for initialization
+  * This predicate will be called when the MAYZ tool starts.
+%*/
+mayz_init <- [pred].
+'mayz_init/0' <- [mayz_init, 'pred/0'].
+
+%/**
+  * @interface = mayz_term
+  * @desc      = specify a program for termination (not implemented yet)
+  * This predicate will be called when the MAYZ tool terminates (not implemented yet).
+%*/
+mayz_term <- [pred].
+'mayz_term/0' <- [mayz_term, 'pred/0'].
+
+%/**
+  * @predicate = initialize_mayz
+  * @desc      = initialize the sysmte by executing all "mayz_init"
+  * This predicate call all "mayz_init/0".
+%*/
+initialize_mayz <- [pred].
+
+%/**
+  * @predicate = terminate_mayz
+  * @desc      = terminate the sysmte by executing all "mayz_term" (not implemented yet)
+  * This predicate call all "mayz_term/0" (not implemented yet).
+%*/
+terminate_mayz <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/dattypes").
+
+mayz_init :- fail.
+mayz_term :- fail.
+
+'*initialization_state*' <- [variable].
+:-
+    init_integer_variable('*initialization_state*').
+
+initialize_mayz :-
+    get_variable('*initialization_state*', 0),
+    mayz_init,
+    fail.
+initialize_mayz :-
+    set_variable('*initialization_state*', 1).
+
+terminate_mayz :-
+    get_variable('*initialization_state*', 1),
+    mayz_term,
+    fail.
+terminate_mayz :-
+    set_variable('*initialization_state*', 0).
+

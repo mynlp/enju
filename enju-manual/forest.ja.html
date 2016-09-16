@@ -1,0 +1,545 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="develindex.ja.html">
+<link rel="stylesheet" type="text/css" href="develstyle.css">
+<title>Feature forest モデル</title>
+</head>
+
+
+
+<body>
+<h1>Feature forest モデル</h1>
+
+<a href="forest.html">English version</a>
+
+<p>
+ここでは，構文解析の際に曖昧性解消をする確率モデルの一つ  feature forest モデルの
+推定について説明します．
+
+<p>
+feature forest モデルは，文に対してその derivation の確率を与えるモデルです．
+文を<i>s</i>，その derivation を<i>d</i> とすると，
+<i>p(d|s)</i> を求めます．
+Enju の確率モデルは最大エントロピーモデルになっているので，
+モデルの推定では素性の最適な重みを計算することになります
+(詳しくは<a href="probmodel.ja.html">確率モデル</a>を参照して下さい)．
+そのために最大エントロピーモデル推定器 
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> と
+ mayz の Amis 用ツール 
+<a href="../../manual/forestmaker.ja.html">forestmaker</a>，
+<a href="../../manual/amisfilter.ja.html">amisfilter</a> 
+を利用しています．
+
+<p>
+具体的には次のような手順で推定が行われます．
+
+<ol>
+  <li>forestmaker により確率イベントをファイルに出力する
+  <li>amisfilter により確率イベントにマスクをかけて素性を取り出し，
+  Amis 形式のデータファイルを作る
+  <li>Amis により素性の最適な重みを計算する
+</ol>
+
+<p>
+確率イベントとは，以下のように // で区切られたフィールドを持つ文字列です．
+
+<small>
+<blockquote>
+<pre>
+S_fin//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//play//VB//[npVPnp]_lxm_10//2//1//m//root
+</pre>
+</blockquote>
+</small>
+
+最後のフィールドはこのイベントの<i>カテゴリ</i> を表しています．
+その他のフィールドはイベントの特徴を表す記号です．
+forestmaker は 文と対応する derivation の特徴を表す確率イベントを
+ feature forest 形式でファイルに出力します．
+
+<p>
+amisfilter では，上のような確率イベントに対して
+そのカテゴリにしたがってマスクをかけます．
+マスクではどのフィールドを組み合わせて素性を作るかが指定されています．
+例えば上の文字列に，(0, 0, 1, 1, 0, 0, 0, 0, 0, 0)というマスクをかけると，
+次のような素性が得られます．
+
+<small>
+<blockquote>
+<pre>
+_//_//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root
+</pre>
+</blockquote>
+</small>
+
+amisfilter はこのようにイベントから素性を取り出し，
+Amis 形式のデータファイルを生成します．
+最後に，Amis によって素性の最適な重みが計算されます．
+
+<p>
+以下各ステップについて説明します．
+
+<h2>確率イベントをファイルに出力する</h2>
+
+<p>
+ここでは <a href="../../manual/forestmaker.ja.html">forestmaker</a> を
+使って，確率イベントをファイルに出力する過程を説明します．
+
+<table border=1>
+<tr><td colspan=2>forestmaker モデル名 文法モジュール derivbank イベントファイル
+<tr><td>モデル名<td>確率モデルの名前(構文解析の時にも使います)
+<tr><td>文法モジュール<td>文法およびイベント抽出 predicate が実装されている lilfes module
+<tr><td>derivbank<td>文法獲得で得た derivbank (lildb 形式)
+<tr><td>イベントファイル<td>確率イベントを出力するファイル 
+(テキスト形式または gz/bz による圧縮形式)
+</table>
+
+<p>
+forestmaker が出力する確率イベントファイルには，
+一文の derivation forest を表す確率イベントが
+ feature forest 形式で記されています．
+derivation forest とは，構文解析後のチャートのように
+ある文に対して可能な derivation を重ね合わせたものです．
+例えば次の図は "Mary runs" という文に対して，
+全体として NP となる derivation と S となる derivation の2個がある場合の
+チャートを簡単に表しています．
+<p>
+<img src="chart_ex.png" alt="チャートの例">
+
+<p>
+"Mary" に対応する NNP ノードが二つの derivation に共有されています．
+このようなチャートを feature forest 形式で表すと次のようになります
+(実際には一行で出力されます)．
+<small>
+<blockquote>
+<pre>
+{ node0 
+  ( NProot NP//runs//NNS//root    
+    { node1 
+      ( NPbinary MOD//NNS//runs//NNS//NNP//mary//NNP//binary
+        { node2
+          ( NNPterm NNP//mary//NNP//term ) }
+        { node3
+          ( NNSterm NNS//runs//NNS//term ) } ) } )
+  ( Sroot S//runs//VBZ//root
+    { node4 
+      ( Sbinary SUBJ//VBZ//runs//VBZ//NNP//mary//NNP//binary
+        $node2
+        { node5
+          ( VBZterm VBZ//runs//VBZ//term ) } ) } ) }
+</pre>
+</blockquote>
+</small>
+
+<p>
+ { node0 ( NProot ... ) ( Sroot ...) } という構造が，
+チャートの最上部に 2 種類のノード (NP, S) があることを表します．
+つまり ( NProot ...) で NP ノードを root とする derivation を，
+( Sroot ...) で Sノードを root とする derivation を表し，
+それらを { } で囲むことで，どちらかが正しい derivation であると示しています．
+また，共有されるノードは下から 2 行目のように参照を使って表します．
+つまり $node2 と書くことで { node2 ...} と同じノードであることを表しています．
+
+<p>
+forestmaker では，
+derivbank 中の各文の derivation forest を作るため，
+入力の文法を用いて構文解析をします．
+そして結果のチャート上の構文木の各ノードに対して確率イベントを出力します．
+
+<ol>
+   <li>入力の derivbank の derivation から正解の構文木をつくる．
+   構文木の末端ノードになる語彙項目は，derivation の末端ノードから
+   <tt>fm_correct_lexical_entry/2</tt> によって得たものを用いる．
+   <li>derivation から <tt>fm_derivation_to_word_lattice/2</tt>
+   によって，元の文に対する word lattice をつくる．
+   <li>上で作った word lattice を入力として構文解析を行いチャートを得る．   
+   構文解析では up と同じ文法のインターフェースが使われる．
+   ただし <tt>lexical_entry/2</tt> のみは，
+   かわりに <tt>fm_lexical_entry/2</tt> が使われる．
+   <li>正解の構文木の確率イベントを観測事象として出力する．
+   具体的には構文木の各ノードに対し以下のインターフェースにより，
+   カテゴリ名と特徴フィールドの記号を得る．
+   <ul>
+      <li>ルートノードならば <tt>extract_root_event/4</tt>
+      <li>末端ノードならば <tt>extract_treminal_event/6</tt>
+      <li>unary ノードならば <tt>extract_unary_event/6</tt>
+      <li>binary ノードならば <tt>extract_binary_event/6</tt>
+   </ul>
+   得られた記号とカテゴリ名をつなげて確率イベントを出力する．
+   <li>チャート上の全ての構文木を feature forest 形式で出力する．
+   構文木の各ノードでは，4. と同様にしてカテゴリ名と特徴フィールドの記号を得て，
+   確率イベントを出力する．
+</ol>
+
+構文木のノードから確率イベントを取り出すインターフェースには，
+素性の値 (integer または float) を指定できる形式もあります．
+詳しくは 
+<a href="../../manual/forestmaker.ja.html">forestmaker のマニュアル</a> 
+を参照して下さい．
+Enju の場合，derivbank からチャートを作るインターフェースは 
+"devel/forestmake.lil" で実装されています．
+実装の特徴は次のようになっています．
+
+<ul>
+   <li>derivation  から正解構文木の語彙項目を得るときには，
+   derivation の末端ノードの単語情報 (TERM_WORD 素性)で辞書を引き，
+   返ってくる語彙項目の中から末端ノードの LEXENTRY_SIGN
+   素性と同じ素性構造を持つ語彙項目を対応させる．
+   <li>derivation から word lattice を作るときには，
+   word 素性に derivation 中の対応する末端ノードの素性構造を格納する．
+   <li>語彙項目をチャートに入力するときには，
+   上でつくられた word lattice に格納されている derivation
+   の末端ノードを利用する．
+   具体的には末端ノードの TERM_WORD 素性で辞書を引き，
+   返ってきた全ての語彙項目の FOM を Unigram モデルで計算する．
+   チャートに入力するのは，FOM の高い語彙項目と正解の語彙項目のみにする．
+</ul>
+
+これらは例えば次のように実装されます．
+
+<small>
+<blockquote>
+<pre>
+fm_correct_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+    lookup_lexicon($Word, $TempNameList),
+    member($TempName, $TempNameList),
+    lookup_template($TempName, $LexEntry),
+    equivalent($LexEntry, $Sign),
+    !,
+    $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+
+fm_derivation_to_word_lattice(derivation_internal & DERIV_DTRS\$Dtrs, $WordLattice) :-
+    fm_derivation_to_word_lattice_dtrs($Dtrs, $WordLattice).
+fm_derivation_to_word_lattice(derivation_terminal & $Term & TERM_WORD\$Word,
+			      [left_position\$LPos & right_position\$RPos & word\$LexEntry]) :-
+    $LexEntry = $Term,
+    $Word = POSITION\$LPos,
+    $RPos is $LPos + 1.
+
+fm_lexical_entry(TERM_WORD\$Word & LEXENTRY_SIGN\$Sign, $LexName) :-
+    lookup_lexicon($Word, $TempNameList1),
+    check_coverage($TempNameList1, $Sign, $TempName1),
+    findall($Lex,
+	    (member($TN, $TempNameList1),
+	     $Lex = LEX_WORD\$Word & LEX_TEMPLATE\$TN),
+	    $LexList1),
+    restrict_templates($LexList1, $LexList2),
+    (memberchk(LEX_TEMPLATE\$TempName1, $LexList2) ->
+     $LexList3 = $LexList2 ;
+     $LexList3 = [LEX_WORD\$Word & LEX_TEMPLATE\$TempName1|$LexList2]),
+    member(LEX_TEMPLATE\$TempName, $LexList3),
+    $LexName = LEX_WORD\$Word & LEX_TEMPLATE\$TempName.
+</pre>
+</blockquote>
+</small>
+
+構文木の各ノードからカテゴリ名と特徴を表す記号を取り出すインターフェースは，
+"grammar/forestevent.lil" で実装されています．
+
+<ul>
+   <li>ルートノードからは "root" カテゴリのイベントを取り出す．
+   このカテゴリはフィールドとして次を含む．
+   <ul>
+      <li>HEADとVAL 素性を表す記号
+      <li>文の head word の表層文字列と POS
+      <li>その stemming 後の文字列と POS
+      <li>語彙項目の名前を表す記号
+      <li>語彙素項目の名前を表す記号
+      <li>文の長さ
+      <li>文の中に読点があるかどうかを示す記号
+   </ul>   
+   <li>末端ノードから "term" カテゴリのイベントを取り出す．
+   このカテゴリのフィールドは "root" カテゴリと同じものを持つ．
+   <li>unary ノードからは "sem" カテゴリと "unary"
+   カテゴリのイベントを取り出す．"sem" カテゴリは述語項構造の素性で，
+   構文解析をしていった時にそのノードで初めて全ての項が確定した述語項構造に対して
+   取り出される．フィールドとしては次のものを持つ．
+   <ul>
+      <li>述語となる語の表層文字列と POS
+      <li>その語の語彙素テンプレートの名前
+      <li>項のラベル (ARG1, MOD 等)
+      <li>項となる語の表層文字列と POS
+      <li>その語の語彙素テンプレートの名前
+      <li>述語の語と項の語の距離
+   </ul>
+   また "unary" カテゴリはフィールドとして，
+   娘ノードの特徴を表すフィールド ("root" カテゴリと同じフィールド) と，
+   今見ているノードが娘ノードから作られた時に適用されたスキーマ名を持つ．
+   <li>binary ノードからは "sem" カテゴリと "binary"
+   カテゴリのイベントを取り出す．"sem" カテゴリは unary ノードと共通．
+   "binary" カテゴリは次のようなフィールドを持つ．
+   <ul>
+      <li>適用されたスキーマ名
+      <li>左右の娘の head word の距離
+      <li>binary ノードが支配する句の長さと分の長さの差
+      <li>娘ノードの間に読点があるかを示す記号
+      <li>binary ノードの端に読点があるかを示す記号
+      <li>binary ノードの支配する句の位置 (両端の位置)
+      <li>head になる娘とそうでない娘ノードの特徴をあらわすフィールド
+      (それぞれについて "root" カテゴリを同じフィールド)
+   </ul>
+</ul>
+
+これらは例えば次のように指定されます．
+
+<small>
+<blockquote>
+<pre>
+extract_root_event("hpsg-forest", "root", $Sign, $Event) :-
+    encode_sign($Sign, $Event, []).
+
+extract_terminal_event("hpsg-forest", "term", _, $Sign, _, $Event) :-
+    encode_sign($Sign, $Event, []).
+
+extract_unary_event("hpsg-forest", "sem", _, _, _, $Inactives, 
+                    [$Surface, $POS, $Temp,$ArgSurf, 
+		    $ArgPOS, $ArgTemp,
+		    $Feature, $Dist]) :-
+    member($Ind & PRED\(LEX_WORD\(SURFACE\$Surface &
+				  POS\$POS &
+				  POSITION\$Position) &
+			LEX_TEMPLATE\LEXEME_NAME\$Temp),
+	   $Inactives),
+    extract_argument($Ind, $Feature,
+		     LEX_WORD\(SURFACE\$ArgSurf & POS\$ArgPOS &
+			       POSITION\$ArgPosition) &
+		     LEX_TEMPLATE\LEXEME_NAME\$ArgTemp),
+    arg_distance($Position, $ArgPosition, $Dist).
+    extract_hpsg_sem_event($Inactives, $Event).
+</pre>
+</blockquote>
+</small>
+
+<p>
+forestmaker が出力する確率イベントファイルは次のようになっています．
+
+<small>
+<blockquote>
+<pre>
+event_2
+1        S_fin//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//
+play//VB//[npVPnp]_lxm_10//2//1//m//root plays//VBZ//[npVPnp]_lxm_1
+0//haag//NNP//[dtNP]_lxm_2//ARG1//1//sem plays//VBZ//[npVPnp]_lxm_1
+0//elianti//NNP//[dtNP]_lxm_2//ARG2//1//sem SUBJ//1//1//m//m//NNP//
+VBZ//VP//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//play//V
+B//[npVPnp]_lxm_10//1//1//m//NP//haag//NNP//[dtNP]_lxm_2//haag//NNP
+//[dtNP]_lxm_2//1//0//m//bin ms-period-//NNP//[dtNP]_lxm_2//haag//N
+NP//[dtNP]_lxm_2//MODIFY//1//sem LMOD//1//2//m//m//NNP//NNP//N_adj/
+/ms-period-//NNP//[dtNP]_lxm_2-noun_adjective_rule//ms-period-//NNP
+//[dtNP]_lxm_2//0//0//m//NX//haag//NNP//[dtNP]_lxm_2//haag//NNP//[d
+tNP]_lxm_2//0//0//m//bin N_adj//ms-period-//NNP//[dtNP]_lxm_2-noun_
+adjective_rule//ms-period-//NNP//[dtNP]_lxm_2//0//0//m//term NX//ha
+ag//NNP//[dtNP]_lxm_2//haag//NNP//[dtNP]_lxm_2//0//0//m//term COMP/
+/1//2//m//m//VBZ//NNP//VX//plays//VBZ//[npVPnp]_lxm_10-singular3rd_
+verb_rule//play//VB//[npVPnp]_lxm_10//0//1//m//NP//elianti//NNP//[d
+tNP]_lxm_2//elianti//NNP//[dtNP]_lxm_2//0//0//m//bin VX//plays//VBZ
+//[npVPnp]_lxm_10-singular3rd_verb_rule//play//VB//[npVPnp]_lxm_10/
+/0//1//m//term NX//elianti//NNP//[dtNP]_lxm_2//elianti//NNP//[dtNP]
+_lxm_2//0//0//m//term
+{ _ ( root31 S_fin//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_ru
+le//play//VB//[npVPnp]_lxm_10//2//1//m//root { node31 ( b31_0 plays
+//VBZ//[npVPnp]_lxm_10//haag//NNP//[dtNP]_lxm_2//ARG1//1//sem plays
+//VBZ//[npVPnp]_lxm_10//elianti//NNP//[NP]_23//ARG2//1//sem SUBJ//1
+//1//m//m//NNP//VBZ//VP//plays//VBZ//[npVPnp]_lxm_10-singular3rd_ve
+rb_rule//play//VB//[npVPnp]_lxm_10//1//1//m//NP//haag//NNP//[dtNP]_
+lxm_2//haag//NNP//[dtNP]_lxm_2//1//0//m//bin { node18 ( u18_0 { nod
+e17 ( b17_0 ms-period-//NNP//[dtNP]_lxm_2//haag//NNP//[dtNP]_lxm_2//
+MODIFY//1//sem LMOD//1//2//m//m//NNP//NNP//N_adj//ms-period-//NNP//[
+dtNP]_lxm_2-noun_adjective_rule//ms-period-//NNP//[dtNP]_lxm_2//0//0
+//m//NX//haag//NNP//[dtNP]_lxm_2//haag//NNP//[dtNP]_lxm_2//0//0//m//
+bin { node0 ( term0_0 N_adj//ms-period-//NNP//[dtNP]_lxm_2-noun_adje
+ctive_rule//ms-period-//NNP//[dtNP]_lxm_2//0//0//m//term ) } { node3
+ (term3_0 NX//haag//NNP//[dtNP]_lxm_2//haag//NNP//[dtNP]_lxm_2//0//0
+//m//term ) }) } ) } { node28 ( b28_0 COMP//1//2//m//m//VBZ//NNP//VX
+//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//play//VB//[npVP
+np]_lxm_10//0//1//m//NP//elianti//NNP//[NP]_23//elianti//NNP//[NP]_2
+3//0//0//m//bin { node5 ( term5_0 VX//plays//VBZ//[npVPnp]_lxm_10-si
+ngular3rd_verb_rule//play//VB//[npVPnp]_lxm_10//0//1//m//term ) } { 
+node14 ( term14_0 NP//elianti//NNP//[NP]_23//elianti//NNP//[NP]_23//
+0//0//m//term ) } ) } ) ( b31_1 plays//VBZ//[npVPnp]_lxm_10//haag//N
+NP//[dtNP]_lxm_2//ARG1//1//sem plays//VBZ//[npVPnp]_lxm_10//elianti/
+/NNP//[dtNP]_lxm_2//ARG2//1//sem SUBJ//1//1//m//m//NNP//VBZ//VP//pla
+ys//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//play//VB//[npVPnp]_l
+xm_10//1//1//m//NP//haag//NNP//[dtNP]_lxm_2//haag//NNP//[dtNP]_lxm_2
+//1//0//m//bin $node18 { node29 ( b29_0 COMP//1//2//m//m//VBZ//NNP//
+VX//plays//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//play//VB//[np
+VPnp]_lxm_10//0//1//m//NP//elianti//NNP//[dtNP]_lxm_2//elianti//NNP/
+/[dtNP]_lxm_2//0//0//m//bin $node5 { node16 ( u16_0 { node9 ( term9_
+0 NX//elianti//NNP//[dtNP]_lxm_2//elianti//NNP//[dtNP]_lxm_2//0//0//
+m//term ) } ) ( u16_1 $node9 ) } ) } ) } ) (root32 NP//ms-period-//N
+NP//[dtNP]_lxm_2//ms-period-//NNP//[dtNP]_lxm_2//2//1//m//root { nod
+e32 ( b32_0 elianti//NNP//np[dtNP]_382//ms-period-//NNP//[dtNP]_lxm_
+2//MODIFY//2//sem RMOD//2//1//m//m//VBZ//NNP//NP//elianti//NNP//np[d
+tNP]_382//elianti//NNP//np[dtNP]_382//0//0//m//NP//ms-period-//NNP//
+[dtNP]_lxm_2//ms-period-//NNP//[dtNP]_lxm_2//2//1//m//bin { node27 (
+ u27_0 { node22 ( b22_0 plays//VBZ//[npVPnp]_lxm_10//haag//NNP//[dtN
+P]_lxm_2//ARG1//1//sem plays//VBZ//[npVPnp]_lxm_10//ms-period-//NNP/
+/[dtNP]_lxm_2//ARG2//2//sem REL//2//2//m//m//NNP//NNP//S_fin//plays/
+/VBZ//[npVPnp]_lxm_10-wh_move_rule-singular3rd_verb_rule//play//VB//
+[npVPnp]_lxm_10//1//1//m//NX//ms-period-//NNP//[dtNP]_lxm_2//ms-peri
+od-//NNP//[dtNP]_lxm_2//0//0//m//bin { node1 ( term1_0 NX//ms-period
+-//NNP//[dtNP]_lxm_2//ms-period-//NNP//[dtNP]_lxm_2//0//0//m//term )
+ } { node21 ( u21_0 EMPTY_FILLER//S_fin//plays//VBZ//[npVPnp]_lxm_10
+-wh_move_rule-singular3rd_verb_rule//play//VB//[npVPnp]_lxm_10//1//1
+//m//unary { node20 ( b20_0 SUBJ//1//2//m//m//NNP//VBZ//VP//plays//V
+BZ//[npVPnp]_lxm_10-wh_move_rule-singular3rd_verb_rule//play//VB//[n
+pVPnp]_lxm_10//0//1//m//NP//haag//NNP//[dtNP]_lxm_2//haag//NNP//[dtN
+P]_lxm_2//0//0//m//bin { node4 ( u4_0 $node3 ) ( u4_1 $node3 ) } { n
+ode8 ( term8_0 VP//plays//VBZ//[npVPnp]_lxm_10-wh_move_rule-singular
+3rd_verb_rule//play//VB//[npVPnp]_lxm_10//0//1//m//term ) } ) } ) } 
+) } ) } { node15 ( u15_0 { node13 ( term13_0 NX//elianti//NNP//np[dt
+NP]_382//elianti//NNP//np[dtNP]_382//0//0//m//term ) } ) ( u15_1 $no
+de13 ) } ) } ) }
+
+event_3
+......
+</pre>
+</blockquote>
+</small>
+
+event_2 は "Ms. Haag plays Elianti." という文に対する確率イベントの
+出力です．
+
+<h2>マスクをかけて素性を取り出す</h2>
+
+<p>
+ここでは 
+<a href="../../manual/amisfilter.ja.html">amisfilter</a> を使って，
+上のステップで出力された確率イベントにマスクをかけ，
+素性を取り出し，Amis 形式のデータファイルを出力します．
+この部分は Unigram モデルの推定の場合と同様です．
+ただし，feature forest 形式を保ったまま素性を取り出すため，
+出力されるイベントファイルは次のようになります．
+
+<p>
+<small>
+<blockquote>
+<pre>
+event1
+1 S//_//_//root _//_//VBZ//root SUBJ//VBZ//_//_//NNP//_//_//binary
+SUBJ//_//_//VBZ//_//_//NNP//binary _//mary//NNP//term 
+_//runs//VBZ//term
+{ node0 
+  ( NProot NP//_//_//root _//_//NNS//root    
+    { node1 
+      ( NPbinary MOD//NNS//_//_//NNP//_//_//binary
+                 MOD//_//_//NNS//_//_//NNP//binary
+        { node2
+          ( NNPterm _//mary//NNP//term ) }
+        { node3
+          ( NNSterm _//runs//NNS//term ) } ) } )
+  ( Sroot S//_//_//root _//_//VBZ//root
+    { node4 
+      ( Sbinary SUBJ//VBZ//_//_//NNP//_//_//binary
+                SUBJ//_//_//VBZ//_//_//NNP//binary
+        $node2
+        { node5 ( VBZterm _//runs//VBZ//term ) } ) } ) }
+</pre>
+</blockquote>
+</small>
+
+<p>
+モデルファイルは Unigram モデルの場合と同様です．
+
+<p>
+Enju の場合，<tt>feature_mask/3</tt> は "grammar/synmask.lil"，
+"grammar/semmask.lil" で実装されています．
+"grammar/synmodel.lil"の場合，
+カテゴリ "root" に対するマスクには次のようなものが含まれます．
+
+<table border=1>
+<tr><td> <td>Symbol<td>Surface<td>POS<td>TempName<td>Base<td>BasePOS<td>Lexeme<td>Span<td>NumClause<td>NumComma
+<tr><td>mask 1<td>×<td>×<td>×<td>○<td>×<td>×<td>×<td>×<td>×<td>×
+<tr><td>mask 2<td>×<td>×<td>○<td>×<td>×<td>×<td>×<td>×<td>×<td>×
+<tr><td>mask 3<td>×<td>×<td>○<td>○<td>×<td>×<td>×<td>×<td>×<td>×
+<tr><td>mask 4<td>○<td>×<td>×<td>×<td>×<td>×<td>×<td>×<td>×<td>×
+</table>
+
+これらは次のように実装されます．
+
+<small>
+<blockquote>
+<pre>
+feature_mask("hpsg-forest", "root", [0,  0, 0, 1,  0, 0, 0,  0, 0, 0]).
+feature_mask("hpsg-forest", "root", [0,  0, 1, 0,  0, 0, 0,  0, 0, 0]).
+feature_mask("hpsg-forest", "root", [0,  0, 1, 1,  0, 0, 0,  0, 0, 0]).
+feature_mask("hpsg-forest", "root", [1,  0, 0, 0,  0, 0, 0,  0, 0, 0]).
+</pre>
+</blockquote>
+</small>
+
+<p>
+上のようなマスクを上のステップで示した確率イベントファイルの例に適用すると，
+次のような Amis 形式のイベントファイルが得られます．
+
+<small>
+<blockquote>
+<pre>
+event_2
+1       _//_//_//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//
+_//_//root _//_//VBZ//_//_//_//_//_//_//_//root _//_//VBZ//[npVPnp]_
+lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root S_fin//_//_//_/
+/_//_//_//_//_//_//root SUBJ//1//_//m//m//_//_//_//_//_//[npVPnp]_lx
+m_10-singular3rd_verb_rule//_//_//_//_//_//m//_//_//_//[dtNP]_lxm_2/
+/_//_//_//_//_//m//bin SUBJ//1//_//m//m//_//_//_//_//VBZ//_//_//_//_
+......
+{ _ ( root31 _//_//_//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_
+//_//_//_//root _//_//VBZ//_//_//_//_//_//_//_//root _//_//VBZ//[npV
+Pnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root S_fin//_//
+_//_//_//_//_//_//_//_//root { node31 ( b31_0 SUBJ//1//_//m//m//_//_
+//_//_//_//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//m//
+......
+
+event_3
+......
+</pre>
+</blockquote>
+</small>
+
+出力される Amis 形式のモデルファイルには，採用された素性と
+その重みの初期値が出力されています．
+
+<small>
+<blockquote>
+<pre>
+_//_//_//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root 1.0
+_//_//VBZ//_//_//_//_//_//_//_//root 1.0
+_//_//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root 1.0
+......
+</pre>
+</blockquote>
+</small>
+
+<h2>素性の最適な重みを計算する</h2>
+
+<p>
+上のステップで得られた Amis 形式のモデルファイルとイベントファイルから
+ <a href="http://www-tsujii.is.s.u-tokyo.ac.jp/amis/">Amis</a> を使って
+素性の最適な重みを計算します．
+出力ファイルにはモデルファイルと同じ形式で，計算された素性の重みが示されています．
+
+<small>
+<blockquote>
+<pre>
+_//_//_//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root 7.309690e-01
+_//_//VBZ//_//_//_//_//_//_//_//root 1.639833e+00
+_//_//VBZ//[npVPnp]_lxm_10-singular3rd_verb_rule//_//_//_//_//_//_//root 7.309690e-01
+......
+</pre>
+</blockquote>
+</small>
+
+
+<hr>
+<a href="develindex.ja.html">Enju 開発者用マニュアル</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

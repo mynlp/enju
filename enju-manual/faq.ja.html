@@ -1,0 +1,98 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>よくある質問と答</title>
+</head>
+
+
+
+<body>
+<h1>よくある質問と答</h1>
+
+<a href="faq.html">English version</a>
+
+<p>
+
+<ul>
+  <li><a href="#always_error">何を入力しても "Parsing failure" または
+  "Fatal error" と出力される</a>
+  <li><a href="#wrong_parses">非常に精度の低い解析結果が出力される</a>
+  <li><a href="#firefox_no_input">FireFox のテキストフォームに何も入力
+  できない</a>
+  <li><a href="#firefox_crash">FireFox 1.5 または 2.0 を使用すると，た
+  まに FireFox がクラッシュする</a>
+</ul>
+
+<hr>
+
+<h2><a name="always_error">何を入力しても "parse error" になる</a></h2>
+
+<p>
+４つ原因が考えられます．
+
+<dl>
+  <dt>LiLFeS のプログラムが読み込めていない．
+  <dd>Enju の起動時に文法の設定
+  ファイルなど（LiLFeS モジュール）を読み込むメッセージが表示されます．
+  grammar module, FOM module, parser module が正しく読み込まれているか
+  確認してください．エラーメッセージが表示されている場合には，読み込み
+  に失敗しています．LiLFeS のモジュールをインストールした場所(デフォル
+  トでは /usr/local/share/liblilfes)を，LILFES_PATH 環境変数に設定して
+  ください．
+  <dt>文法データが読み込めていない．
+  <dd>Enju 起動時に各データを読み込むメッ
+  セージが表示されています．stemming database, grammar database,
+  unigram FOM model, syntax FOM model がそれぞれ読み込まれているか確認
+  してください．エラーメッセージが表示されている場合には，読み込みに失
+  敗しています．Enju の文法ファイルをインストールした場所(デフォルトで
+  は /usr/local/lib/enju)を，ENJU_DIR 環境変数に設定
+  してください．
+  <dt>品詞タガーまたはステマーの初期化に失敗している．
+  <dd>Enju では品詞タガーとステマーを前処理に利用します．これらにパスが通っ
+  ていて，正しく利用できるかどうか確認してください．デフォルトでは
+  Enju 付属のタガーとステマーを利用するようになっています．また，品詞タガーは標準入力に
+  文を一行受け取って，各単語の後ろに "/品詞" を付けて標準出力に出力す
+  ることが想定されています．タガーの起動時などに余分な出力がないかも確
+  認する必要があります．
+  <dt>文法のバージョンが違う．
+  <dd>Enju のバージョンとマイナーバージョンまで一致する文法データファ
+  イルを使用してください．例えば，enju-X.Y.Z を使用するときは，
+  enju-X.Y-data を使用してください．
+</dl>
+
+<h2><a name="wrong_parses">非常に精度の低い解析結果が出力される
+</a></h2>
+
+<p>
+liblilfes-1.3.2 以前を g++4 でコンパイルすると，type punning の実装の
+不備により，曖昧性解消モデルが誤動作します．liblilfes-1.3.3 以上を使用
+してください．
+
+<h2><a name="firefox_no_input">FireFox のテキストフォームに何も入力で
+きない</a></h2>
+
+<p>
+FireFox 1.0 では，XSLT の処理に問題があるため，テキストフォームに文字
+が入力できなくなります．新しいバージョンにアップデートしてください．
+
+<h2><a name="firefox_crash">FireFox 1.5 または 2.0 を使用すると，たまに FireFox がクラッシュする</a></h2>
+
+<p>
+あるバージョンの Firefox では，XSLT の処理にバグがあります．最新版にアッ
+プデートしてください．
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+

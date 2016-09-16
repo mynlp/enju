@@ -1,0 +1,71 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>インストール方法</title>
+</head>
+
+
+
+<body>
+<h1>インストール方法</h1>
+
+<a href="install.html">English version</a>
+
+<h2>バイナリパッケージのインストール</h2>
+
+<ol>
+  <li>自分のプラットフォーム用のバイナリパッケージ(enju-X.Y-PLATFORM.tar.gz)をダウンロードします．
+  <li>Enjuをインストールしたいディレクトリ（以下では$DIRとします）でパッケージを解凍します．
+  <pre>% cd $DIR; tar xvzf enju-X.Y-PLATFORM.tar.gz</pre>
+</ol>
+"$DIR/enju-X.Y/" に "enju" がインストールされます．
+
+<h2>ソースパッケージのインストール</h2>
+
+<p>
+<em>Enju をコンパイルするには，以下のものが必要です．</em>
+<ul>
+  <li>g++ バージョン 3.2 以上
+  <li>zlib
+  <li>regex ライブラリ
+</ul>
+
+<ol>
+  <li>Enju のソースパッケージ enju-X.Y.Z.tar.gz (X.Y.Z はバージョン番
+    号)をダウンロードして，展開します．
+    <pre>% tar xvzf enju-X.Y.Z.tar.gz</pre>
+  <li>configure スクリプトを実行します．
+    <pre>% ./configure</pre>
+    デフォルトでは，/usr/local/ にインストールします．他のディレクトリ
+    (例えば，$INSTALL_DIR) にインストールしたい時は，以下のように
+    prefix を指定して下さい．
+    <pre>% ./configure --prefix=$INSTALL_DIR</pre>
+  <li>Enju をインストールします．
+    <pre>% make install</pre>
+</ol>
+
+<hr>
+
+<h3>CVS からパッケージをとった人へ</h3>
+<em>flexとyaccがインストールされている必要があります．</em>
+<p>
+はじめに，configure スクリプトを作るために以下を実行します．
+<pre>% libtoolize --force --automake; aclocal; autoheader; automake --add-missing --foreign; autoconf
+% cd ll; libtoolize --force --automake; aclocal; autoheader; automake --add-missing --foreign; autoconf</pre>
+あとは「ソースパッケージのインストール」と同じです．
+
+<hr>
+<a href="index.ja.html">Enju の使い方</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/enju/">Enju ホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">辻井研究室</a>
+
+<hr>
+<a href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<address>MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)</address>
+</a>
+</body>
+
