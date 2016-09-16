@@ -1,0 +1,31 @@
+% $Id: is.lil,v 1.2 2005-02-01 08:39:03 yusuke Exp $
+% Definition of 'is'
+% This module is necessary when 'is/2' is used in 'call/1' or 'findall/3'.
+
+:- module("lillib:is").
+:- module_interface.
+:- module_implementation.
+
+is_internal <- pred.
+X is P :- is_internal(P, X).
+
+is_internal(P, X) :- P = integer, P = X.
+is_internal(P, X) :- P = float, P = X.
+is_internal(P, X) :- P = string, P = X.
+is_internal(($P & '+'), $X) :-
+    type_subsume('+/2', $P),
+    !,
+    $P = $Y + $Z,
+    is_internal($Y, $Y1), is_internal($Z, $Z1), $X is $Y1 + $Z1.
+is_internal(+ $P, $X):- $P = $X.
+is_internal(($P & '-'), $X) :-
+    type_subsume('-/2', $P),
+    !,
+    $P = '-/2'($Y, $Z),
+    is_internal($Y, $Y1), is_internal($Z, $Z1), $X is $Y1 + $Z1.
+is_internal(- $P, $X) :- is_internal($P, $P1), $X is 0 - $P1.
+is_internal(A * B, X) :- is_internal(A, A1), is_internal(B, B1), X is A1 * B1.
+is_internal(A / B, X) :- is_internal(A, A1), is_internal(B, B1), X is A1 / B1.
+is_internal(A // B, X) :- is_internal(A, A1), is_internal(B, B1), X is A1 // B1.
+is_internal(A mod B, X) :- is_internal(A, A1), is_internal(B, B1), X is A1 mod B1.
+

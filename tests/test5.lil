@@ -1,0 +1,124 @@
+:- module("test5").
+:- ensure_loaded("testmain").
+
+indexing <- bot.
+indexing2 <- bot.
+
+:- module_implementation.
+
+%--------------------------------------------------------------------
+
+%/*
+do_fail <- pred.
+do_fail :- fail.
+
+dummy2 <- pred.
+dummy2(X) :- fail_count(X).
+
+test_item(fail_count, 0, 0).
+
+tt(fail_count, 0) :- fail_count(X), fail_count(Y), X =:= Y.
+tt(fail_count, 1) :- fail_count(X), (do_fail ; true), fail_count(Y), X1 is X + 1, equiv(X1, Y).
+%*/
+
+%--------------------------------------------------------------------
+
+indextest <- pred.
+indextest2 <- pred.
+indextest3 <- pred.
+
+
+length <- pred.
+
+ta <- bot.
+tb <- ta.
+tc <- ta.
+td <- tb.
+te <- tb,tc.
+tf <- tc.
+
+dummy <- bot + [dummy1\] ./ constr\ dummy1\ [3].
+
+length([], 0).
+length([A|B], X) :- length(B, X1), X is X1 + 1.
+
+indextest(-10000,	 1).
+indextest(2345,		 2).
+indextest("t",		 3).
+indextest(-10000,	 4).
+indextest("HOGEHOGE",	 5).
+indextest(bot,		 6).
+indextest(cons,		 7).
+indextest([3,4|_],	 8).
+indextest(list,		 9).
+indextest(nil,		10).
+indextest(integer,	11).
+indextest(string,	12).
+indextest("HOGEHOGE",	13).
+indextest("",		14).
+indextest(ta,		15).
+indextest(tb,		16).
+indextest(tc,		17).
+indextest(td,		18).
+indextest(te,		19).
+indextest(tf,		20).
+
+indextest2("hoge", 1).
+indextest2("hogehoge", 2).
+indextest2("", 3).
+indextest2("hoge", 4).
+indextest2("hogehogehoge", 5).
+
+indextest3("hoge", 1).
+indextest3("hogehoge", 2).
+indextest3("", 3).
+indextest3("hoge", 4).
+indextest3("hogehogehoge", 5).
+:- multifile(indextest3).
+
+
+test_item(indexing,26, 2).
+
+tt(indexing, 0) :- findall(X, indextest(bot		, X), Y), length(Y, 20).
+tt(indexing, 1) :- findall(X, indextest(2345		, X), Y), equiv( Y, [2, 6, 11] ).
+tt(indexing, 2) :- findall(X, indextest(-10000		, X), Y), equiv( Y, [1, 4, 6, 11] ).
+tt(indexing, 3) :- findall(X, indextest(34567		, X), Y), equiv( Y, [6, 11] ).
+tt(indexing, 4) :- findall(X, indextest("t"		, X), Y), equiv( Y, [3, 6, 12] ).
+tt(indexing, 5) :- findall(X, indextest("HOGEHOGE"	, X), Y), equiv( Y, [5, 6, 12, 13] ).
+tt(indexing, 6) :- findall(X, indextest(""		, X), Y), equiv( Y, [6, 12, 14] ).
+tt(indexing, 7) :- findall(X, indextest("HOGE"		, X), Y), equiv( Y, [6, 12] ).
+tt(indexing, 8) :- findall(X, indextest(integer		, X), Y), equiv( Y, [1, 2, 4, 6, 11] ).
+tt(indexing, 9) :- findall(X, indextest(string		, X), Y), equiv( Y, [3, 5, 6, 12, 13, 14] ).
+tt(indexing,10) :- findall(X, indextest(cons		, X), Y), equiv( Y, [6, 7, 8, 9] ).
+tt(indexing,11) :- findall(X, indextest([_,4,5]		, X), Y), equiv( Y, [6, 7, 8, 9] ).
+tt(indexing,12) :- findall(X, indextest([_]		, X), Y), equiv( Y, [6, 7, 9] ).
+tt(indexing,13) :- findall(X, indextest(ta		, X), Y), equiv( Y, [6, 15, 16, 17, 18, 19, 20] ).
+tt(indexing,14) :- findall(X, indextest(tb		, X), Y), equiv( Y, [6, 15, 16, 17, 18, 19] ).
+tt(indexing,15) :- findall(X, indextest(tc		, X), Y), equiv( Y, [6, 15, 16, 17, 19, 20] ).
+tt(indexing,16) :- findall(X, indextest(td		, X), Y), equiv( Y, [6, 15, 16, 18] ).
+tt(indexing,17) :- findall(X, indextest(te		, X), Y), equiv( Y, [6, 15, 16, 17, 19] ).
+tt(indexing,18) :- findall(X, indextest(tf		, X), Y), equiv( Y, [6, 15, 17, 20] ).
+tt(indexing,19) :- findall(X, indextest(dummy		, X), Y), equiv( Y, [6] ).
+tt(indexing,20) :- findall(X, indextest2("hoge"		, X), Y), equiv( Y, [1, 4] ).
+tt(indexing,21) :- findall(X, indextest2(""		, X), Y), equiv( Y, [3] ).
+tt(indexing,22) :- findall(X, indextest2(X		, _), Y), equiv( Y, ["hoge", "hogehoge", "", "hoge", "hogehogehoge"] ).
+tt(indexing,23) :- findall(X, indextest3("hoge"		, X), Y), equiv( Y, [1, 4] ).
+tt(indexing,24) :- findall(X, indextest3(""		, X), Y), equiv( Y, [3] ).
+tt(indexing,25) :- findall(X, indextest3(X		, _), Y), equiv( Y, ["hoge", "hogehoge", "", "hoge", "hogehogehoge"] ).
+
+ft(indexing, 0) :- indextest2("moge"		, _).
+ft(indexing, 1) :- indextest3("hogehogehogE"	, _).
+
+%/*
+test_item(indexing2, 0, 0).
+
+tt(indexing2, 0) :- fail_count(S), (indextest("test", X), fail ; true), fail_count(E), N is E - S, N < 5.
+tt(indexing2, 1) :- fail_count(S), (indextest("HOGEHOGE", X), fail ; true), fail_count(E), N is E - S, N < 5.
+tt(indexing2, 2) :- fail_count(S), (indextest(2345, X), fail ; true), fail_count(E), N is E - S, N < 5.
+tt(indexing2, 3) :- fail_count(S), (indextest(-10000, X), fail ; true), fail_count(E), N is E - S, N < 5.
+tt(indexing2, 4) :- fail_count(S), (indextest(cons, X), fail ; true), fail_count(E), N is E - S, N < 5.
+tt(indexing2, 5) :- fail_count(S), (indextest(list, X), fail ; true), fail_count(E), N is E - S, N < 6.
+%*/
+
+
+

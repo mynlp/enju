@@ -1,0 +1,13 @@
+:- module("testall").
+:- module_interface.
+
+:- ensure_loaded("testmain").
+:- ensure_loaded("test0").
+:- ensure_loaded("test1").
+:- ensure_loaded("test2").
+:- ensure_loaded("test3").
+:- ensure_loaded("test4").
+:- ensure_loaded("test5").
+:- ensure_loaded("test6").
+:- ensure_loaded("test7").
+:- ensure_loaded("test9").

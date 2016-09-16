@@ -1,0 +1,331 @@
+:- module("test6").
+:- ensure_loaded("testmain").
+
+assertion <- bot.
+
+:- module_implementation.
+%--------------------------------------------------------------------
+
+ta <- bot.
+tb <- ta.
+tc <- ta.
+td <- tb.
+te <- tb,tc.
+tf <- tc.
+
+dummy <- bot + [dummy1\] ./ constr\ dummy1\ [3].
+
+length <- pred.
+length([], 0).
+length([A|B], X) :- length(B, X1), X is X1 + 1.
+
+indextest <- pred.
+:- dynamic(indextest).
+
+:- assert(indextest(-10000,	 1) ).
+:- assert(indextest(2345,	 2) ).
+:- assert(indextest("t",	 3) ).
+:- assert(indextest(-10000,	 4) ).
+:- assert(indextest("HOGEHOGE",	 5) ).
+:- assert(indextest(bot,	 6) ).
+:- assert(indextest(cons,	 7) ).
+:- assert(indextest([3,4|_],	 8) ).
+:- assert(indextest(list,	 9) ).
+:- assert(indextest(nil,	10) ).
+:- assert(indextest(integer,	11) ).
+:- assert(indextest(string,	12) ).
+:- assert(indextest("HOGEHOGE",	13) ).
+:- assert(indextest("",		14) ).
+:- assert(indextest(ta,		15) ).
+:- assert(indextest(tb,		16) ).
+:- assert(indextest(tc,		17) ).
+:- assert(indextest(td,		18) ).
+:- assert(indextest(te,		19) ).
+:- assert(indextest(tf,		20) ).
+
+test_item(assertion,20, 0).
+
+tt(assertion, 0) :- findall(X, indextest(bot		, X), Y), length(Y, 20).
+tt(assertion, 1) :- findall(X, indextest(2345		, X), Y), equiv( Y, [2, 6, 11] ).
+tt(assertion, 2) :- findall(X, indextest(-10000		, X), Y), equiv( Y, [1, 4, 6, 11] ).
+tt(assertion, 3) :- findall(X, indextest(34567		, X), Y), equiv( Y, [6, 11] ).
+tt(assertion, 4) :- findall(X, indextest("t"		, X), Y), equiv( Y, [3, 6, 12] ).
+tt(assertion, 5) :- findall(X, indextest("HOGEHOGE"	, X), Y), equiv( Y, [5, 6, 12, 13] ).
+tt(assertion, 6) :- findall(X, indextest(""		, X), Y), equiv( Y, [6, 12, 14] ).
+tt(assertion, 7) :- findall(X, indextest("HOGE"		, X), Y), equiv( Y, [6, 12] ).
+tt(assertion, 8) :- findall(X, indextest(integer		, X), Y), equiv( Y, [1, 2, 4, 6, 11] ).
+tt(assertion, 9) :- findall(X, indextest(string		, X), Y), equiv( Y, [3, 5, 6, 12, 13, 14] ).
+tt(assertion,10) :- findall(X, indextest(cons		, X), Y), equiv( Y, [6, 7, 8, 9] ).
+tt(assertion,11) :- findall(X, indextest([_,4,5]		, X), Y), equiv( Y, [6, 7, 8, 9] ).
+tt(assertion,12) :- findall(X, indextest([_]		, X), Y), equiv( Y, [6, 7, 9] ).
+tt(assertion,13) :- findall(X, indextest(ta		, X), Y), equiv( Y, [6, 15, 16, 17, 18, 19, 20] ).
+tt(assertion,14) :- findall(X, indextest(tb		, X), Y), equiv( Y, [6, 15, 16, 17, 18, 19] ).
+tt(assertion,15) :- findall(X, indextest(tc		, X), Y), equiv( Y, [6, 15, 16, 17, 19, 20] ).
+tt(assertion,16) :- findall(X, indextest(td		, X), Y), equiv( Y, [6, 15, 16, 18] ).
+tt(assertion,17) :- findall(X, indextest(te		, X), Y), equiv( Y, [6, 15, 16, 17, 19] ).
+tt(assertion,18) :- findall(X, indextest(tf		, X), Y), equiv( Y, [6, 15, 17, 20] ).
+tt(assertion,19) :- findall(X, indextest(dummy		, X), Y), equiv( Y, [6] ).
+
+pred_dynamic <- pred.
+pred_multifile <- pred.
+pred_dynamic_with_compiled <- pred.
+pred_no_dynamic <- pred.
+pred_no_define <- pred.
+
+:- dynamic(pred_dynamic).
+:- dynamic(pred_multifile).
+:- multifile(pred_multifile).
+:- dynamic(pred_dynamic_with_compiled).
+
+pred_dynamic_with_compiled("2", 2).
+pred_dynamic_with_compiled(3, 3).
+
+test_item(pred_dynamic, 16, 4).
+
+tt(pred_dynamic, 0) :- 
+		assert((pred_dynamic(3, 3))), 
+		asserta((pred_dynamic("2", 2))), 
+		assert((pred_dynamic(X, 4) :- X = "4")), 
+		asserta((pred_dynamic(X, 1) :- X = 1)), 
+		assert((pred_dynamic(5, 5))), 
+		asserta((pred_dynamic("0", 0))).
+tt(pred_dynamic, 1) :- 
+		pred_dynamic(X, Y), Y = 0.
+tt(pred_dynamic, 2) :- 
+		pred_dynamic(X, Y), Y = 1.
+tt(pred_dynamic, 3) :- 
+		pred_dynamic(X, Y), Y = 2.
+tt(pred_dynamic, 4) :- 
+		pred_dynamic(X, Y), Y = 3.
+tt(pred_dynamic, 5) :- 
+		pred_dynamic(X, Y), Y = 4.
+tt(pred_dynamic, 6) :- 
+		pred_dynamic(X, Y), Y = 5.
+tt(pred_dynamic, 7) :-
+		findall( X, pred_dynamic(bot, X), Y), equiv(Y, [0,1,2,3,4,5]).
+tt(pred_dynamic, 8) :-
+		findall( X, pred_dynamic("0", X), Y), equiv(Y, [0]).
+tt(pred_dynamic, 9) :-
+		findall( X, pred_dynamic( 1 , X), Y), equiv(Y, [1]).
+tt(pred_dynamic,10) :-
+		findall( X, pred_dynamic("2", X), Y), equiv(Y, [2]).
+tt(pred_dynamic,11) :-
+		findall( X, pred_dynamic( 3 , X), Y), equiv(Y, [3]).
+tt(pred_dynamic,12) :-
+		findall( X, pred_dynamic("4", X), Y), equiv(Y, [4]).
+tt(pred_dynamic,13) :-
+		findall( X, pred_dynamic( 5 , X), Y), equiv(Y, [5]).
+tt(pred_dynamic,14) :-
+		findall( X, pred_dynamic(string, X), Y), equiv(Y, [0,2,4]).
+tt(pred_dynamic,15) :-
+		findall( X, pred_dynamic(integer, X), Y), equiv(Y, [1,3,5]).
+
+ft(pred_dynamic,0) :-
+		pred_dynamic(6, _).
+ft(pred_dynamic,1) :-
+		pred_dynamic("6", _).
+ft(pred_dynamic,2) :-
+		pred_dynamic(cons, _).
+ft(pred_dynamic,3) :-
+		pred_dynamic(_, "2").
+
+
+test_item(pred_multifile, 16, 4).
+
+tt(pred_multifile, 0) :- 
+		assert((pred_multifile(3, 3))), 
+		asserta((pred_multifile("2", 2))), 
+		assert((pred_multifile(X, 4) :- X = "4")), 
+		asserta((pred_multifile(X, 1) :- X = 1)), 
+		assert((pred_multifile(5, 5))), 
+		asserta((pred_multifile("0", 0))).
+tt(pred_multifile, 1) :- 
+		pred_multifile(X, Y), Y = 0.
+tt(pred_multifile, 2) :- 
+		pred_multifile(X, Y), Y = 1.
+tt(pred_multifile, 3) :- 
+		pred_multifile(X, Y), Y = 2.
+tt(pred_multifile, 4) :- 
+		pred_multifile(X, Y), Y = 3.
+tt(pred_multifile, 5) :- 
+		pred_multifile(X, Y), Y = 4.
+tt(pred_multifile, 6) :- 
+		pred_multifile(X, Y), Y = 5.
+tt(pred_multifile, 7) :-
+		findall( X, pred_multifile(bot, X), Y), equiv(Y, [0,1,2,3,4,5]).
+tt(pred_multifile, 8) :-
+		findall( X, pred_multifile("0", X), Y), equiv(Y, [0]).
+tt(pred_multifile, 9) :-
+		findall( X, pred_multifile( 1 , X), Y), equiv(Y, [1]).
+tt(pred_multifile,10) :-
+		findall( X, pred_multifile("2", X), Y), equiv(Y, [2]).
+tt(pred_multifile,11) :-
+		findall( X, pred_multifile( 3 , X), Y), equiv(Y, [3]).
+tt(pred_multifile,12) :-
+		findall( X, pred_multifile("4", X), Y), equiv(Y, [4]).
+tt(pred_multifile,13) :-
+		findall( X, pred_multifile( 5 , X), Y), equiv(Y, [5]).
+tt(pred_multifile,14) :-
+		findall( X, pred_multifile(string, X), Y), equiv(Y, [0,2,4]).
+tt(pred_multifile,15) :-
+		findall( X, pred_multifile(integer, X), Y), equiv(Y, [1,3,5]).
+
+ft(pred_multifile,0) :-
+		pred_multifile(6, _).
+ft(pred_multifile,1) :-
+		pred_multifile("6", _).
+ft(pred_multifile,2) :-
+		pred_multifile(cons, _).
+ft(pred_multifile,3) :-
+		pred_multifile(_, "2").
+
+
+test_item(pred_dynamic_with_compiled, 16, 4).
+
+tt(pred_dynamic_with_compiled, 0) :- 
+		assert((pred_dynamic_with_compiled(X, 4) :- X = "4")), 
+		asserta((pred_dynamic_with_compiled(X, 1) :- X = 1)), 
+		assert((pred_dynamic_with_compiled(5, 5))), 
+		asserta((pred_dynamic_with_compiled("0", 0))).
+tt(pred_dynamic_with_compiled, 1) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 0.
+tt(pred_dynamic_with_compiled, 2) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 1.
+tt(pred_dynamic_with_compiled, 3) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 2.
+tt(pred_dynamic_with_compiled, 4) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 3.
+tt(pred_dynamic_with_compiled, 5) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 4.
+tt(pred_dynamic_with_compiled, 6) :- 
+		pred_dynamic_with_compiled(X, Y), Y = 5.
+tt(pred_dynamic_with_compiled, 7) :-
+		findall( X, pred_dynamic_with_compiled(bot, X), Y), equiv(Y, [0,1,2,3,4,5]).
+tt(pred_dynamic_with_compiled, 8) :-
+		findall( X, pred_dynamic_with_compiled("0", X), Y), equiv(Y, [0]).
+tt(pred_dynamic_with_compiled, 9) :-
+		findall( X, pred_dynamic_with_compiled( 1 , X), Y), equiv(Y, [1]).
+tt(pred_dynamic_with_compiled,10) :-
+		findall( X, pred_dynamic_with_compiled("2", X), Y), equiv(Y, [2]).
+tt(pred_dynamic_with_compiled,11) :-
+		findall( X, pred_dynamic_with_compiled( 3 , X), Y), equiv(Y, [3]).
+tt(pred_dynamic_with_compiled,12) :-
+		findall( X, pred_dynamic_with_compiled("4", X), Y), equiv(Y, [4]).
+tt(pred_dynamic_with_compiled,13) :-
+		findall( X, pred_dynamic_with_compiled( 5 , X), Y), equiv(Y, [5]).
+tt(pred_dynamic_with_compiled,14) :-
+		findall( X, pred_dynamic_with_compiled(string, X), Y), equiv(Y, [0,2,4]).
+tt(pred_dynamic_with_compiled,15) :-
+		findall( X, pred_dynamic_with_compiled(integer, X), Y), equiv(Y, [1,3,5]).
+
+ft(pred_dynamic_with_compiled,0) :-
+		pred_dynamic(6, _).
+ft(pred_dynamic_with_compiled,1) :-
+		pred_dynamic_with_compiled("6", _).
+ft(pred_dynamic_with_compiled,2) :-
+		pred_dynamic_with_compiled(cons, _).
+ft(pred_dynamic_with_compiled,3) :-
+		pred_dynamic_with_compiled(_, "2").
+
+
+test_item(pred_no_dynamic, 16, 4).
+
+tt(pred_no_dynamic, 0) :- 
+		assert((pred_no_dynamic(3, 3))), 
+		asserta((pred_no_dynamic("2", 2))), 
+		assert((pred_no_dynamic(X, 4) :- X = "4")), 
+		asserta((pred_no_dynamic(X, 1) :- X = 1)), 
+		assert((pred_no_dynamic(5, 5))), 
+		asserta((pred_no_dynamic("0", 0))).
+tt(pred_no_dynamic, 1) :- 
+		pred_no_dynamic(X, Y), Y = 0.
+tt(pred_no_dynamic, 2) :- 
+		pred_no_dynamic(X, Y), Y = 1.
+tt(pred_no_dynamic, 3) :- 
+		pred_no_dynamic(X, Y), Y = 2.
+tt(pred_no_dynamic, 4) :- 
+		pred_no_dynamic(X, Y), Y = 3.
+tt(pred_no_dynamic, 5) :- 
+		pred_no_dynamic(X, Y), Y = 4.
+tt(pred_no_dynamic, 6) :- 
+		pred_no_dynamic(X, Y), Y = 5.
+tt(pred_no_dynamic, 7) :-
+		findall( X, pred_no_dynamic(bot, X), Y), equiv(Y, [0,1,2,3,4,5]).
+tt(pred_no_dynamic, 8) :-
+		findall( X, pred_no_dynamic("0", X), Y), equiv(Y, [0]).
+tt(pred_no_dynamic, 9) :-
+		findall( X, pred_no_dynamic( 1 , X), Y), equiv(Y, [1]).
+tt(pred_no_dynamic,10) :-
+		findall( X, pred_no_dynamic("2", X), Y), equiv(Y, [2]).
+tt(pred_no_dynamic,11) :-
+		findall( X, pred_no_dynamic( 3 , X), Y), equiv(Y, [3]).
+tt(pred_no_dynamic,12) :-
+		findall( X, pred_no_dynamic("4", X), Y), equiv(Y, [4]).
+tt(pred_no_dynamic,13) :-
+		findall( X, pred_no_dynamic( 5 , X), Y), equiv(Y, [5]).
+tt(pred_no_dynamic,14) :-
+		findall( X, pred_no_dynamic(string, X), Y), equiv(Y, [0,2,4]).
+tt(pred_no_dynamic,15) :-
+		findall( X, pred_no_dynamic(integer, X), Y), equiv(Y, [1,3,5]).
+
+ft(pred_no_dynamic,0) :-
+		pred_no_dynamic(6, _).
+ft(pred_no_dynamic,1) :-
+		pred_no_dynamic("6", _).
+ft(pred_no_dynamic,2) :-
+		pred_no_dynamic(cons, _).
+ft(pred_no_dynamic,3) :-
+		pred_no_dynamic(_, "2").
+
+
+test_item(pred_no_define, 16, 4).
+
+tt(pred_no_define, 0) :- 
+		assert((pred_no_define(3, 3))), 
+		asserta((pred_no_define("2", 2))), 
+		assert((pred_no_define(X, 4) :- X = "4")), 
+		asserta((pred_no_define(X, 1) :- X = 1)), 
+		assert((pred_no_define(5, 5))), 
+		asserta((pred_no_define("0", 0))).
+tt(pred_no_define, 1) :- 
+		call( pred_no_define(X, Y)), Y = 0.
+tt(pred_no_define, 2) :- 
+		call( pred_no_define(X, Y)), Y = 1.
+tt(pred_no_define, 3) :- 
+		call( pred_no_define(X, Y)), Y = 2.
+tt(pred_no_define, 4) :- 
+		call( pred_no_define(X, Y)), Y = 3.
+tt(pred_no_define, 5) :- 
+		call( pred_no_define(X, Y)), Y = 4.
+tt(pred_no_define, 6) :- 
+		call( pred_no_define(X, Y)), Y = 5.
+tt(pred_no_define, 7) :-
+		findall( X, pred_no_define(bot, X), Y), equiv(Y, [0,1,2,3,4,5]).
+tt(pred_no_define, 8) :-
+		findall( X, pred_no_define("0", X), Y), equiv(Y, [0]).
+tt(pred_no_define, 9) :-
+		findall( X, pred_no_define( 1 , X), Y), equiv(Y, [1]).
+tt(pred_no_define,10) :-
+		findall( X, pred_no_define("2", X), Y), equiv(Y, [2]).
+tt(pred_no_define,11) :-
+		findall( X, pred_no_define( 3 , X), Y), equiv(Y, [3]).
+tt(pred_no_define,12) :-
+		findall( X, pred_no_define("4", X), Y), equiv(Y, [4]).
+tt(pred_no_define,13) :-
+		findall( X, pred_no_define( 5 , X), Y), equiv(Y, [5]).
+tt(pred_no_define,14) :-
+		findall( X, pred_no_define(string, X), Y), equiv(Y, [0,2,4]).
+tt(pred_no_define,15) :-
+		findall( X, pred_no_define(integer, X), Y), equiv(Y, [1,3,5]).
+
+ft(pred_no_define,0) :-
+		call(pred_no_define(6, _)).
+ft(pred_no_define,1) :-
+		call(pred_no_define("6", _)).
+ft(pred_no_define,2) :-
+		call(pred_no_define(cons, _)).
+ft(pred_no_define,3) :-
+		call(pred_no_define(_, "2")).
+
+
+%--------------------------------------------------------------------

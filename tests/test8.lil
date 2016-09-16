@@ -1,0 +1,736 @@
+:- module("test8").
+
+:- module_interface.
+
+:- ensure_loaded("testmain").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+generate_integer_sequence <- [pred].
+generate_integer_sequence($NUM, $NUM, []) :- !.
+generate_integer_sequence($NUM1, $MAX, [$NUM1|$NUMS]) :-
+    $NUM2 is $NUM1 + 1,
+    generate_integer_sequence($NUM2, $MAX, $NUMS).
+
+member <- [pred].
+member($X, [$X|_]).
+member($X, [_|$L]) :- member($X, $L).
+
+'*key_integer_array*' <- [pred].
+'*key_inthash_array*' <- [pred].
+'*key_string_array*' <- [pred].
+'*key_type_array*' <- [pred].
+'*key_fs_array*' <- [pred].
+%'*key_float_array*' <- [pred].
+
+'*integer_array*' <- [pred].
+'*inthash_array*' <- [pred].
+'*string_array*' <- [pred].
+'*type_array*' <- [pred].
+'*fs_array*' <- [pred].
+'*float_array*' <- [pred].
+
+'*key_int_int_array*' <- [pred].
+'*key_str_inthash_array*' <- [pred].
+'*key_fs_fs_array*' <- [pred].
+'*five_d_array*' <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+test_item(declare_array, 14, 15).
+tt(declare_array,  0) :- declare_array('*key_integer_array*'(key_integer & ARRAY_BASE\0 & ARRAY_SIZE\2000, array_value)).
+tt(declare_array,  1) :- declare_array('*key_inthash_array*'(key_inthash, array_value)).
+tt(declare_array,  2) :- declare_array('*key_string_array*'(key_string, array_value)).
+tt(declare_array,  3) :- declare_array('*key_type_array*'(key_type, array_value)).
+tt(declare_array,  4) :- declare_array('*key_fs_array*'(key_fs, array_value)).
+tt(declare_array,  5) :- declare_array('*integer_array*'(key_fs, array_value_integer)).
+tt(declare_array,  6) :- declare_array('*string_array*'(key_fs, array_value_string)).
+tt(declare_array,  7) :- declare_array('*type_array*'(key_fs, array_value_type)) ; declare_array('*type_array*'(key_fs, array_value)).
+tt(declare_array,  8) :- declare_array('*fs_array*'(key_fs, array_value)).
+tt(declare_array,  9) :- declare_array('*float_array*'(key_fs, array_value_float)).
+tt(declare_array, 10) :- declare_array('*key_int_int_array*'(key_integer & ARRAY_BASE\500 & ARRAY_SIZE\1000, key_integer & ARRAY_BASE\10 & ARRAY_SIZE\20, array_value)).
+tt(declare_array, 11) :- declare_array('*key_str_inthash_array*'(key_string, key_inthash, array_value)).
+tt(declare_array, 12) :- declare_array('*key_fs_fs_array*'(key_fs, key_fs, array_value)).
+tt(declare_array, 13) :- declare_array('*five_d_array*'(key_fs, key_fs, key_fs, key_fs, array_value)).
+ft(declare_array,  0) :- declare_array('*key_integer_array*'(key_integer & ARRAY_BASE\1000 & ARRAY_SIZE\1000, array_value)).
+ft(declare_array,  1) :- declare_array('*key_inthash_array*'(key_inthash, array_value)).
+ft(declare_array,  2) :- declare_array('*key_string_array*'(key_string, array_value)).
+ft(declare_array,  3) :- declare_array('*key_type_array*'(key_type, array_value)).
+ft(declare_array,  4) :- declare_array('*key_fs_array*'(key_fs, array_value)).
+ft(declare_array,  5) :- declare_array('*integer_array*'(key_fs, array_value_integer)).
+ft(declare_array,  6) :- declare_array('*string_array*'(key_fs, array_value_string)).
+ft(declare_array,  7) :- declare_array('*type_array*'(key_fs, array_value_type)).
+ft(declare_array,  8) :- declare_array('*fs_array*'(key_fs, array_value)).
+ft(declare_array,  9) :- declare_array('*float_array*'(key_fs, array_value_float)).
+ft(declare_array, 10) :- declare_array('*key_int_int_array*'(key_integer & ARRAY_BASE\500 & ARRAY_SIZE\1000, key_integer & ARRAY_BASE\10 & ARRAY_SIZE\20, array_value)).
+ft(declare_array, 11) :- declare_array('*key_str_inthash_array*'(key_string, key_inthash, array_value)).
+ft(declare_array, 12) :- declare_array('*key_fs_fs_array*'(key_fs, key_fs, array_value)).
+ft(declare_array, 13) :- declare_array('*five_d_array*'(key_fs, key_fs, key_fs, key_fs, array_value)).
+ft(declare_array, 14) :- declare_array(bot).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+test_item(set_array, 27, 25).
+tt(set_array,  0) :- set_array('*key_integer_array*'(1728, [1728, 1729, 1730])).
+tt(set_array,  1) :- set_array('*key_integer_array*'(1728, [1727, 1728, 1739, 1745])).
+tt(set_array,  2) :-
+    generate_integer_sequence(1000, 1000, X),
+    (member(Y, X),
+     Z is ( 1427 - Y ) * 3,
+     set_array('*key_integer_array*'(Y, [Z, Y])),
+     fail ;
+     true).
+tt(set_array,  3) :- set_array('*key_inthash_array*'(28471, [2561, "hoge", bot])).
+tt(set_array,  4) :- set_array('*key_inthash_array*'(-12633, [])).
+tt(set_array,  5) :- set_array('*key_inthash_array*'(28471, ["test"])).
+tt(set_array,  6) :-
+    generate_integer_sequence(-500, 1000, X),
+    (member(Y, X),
+     Z is ( 245 - Y ) // 4,
+     set_array('*key_inthash_array*'(Z, [Z, Y])),
+     fail ;
+     true).
+tt(set_array,  7) :- set_array('*key_string_array*'("Yusuke", "StMaria")).
+tt(set_array,  8) :- set_array('*key_string_array*'("Yusuke", ["Miyao"])).
+tt(set_array,  9) :- set_array('*key_type_array*'(list, ["poepen"])).
+tt(set_array, 10) :- set_array('*key_type_array*'(integer, ["poepen_int"])).
+tt(set_array, 11) :- set_array('*key_type_array*'(list, ["poepen_list"])).
+tt(set_array, 12) :- set_array('*key_fs_array*'([1,2,3], ["poepen2"])).
+tt(set_array, 13) :- set_array('*key_fs_array*'(list, ["poepen1"])).
+tt(set_array, 14) :- set_array('*key_fs_array*'(1, ["poepen2"])).
+tt(set_array, 15) :- set_array('*key_fs_array*'([1,2,3], ["poepen3"])).
+%tt(set_array, 16) :- set_array('*key_float_array*'(1, "hoge")).
+%tt(set_array, 17) :- set_array('*key_float_array*'(3.14, "pi")).
+tt(set_array, 16) :- set_array('*key_fs_fs_array*'(set_array, [3.14], [2,3,4])).
+tt(set_array, 17) :- set_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], [11])).
+tt(set_array, 18) :- set_array('*integer_array*'([1,2,3], -2987)).
+tt(set_array, 19) :- set_array('*string_array*'([2,3,4], "hogehoge")).
+tt(set_array, 20) :- set_array('*type_array*'([3,4,5], cons)).
+tt(set_array, 21) :- set_array('*fs_array*'([4,5,6], ["hoge", "poe"])).
+tt(set_array, 22) :- set_array('*float_array*'([5,6,7], 3.24)).
+tt(set_array, 23) :- set_array('*key_int_int_array*'(786, 17, ["poepoe", "pen"])).
+tt(set_array, 24) :- set_array('*key_int_int_array*'(786, 18, ["poepoe", "pen", 18])).
+tt(set_array, 25) :- set_array('*key_int_int_array*'(786, 17, ["poepoe", "pen", 17])).
+tt(set_array, 26) :- set_array('*key_str_inthash_array*'("poe", -2352, [1,2,3])).
+
+ft(set_array,  0) :- set_array('*key_integer_array*'(-125, [1728, 1729, 1730])).
+ft(set_array,  1) :- set_array('*key_integer_array*'("key", "value")).
+ft(set_array,  2) :- set_array('*key_integer_array*'(1.25, "float")).
+ft(set_array,  3) :- set_array('*key_inthash_array*'("string", "value")).
+ft(set_array,  4) :- set_array('*key_inthash_array*'(-12.633, "float")).
+ft(set_array,  5) :- set_array('*key_inthash_array*'([1,2,3], "fs")).
+expected_failure( ft(set_array, 6) ).
+ft(set_array,  6) :- set_array('*key_string_array*'(3.2, "integer")).
+expected_failure( ft(set_array, 7) ).
+%ft(set_array,  7) :- set_array('*key_float_array*'("string", "value")).
+ft(set_array, 7) :- set_array(bot).
+ft(set_array,  8) :- set_array('*integer_array*'([1,2,3], [4,5,6])).
+expected_failure( ft(set_array, 9) ).
+ft(set_array,  9) :- set_array('*string_array*'([2,3,4], [5,6,7])).
+expected_failure( ft(set_array, 10) ).
+ft(set_array, 10) :- set_array('*float_array*'([5,6,7], ["hoge"])).
+ft(set_array, 11) :- set_array('*key_int_int_array*'(786, 333, ["poepoe", "penn"])).
+ft(set_array, 12) :- set_array('*key_int_int_array*'(786, 3, ["poepoe", "penn"])).
+ft(set_array, 13) :- set_array('*key_int_int_array*'(786, -3, ["poepoe", "penn"])).
+ft(set_array, 14) :- set_array('*key_int_int_array*'(3, 16, ["poepoe", "penn"])).
+ft(set_array, 15) :- set_array('*key_int_int_array*'(-3, 16, ["poepoe", "penn"])).
+ft(set_array, 16) :- set_array('*key_int_int_array*'(2500, 16, ["poepoe", "penn"])).
+ft(set_array, 17) :- set_array('*key_str_inthash_array*'("poe", "pen", [1,2,3])).
+ft(set_array, 18) :- set_array('*five_d_array*').
+ft(set_array, 19) :- set_array('*key_integer_array*'(2001, [1728, 1729, 1730])).
+ft(set_array, 20) :- set_array(132).
+ft(set_array, 21) :- set_array("str").
+ft(set_array, 22) :- set_array(3.45).
+ft(set_array, 23) :- set_array([4,5.6]).
+ft(set_array, 24) :- set_array([]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Temporary
+%%%
+
+test_item(get_array, 14, 45).
+tt(get_array, 0) :-
+    get_array('*key_integer_array*'(1728, X)),
+    equiv(X, [1727, 1728, 1739, 1745]).
+tt(get_array, 1) :-
+    get_array('*key_inthash_array*'(28471, X)),
+    equiv(X, ["test"]).
+tt(get_array, 2) :-
+    get_array('*key_string_array*'("Yusuke", X)),
+    equiv(X, ["Miyao"]).
+tt(get_array, 3) :-
+    get_array('*key_type_array*'(list, X)),
+    equiv(X, ["poepen_list"]).
+tt(get_array, 4) :-
+    get_array('*key_fs_array*'([1,2,3], X)),
+    equiv(X, ["poepen3"]).
+%tt(get_array, 5) :-
+%    get_array('*key_float_array*'(3.14, X)),
+%    equiv(X, "pi").
+tt(get_array, 5) :-
+    get_array('*five_d_array*'([1,2,3], [4,5], [6], X, [11])),
+    equiv(X, [7,8,9,10]).
+tt(get_array, 6) :-
+    get_array('*integer_array*'([1,2,3], X)),
+    equiv(X, -2987).
+tt(get_array, 7) :-
+    get_array('*string_array*'([2,3,4], X)),
+    equiv(X, "hogehoge").
+tt(get_array, 8) :-
+	Z = [3,4,5],
+    printAVM(Z),
+    get_array('*type_array*'([3,4,5], X)),
+    equiv(X, cons).
+tt(get_array, 9) :-
+    get_array('*fs_array*'([4,5,6], X)),
+    equiv(X, ["hoge", "poe"]).
+tt(get_array, 10) :-
+    get_array('*float_array*'([5,6,7], X)),
+    equiv(X, 3.24).
+tt(get_array, 11) :-
+    get_array('*key_int_int_array*'(786, 17, X)),
+    equiv(X, ["poepoe", "pen", 17]).
+tt(get_array, 12) :-
+    get_array('*key_str_inthash_array*'("poe", -2352, X)),
+    equiv(X, [1,2,3]).
+tt(get_array, 13) :-
+    get_array('*key_fs_fs_array*'(set_array, [3.14], X)),
+    equiv(X, [2,3,4]).
+
+
+ft(get_array, 0) :-
+    get_array('*key_integer_array*'(2263, _)).
+ft(get_array, 1) :-
+    get_array('*key_integer_array*'(-2263, _)).
+ft(get_array, 2) :-
+    get_array('*key_integer_array*'(1999, _)).
+ft(get_array, 3) :-
+    get_array('*key_integer_array*'(1728, [1727, 1728, 1739, 1745])).
+ft(get_array, 4) :-
+    get_array('*key_inthash_array*'("string", _)).
+ft(get_array, 5) :-
+    get_array('*key_inthash_array*'(-12.633, _)).
+ft(get_array, 6) :-
+    get_array('*key_inthash_array*'([1,2,3], _)).
+ft(get_array, 7) :-
+    get_array('*key_inthash_array*'(28471, ["test"])).
+ft(get_array, 8) :-
+    get_array('*key_string_array*'(3.2, _)).
+ft(get_array, 9) :-
+    get_array('*key_string_array*'("Yusuke", ["Miyao"])).
+ft(get_array, 10) :-
+    get_array('*key_type_array*'(123, _)).
+ft(get_array, 11) :-
+    get_array('*key_type_array*'(list, ["poepen_list"])).
+ft(get_array, 12) :-
+    get_array('*key_fs_array*'(123, _)).
+ft(get_array, 13) :-
+    get_array('*key_fs_array*'(-123, _)).
+ft(get_array, 14) :-
+    get_array('*key_fs_array*'([1,2,3], ["poepen3"])).
+%ft(get_array, 15) :-
+%    get_array('*key_float_array*'("string", _)).
+%ft(get_array, 16) :-
+%    get_array('*key_float_array*'(3.14, "pi")).
+ft(get_array, 15) :-
+    get_array([]).
+ft(get_array, 16) :-
+    get_array(bot).
+ft(get_array, 17) :-
+    get_array('*integer_array*'(-123, _)).
+ft(get_array, 18) :-
+    get_array('*integer_array*'([1,2,3], -2987)).
+ft(get_array, 19) :-
+    get_array('*string_array*'(-234, _)).
+ft(get_array, 20) :-
+    get_array('*string_array*'([2,3,4], "hogehoge")).
+ft(get_array, 21) :-
+    get_array('*type_array*'([3,4,5], cons)).
+ft(get_array, 22) :-
+    get_array('*type_array*'(-345, _)).
+ft(get_array, 23) :-
+    get_array('*fs_array*'(-456, _)).
+ft(get_array, 24) :-
+    get_array('*fs_array*'([4,5,6], ["hoge", "poe"])).
+ft(get_array, 25) :-
+    get_array('*float_array*'([5,6,7], 3.24)).
+ft(get_array, 26) :-
+    get_array('*float_array*'(-567, _)).
+ft(get_array, 27) :-
+    get_array('*key_int_int_array*'(786, 333, _)).
+ft(get_array, 28) :-
+    get_array('*key_int_int_array*'(786, 3, _)).
+ft(get_array, 29) :-
+    get_array('*key_int_int_array*'(786, -3, _)).
+ft(get_array, 30) :-
+    get_array('*key_int_int_array*'(3, 16, _)).
+ft(get_array, 31) :-
+    get_array('*key_int_int_array*'(-3, 16, _)).
+ft(get_array, 32) :-
+    get_array('*key_int_int_array*'(2500, 16, _)).
+ft(get_array, 33) :-
+    get_array('*key_int_int_array*'(786, 17, ["poepoe", "pen", 17])).
+ft(get_array, 34) :-
+    get_array('*key_str_inthash_array*'("poe", "pen", _)).
+ft(get_array, 35) :-
+    get_array('*key_str_inthash_array*'("poe", -2352, [1,2,3])).
+ft(get_array, 36) :-
+    get_array('*five_d_array*'([1,2,3], [4,5], "pen", _, [11])).
+ft(get_array, 37) :-
+    get_array('*five_d_array*'(-123, [4,5], [6], _, [11])).
+ft(get_array, 38) :-
+    get_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], [11])).
+ft(get_array, 39) :-
+    get_array('*five_d_array*').
+ft(get_array, 40) :-
+    get_array('*key_fs_fs_array*'(set_array, [3,14], [2,3,4])).
+ft(get_array, 41) :-
+    get_array(132).
+ft(get_array, 42) :-
+    get_array("str").
+ft(get_array, 43) :-
+    get_array(3.45).
+ft(get_array, 44) :-
+    get_array([4,5,6]).
+
+
+
+test_item(clear_array, 14, 0).
+tt(clear_array, 0) :-
+    set_array('*key_integer_array*'(2003, [1000,1000])),
+    get_array('*key_integer_array*'(2003, _)),
+    clear_array('*key_integer_array*'),
+    \+ get_array('*key_integer_array*'(2003, _)).
+tt(clear_array, 1) :-
+    set_array('*key_inthash_array*'(2262, "poe")),
+    get_array('*key_inthash_array*'(2262, _)),
+    clear_array('*key_inthash_array*'),
+    \+ get_array('*key_inthash_array*'(2262, _)).
+tt(clear_array, 2) :-
+    set_array('*key_string_array*'("Yusuke", "Miyao")),
+    get_array('*key_string_array*'("Yusuke", _)),
+    clear_array('*key_string_array*'),
+    \+ get_array('*key_string_array*'("Yusuke", _)).
+tt(clear_array, 3) :-
+    set_array('*key_type_array*'(list, ["yusuke"])),
+    get_array('*key_type_array*'(list, _)),
+    clear_array('*key_type_array*'),
+    \+ get_array('*key_type_array*'(list, _)).
+tt(clear_array, 4) :-
+    set_array('*key_fs_array*'(list, ["poepen"])),
+    get_array('*key_fs_array*'(list, _)),
+    clear_array('*key_fs_array*'),
+    \+ get_array('*key_fs_array*'(list, _)).
+%tt(clear_array, 5) :-
+%    set_array('*key_float_array*'(3.14, "pi")),
+%    get_array('*key_float_array*'(3,14, _)),
+%    clear_array('*key_float_array*'),
+%    \+ get_array('*key_float_array*'(3,14, _)).
+tt(clear_array, 5) :-
+    set_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], [11])),
+    get_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], _)),
+    clear_array('*five_d_array*'),
+    \+ get_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], _)).
+tt(clear_array, 6) :-
+    set_array('*integer_array*'([1,2,3], 10)),
+    get_array('*integer_array*'([1,2,3], _)),
+    clear_array('*integer_array*'),
+    \+ get_array('*integer_array*'([1,2,3], _)).
+tt(clear_array, 7) :-
+    set_array('*string_array*'([2,3,4], "Yusuke")),
+    get_array('*string_array*'([2,3,4], _)),
+    clear_array('*string_array*'),
+    \+ get_array('*string_array*'([2,3,4], _)).
+tt(clear_array, 8) :-
+    set_array('*type_array*'([3,4,5], cons)),
+    get_array('*type_array*'([3,4,5], _)),
+    clear_array('*type_array*'),
+    \+ get_array('*type_array*'([3,4,5], _)).
+tt(clear_array, 9) :-
+    set_array('*fs_array*'([4,5,6], ["hoge", "poe"])),
+    get_array('*fs_array*'([4,5,6], _)),
+    clear_array('*fs_array*'),
+    \+ get_array('*fs_array*'([4,5,6], _)).
+tt(clear_array, 10) :-
+    set_array('*float_array*'([5,6,7], 3.14)),
+    get_array('*float_array*'([5,6,7], _)),
+    clear_array('*float_array*'),
+    \+ get_array('*float_array*'([5,6,7], _)).
+tt(clear_array, 11) :-
+    set_array('*key_int_int_array*'(777, 77,["hoge", "poe"])),
+    get_array('*key_int_int_array*'(777, 77, _)),
+    clear_array('*key_int_int_array*'),
+    \+ get_array('*key_int_int_array*'(777, 77, _)).
+tt(clear_array, 12) :-
+    set_array('*key_str_inthash_array*'("hoge", 777, [1,2,3])),
+    get_array('*key_str_inthash_array*'("hoge", 777, _)),
+    clear_array('*key_str_inthash_array*'),
+    \+ get_array('*key_str_inthash_array*'("hoge", 777, _)).
+tt(clear_array, 13) :-
+    set_array('*key_fs_fs_array*'(set_array, [3.14], [2,3,4])),
+    get_array('*key_fs_fs_array*'(set_array, [3.14], _)),
+    clear_array('*key_fs_fs_array*'),
+    \+ get_array('*key_fs_fs_array*'(set_array, [3.14], _)).
+
+
+
+test_item(unset_array, 14, 0).
+tt(unset_array, 0) :-
+    set_array('*key_integer_array*'(777, [1,2,3])),
+    set_array('*key_integer_array*'(666, [4,5,6])),
+    get_array('*key_integer_array*'(777, _)),
+    unset_array('*key_integer_array*'(777, _)),
+    \+ get_array('*key_integer_array*'(777, _)),
+    get_array('*key_integer_array*'(666, X)), equiv(X, [4,5,6]),
+    set_array('*key_integer_array*'(777, [7,8,9])),
+    get_array('*key_integer_array*'(666, Y)), equiv(Y, [4,5,6]),
+    get_array('*key_integer_array*'(777, Z)), equiv(Z, [7,8,9]).
+
+tt(unset_array, 1) :-
+    set_array('*key_inthash_array*'(2263, "poepen")),
+    set_array('*key_inthash_array*'(2262, "hoge")),
+    get_array('*key_inthash_array*'(2262, _)),
+    unset_array('*key_inthash_array*'(2262, _)),
+    \+ get_array('*key_inthash_array*'(2262, _)),
+    get_array('*key_inthash_array*'(2263, X)), equiv(X, "poepen"),
+    set_array('*key_inthash_array*'(2262, "gerappa")),
+    get_array('*key_inthash_array*'(2263, Y)), equiv(Y, "poepen"),
+    get_array('*key_inthash_array*'(2262, Z)), equiv(Z, "gerappa").
+
+tt(unset_array, 2) :-
+    set_array('*key_string_array*'("yusuke", "miyao")),
+    set_array('*key_string_array*'("ninomi", "makino")),
+    get_array('*key_string_array*'("yusuke", _)),
+    unset_array('*key_string_array*'("yusuke", _)),
+    \+ get_array('*key_string_array*'("yusuke", _)),
+    get_array('*key_string_array*'("ninomi", X)), equiv(X, "makino"),
+    set_array('*key_string_array*'("yusuke", "ayu")),
+    get_array('*key_string_array*'("ninomi", Y)), equiv(Y, "makino"),
+    get_array('*key_string_array*'("yusuke", Z)), equiv(Z, "ayu").
+
+tt(unset_array, 3) :-
+    set_array('*key_type_array*'(list, ["yusuke"])),
+    set_array('*key_type_array*'(integer, ["ninomi"])),
+    get_array('*key_type_array*'(list, _)),
+    unset_array('*key_type_array*'(list, _)),
+    \+ get_array('*key_type_array*'(list, _)),
+    get_array('*key_type_array*'(integer, X)), equiv(X, ["ninomi"]),
+    set_array('*key_type_array*'(list, ["makino"])),
+    get_array('*key_type_array*'(integer, Y)), equiv(Y, ["ninomi"]),
+    get_array('*key_type_array*'(list, Z)), equiv(Z, ["makino"]).
+
+tt(unset_array, 4) :-
+    set_array('*key_fs_array*'([1,2,3], ["miyao"])),
+    set_array('*key_fs_array*'(list, ["ninomi"])),
+    get_array('*key_fs_array*'(list, _)),
+    unset_array('*key_fs_array*'(list, _)),
+    \+ get_array('*key_fs_array*'(list, _)),
+    get_array('*key_fs_array*'([1,2,3], X)), equiv(X, ["miyao"]),
+    set_array('*key_fs_array*'(list, ["makino"])),
+    get_array('*key_fs_array*'([1,2,3], Y)), equiv(Y, ["miyao"]),
+    get_array('*key_fs_array*'(list, Z)), equiv(Z, ["makino"]).
+
+%tt(unset_array, 5) :-
+%    set_array('*key_float_array*'(1.11, "hoge")),
+%    set_array('*key_float_array*'(2.22, "poge")),
+%    get_array('*key_float_array*'(1.11, _)),
+%    unset_array('*key_float_array*'(1.11, _)),
+%    \+ get_array('*key_float_array*'(1.11, _)),
+%    get_array('*key_float_array*'(2.22, X)), equiv(X, "poge"),
+%    set_array('*key_float_array*'(1.11, "boo")),
+%    get_array('*key_float_array*'(2.22, Y)), equiv(Y, "poge"),
+%    get_array('*key_float_array*'(1.11, Z)), equiv(Z, "boo").
+tt(unset_array, 5) :-
+    set_array('*five_d_array*'([1], [2], [3], [4], [5])),
+    set_array('*five_d_array*'([11], [22], [33], [44], [55])),
+    get_array('*five_d_array*'([1], [2], [3], [4], _)),
+    unset_array('*five_d_array*'([1], [2], [3], [4], _)),
+    \+ get_array('*five_d_array*'([1], [2], [3], [4], _)),
+    get_array('*five_d_array*'([11], [22], [33], [44], X)), equiv(X, [55]),
+    set_array('*five_d_array*'([1], [2], [3], [4], [1,2,3,4])),
+    get_array('*five_d_array*'([11], [22], [33], [44], Y)), equiv(Y, [55]),
+    get_array('*five_d_array*'([1], [2], [3], [4], Z)), equiv(Z, [1,2,3,4]).
+
+tt(unset_array, 6) :-
+    set_array('*integer_array*'([1,2,3], 111)),
+    set_array('*integer_array*'([3,4,5], 222)),
+    get_array('*integer_array*'([1,2,3], _)),
+    unset_array('*integer_array*'([1,2,3], _)),
+    \+ get_array('*integer_array*'([1,2,3], _)),
+    get_array('*integer_array*'([3,4,5], X)), equiv(X, 222),
+    set_array('*integer_array*'([1,2,3], 333)),
+    get_array('*integer_array*'([3,4,5], Y)), equiv(Y, 222),
+    get_array('*integer_array*'([1,2,3], Z)), equiv(Z, 333).
+
+tt(unset_array, 7) :-
+    set_array('*string_array*'([1,2,3], "abc")),
+    set_array('*string_array*'([4,5,6], "def")),
+    get_array('*string_array*'([1,2,3], _)),
+    unset_array('*string_array*'([1,2,3], _)),
+    \+ get_array('*string_array*'([1,2,3], _)),
+    get_array('*string_array*'([4,5,6], X)), equiv(X, "def"),
+    set_array('*string_array*'([1,2,3], "ayu")),
+    get_array('*string_array*'([4,5,6], Y)), equiv(Y, "def"),
+    get_array('*string_array*'([1,2,3], Z)), equiv(Z, "ayu").
+
+tt(unset_array, 8) :-
+    set_array('*type_array*'([123,4], integer)),
+    set_array('*type_array*'([234,5], list)),
+    get_array('*type_array*'([123,4], _)),
+    unset_array('*type_array*'([123,4], _)),
+    \+ get_array('*type_array*'([123,4], _)),
+    get_array('*type_array*'([234,5], X)), equiv(X, list),
+    set_array('*type_array*'([123,4], cons)),
+    get_array('*type_array*'([234,5], Y)), equiv(Y, list),
+    get_array('*type_array*'([123,4], Z)), equiv(Z, cons).
+
+tt(unset_array, 9) :-
+    set_array('*fs_array*'([1,2,3], ["yusuke", "miyao"])),
+    set_array('*fs_array*'([4,5,6], ["ayumi", "hamasaki"])),
+    get_array('*fs_array*'([1,2,3], _)),
+    unset_array('*fs_array*'([1,2,3], _)),
+    \+ get_array('*fs_array*'([1,2,3], _)),
+    get_array('*fs_array*'([4,5,6], X)), equiv(X, ["ayumi", "hamasaki"]),
+    set_array('*fs_array*'([1,2,3], ["hideaki", "takizawa"])),
+    get_array('*fs_array*'([4,5,6], Y)), equiv(Y, ["ayumi", "hamasaki"]),
+    get_array('*fs_array*'([1,2,3], Z)), equiv(Z, ["hideaki", "takizawa"]).
+
+tt(unset_array, 10) :-
+    set_array('*float_array*'([1,2,3], 1.11)),
+    set_array('*float_array*'([4,5,6], 2.22)),
+    get_array('*float_array*'([1,2,3], _)),
+    unset_array('*float_array*'([1,2,3], _)),
+    \+ get_array('*float_array*'([1,2,3], _)),
+    get_array('*float_array*'([4,5,6], X)), equiv(X, 2.22),
+    set_array('*float_array*'([1,2,3], 3.33)),
+    get_array('*float_array*'([4,5,6], Y)), equiv(Y, 2.22),
+    get_array('*float_array*'([1,2,3], Z)), equiv(Z, 3.33).
+
+tt(unset_array, 11) :-
+    set_array('*key_int_int_array*'(777, 13, "poepen")),
+    set_array('*key_int_int_array*'(777, 17, "hoge")),
+    get_array('*key_int_int_array*'(777, 13, _)),
+    unset_array('*key_int_int_array*'(777, 13, _)),
+    \+ get_array('*key_int_int_array*'(777, 13, _)),
+    get_array('*key_int_int_array*'(777, 17, X)), equiv(X, "hoge"),
+    set_array('*key_int_int_array*'(777, 13, "gerappa")),
+    get_array('*key_int_int_array*'(777, 17, Y)), equiv(Y, "hoge"),
+    get_array('*key_int_int_array*'(777, 13, Z)), equiv(Z, "gerappa").
+
+tt(unset_array, 12) :-
+    set_array('*key_str_inthash_array*'("boo", 1, [2,3,4])),
+    set_array('*key_str_inthash_array*'("too", 2, [111,222,333])),
+    get_array('*key_str_inthash_array*'("boo", 1, _)),
+    unset_array('*key_str_inthash_array*'("boo",1, _)),
+    \+ get_array('*key_str_inthash_array*'("boo", 1,_)),
+    get_array('*key_str_inthash_array*'("too", 2, X)), equiv(X, [111,222,333]),
+    set_array('*key_str_inthash_array*'("boo", 1, [444,555,666])),
+    get_array('*key_str_inthash_array*'("too", 2, Y)), equiv(Y, [111,222,333]),
+    get_array('*key_str_inthash_array*'("boo", 1, Z)), equiv(Z, [444,555,666]).
+
+tt(unset_array, 13) :-
+    set_array('*key_fs_fs_array*'("yesss", 1, [1,2,3])),
+    set_array('*key_fs_fs_array*'("noooo", 2, [11,22,33])),
+    get_array('*key_fs_fs_array*'("yesss", 1, _)),
+    unset_array('*key_fs_fs_array*'("yesss", 1, _)),
+    \+ get_array('*key_fs_fs_array*'("yesss", 1, _)),
+    get_array('*key_fs_fs_array*'("noooo", 2, X)), equiv(X, [11,22,33]),
+    set_array('*key_fs_fs_array*'("yesss", 1, [111,222,333])),
+    get_array('*key_fs_fs_array*'("noooo", 2, Y)), equiv(Y, [11,22,33]),
+    get_array('*key_fs_fs_array*'("yesss", 1, Z)), equiv(Z, [111,222,333]).
+
+
+
+%/*
+test_item(array_different, 14, 16).
+tt(array_different, 0) :-
+    set_array('*key_inthash_array*'(3215, "hogehoge")),
+    set_array('*key_inthash_array*'(3263, "poepoe")),
+    array_different('*key_inthash_array*'(3215, _), '*key_inthash_array*'(3263, _)).
+tt(array_different, 1) :-
+    set_array('*key_integer_array*'(1111, "hogehoge")),
+    set_array('*key_integer_array*'(1234, "poepoe")),
+    array_different('*key_integer_array*'(1111, _), '*key_integer_array*'(1234, _)).
+tt(array_different, 2) :-
+    set_array('*key_string_array*'("abc", [1,2,3])),
+    set_array('*key_string_array*'("bcd", [11,22,33])),
+    array_different('*key_string_array*'("abc", _), '*key_string_array*'("bcd", _)).
+tt(array_different, 3) :-
+    set_array('*key_type_array*'(list, ["aaa"])),
+    set_array('*key_type_array*'(integer, ["bbb", "ccc"])),
+    array_different('*key_type_array*'(list, _), '*key_type_array*'(integer, _)).
+tt(array_different, 4) :-
+    set_array('*key_fs_array*'(1, [1,2,3])),
+    set_array('*key_fs_array*'(2, [11,22,33])),
+    array_different('*key_fs_array*'(1, _), '*key_fs_array*'(2, _)).
+%tt(array_different, 5) :-
+%    set_array('*key_float_array*'(3.14, "pi")),
+%    set_array('*key_float_array*'(5.07, "me")),
+%    array_different('*key_float_array*'(3.14, _), '*key_float_array*'(5.07, _)).
+tt(array_different, 5) :-
+    set_array('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], [11])),
+    set_array('*five_d_array*'([11], [22], [33], [44], [55])),
+    array_different('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10], _), '*five_d_array*'([11], [22], [33], [44], _)).
+tt(array_different, 6) :-
+    set_array('*integer_array*'([1,2,3], 1000)),
+    set_array('*integer_array*'([3,4,5], 2000)),
+    array_different('*integer_array*'([1,2,3], _), '*integer_array*'([3,4,5], _)).
+tt(array_different, 7) :-
+    set_array('*string_array*'([1,2,3], "yusuke")),
+    set_array('*string_array*'([11,22,33], "miyao")),
+    array_different('*string_array*'([1,2,3], _), '*string_array*'([11,22,33], _)).
+tt(array_different, 8) :-
+    set_array('*type_array*'([1,2,3], integer)),
+    set_array('*type_array*'([4,5,6], list)),
+    array_different('*type_array*'([1,2,3], _), '*type_array*'([4,5,6], _)).
+tt(array_different, 9) :-
+    set_array('*fs_array*'([1,2,3], ["yes", "no"])),
+    set_array('*fs_array*'([4,5,6], ["yahoo", "goo"])),
+    array_different('*fs_array*'([1,2,3], _), '*fs_array*'([4,5,6], _)).
+tt(array_different, 10) :-
+    set_array('*float_array*'([1,2,3], 1.11)),
+    set_array('*float_array*'([4,5,6], 2.22)),
+    array_different('*float_array*'([1,2,3], _), '*float_array*'([4,5,6], _)).
+tt(array_different, 11) :-
+    set_array('*key_int_int_array*'(100, 1, ["yes", "no"])),
+    set_array('*key_int_int_array*'(200, 2, ["yahoo", "goo"])),
+    array_different('*key_int_int_array*'(100, 1, _), '*key_int_int_array*'(200, 2, _)).
+tt(array_different, 12) :-
+    set_array('*key_str_inthash_array*'("yahoo", 1000, [1,2,3])),
+    set_array('*key_str_inthash_array*'("google", 2000, [11,22,33])),
+    array_different('*key_str_inthash_array*'("yahoo", 1000, _), '*key_str_inthash_array*'("google", 2000, _)).
+tt(array_different, 13) :-
+    set_array('*key_fs_fs_array*'([1,2,3], ["i"], ["my", "me", "mine"])),
+    set_array('*key_fs_fs_array*'([4,5,6], ["you"], ["your", "you", "yours"])),
+    array_different('*key_fs_fs_array*'([1,2,3], ["i"], _), '*key_fs_fs_array*'([4,5,6], ["you"], _)).
+
+
+
+ft(array_different, 0) :-
+    set_array('*key_inthash_array*'(3345, "hogehoge")) ->
+    array_different('*key_inthash_array*'(3215, _), '*key_inthash_array*'(3345, _)) ; printl(["Somewhy failed before main", nl]).
+ft(array_different, 1) :-
+    set_array('*key_integer_array*'(1357, "hogehoge")) ->
+    array_different('*key_integer_array*'(1111, _), '*key_integer_array*'(1357, _)) ; printl(["Somewhy failed before main", nl]).
+%%%% Segmentation fault
+% ft(array_different, 2) :-
+%     array_different('*key_integer_array*'(3215, _), '*key_integer_array*'(1234, _)).
+ft(array_different, 2) :- true.
+%%%% Segmentation fault
+%ft(array_different, 3) :-
+%    array_different('*key_integer_array*'(1234, _), '*key_integer_array*'(-234, _)).
+ft(array_different, 3) :- true.
+%%%% Segmentation fault
+%ft(array_different, 4) :-
+%    array_different('*key_string_array*'("abc", _), '*key_string_array*'("aaa", _)).
+ft(array_different, 4) :- true.
+%%%% Segmentation fault
+%ft(array_different, 5) :-
+%    array_different('*key_type_array*'(list, _), '*key_type_array*'(string, _)).
+ft(array_different, 5) :- true.
+%%%% Segmentation fault
+%ft(array_different, 6) :-
+%    array_different('*key_fs_array*'(333, _), '*key_fs_array*'(555, _)).
+ft(array_different, 6) :- true.
+ft(array_different, 7) :-
+    array_different('*five_d_array*'([1,2,3], [4,5], [6], [7,8,9,10] ,_), '*five_d_array*'([20],[21],[22],[23] ,_)).
+%%%% Segmentation fault
+%ft(array_different, 8) :-
+%    array_different('*integer_array*'([1,2,3], _), '*integer_array*'([-3,2,1], _)).
+ft(array_different, 8) :- true.
+%%%% Segmentation fault
+%ft(array_different, 9) :-
+%    array_different('*string_array*'([1,2,3], _), '*string_array*'([13,14,15], _)).
+ft(array_different, 9) :- true.
+%%%% Segmentation fault
+%ft(array_different, 10) :-
+%    array_different('*type_array*'([1,2,3], _), '*type_array*'([2,3,4], _)).
+ft(array_different, 10) :- true.
+%%%% Segmentation fault
+%ft(array_different, 11) :-
+%    array_different('*fs_array*'([100,200,300], _), '*fs_array*'([1], _)).
+ft(array_different, 11) :- true.
+%%%% Segmentation fault
+%ft(array_different, 12) :-
+%    array_different('*float_array*'([1,2,3], _), '*float_array*'([10,20,30], _)).
+ft(array_different, 12) :- true.
+%%%% Segmentation fault
+%ft(array_different, 13) :-
+%    array_different('*key_int_int_array*'(100, 1, _), '*key_int_int_array*'(200, 1, _)).
+ft(array_different, 13) :- true.
+ft(array_different, 14) :-
+    array_different('*key_str_inthash_array*'("yahoo", 1000, _), '*key_str_inthash_array*'("goo", 2000, _)).
+%%%% Segmentation fault
+%ft(array_different, 15) :-
+%    array_different('*key_fs_fs_array*'([1,2,3], ["i"], _), '*key_fs_fs_array*'([1,2,3], ["me"], _)).
+ft(array_different, 15) :- true.
+
+%*/
+
+
+
+%/*
+
+test_item(array_serialize, 1, 0).
+tt(array_serialize, 0) :-
+    set_array('*key_inthash_array*'(8768, "yusuke")),
+    array_serialize('*key_inthash_array*'(unspecified_key, _), "arraytest.dat").
+
+%%%%%%%%%%%%%%% temporarily disabled
+% test_item(array_deserialize, 1, 3).
+tt(array_deserialize, 0) :-
+    clear_array('*key_inthash_array*'),
+    array_deserialize('*key_inthash_array*'(unspecified_key, _), "arraytest.dat"),
+    get_array('*key_inthash_array*'(8768, X)),
+    equiv(X, "yusuke").
+ft(array_deserialize, 0) :-
+    array_deserialize('*key_inthash_array*'(unspecified_key, _), "/bin/nonexistent").
+ft(array_deserialize, 1) :-
+    array_deserialize('*key_inthash_array*'(unspecified_key, _), "/dev/null").
+ft(array_deserialize, 2) :-
+    array_deserialize('*key_inthash_array*'(unspecified_key, _), "/dev/zero").
+
+%*/
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+test_item(delete_array, 0, 0).
+%%% Segmentation fault
+%tt(delete_array,  0) :- delete_array('*key_integer_array*').
+tt(delete_array, 0) :- fail.
+tt(delete_array,  1) :- delete_array('*key_inthash_array*').
+tt(delete_array,  2) :- delete_array('*key_string_array*').
+tt(delete_array,  3) :- delete_array('*key_type_array*').
+tt(delete_array,  4) :- delete_array('*key_fs_array*').
+%tt(delete_array,  5) :- delete_array('*key_float_array*').
+tt(delete_array, 5) :- delete_array('*five_d_array*').
+tt(delete_array,  6) :- delete_array('*integer_array*').
+tt(delete_array,  7) :- delete_array('*string_array*').
+tt(delete_array,  8) :- delete_array('*type_array*').
+tt(delete_array,  9) :- delete_array('*fs_array*').
+tt(delete_array, 10) :- delete_array('*float_array*').
+tt(delete_array, 11) :- delete_array('*key_int_int_array*').
+tt(delete_array, 12) :- delete_array('*key_str_inthash_array*').
+tt(delete_array, 13) :- delete_array('*key_fs_fs_array*').
+ft(delete_array,  0) :- delete_array('*key_integer_array*').
+ft(delete_array,  1) :- delete_array('*key_inthash_array*').
+ft(delete_array,  2) :- delete_array('*key_string_array*').
+ft(delete_array,  3) :- delete_array('*key_type_array*').
+ft(delete_array,  4) :- delete_array('*key_fs_array*').
+%ft(delete_array,  5) :- delete_array('*key_float_array*').
+ft(delete_array, 5) :- delete_array('*five_d_array*').
+ft(delete_array,  6) :- delete_array('*integer_array*').
+ft(delete_array,  7) :- delete_array('*string_array*').
+ft(delete_array,  8) :- delete_array('*type_array*').
+ft(delete_array,  9) :- delete_array('*fs_array*').
+ft(delete_array, 10) :- delete_array('*float_array*').
+ft(delete_array, 11) :- delete_array('*key_int_int_array*').
+ft(delete_array, 12) :- delete_array('*key_str_inthash_array*').
+ft(delete_array, 13) :- delete_array('*key_fs_fs_array*').
+
+

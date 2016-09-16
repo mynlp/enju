@@ -1,0 +1,12 @@
+*.log
+*.trs
+/basic_test
+/bitmap_test
+/cell_test
+/codelist_test
+/ftype_test
+/lregex_test
+/option_test
+/outform_test
+/search_path_test
+/structur_test
