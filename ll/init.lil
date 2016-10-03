@@ -1,6 +1,0 @@
-:- module("init").
-
-:- module_interface.
-
-:- ensure_loaded("lillib/is").
-
