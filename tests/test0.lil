@@ -1,0 +1,302 @@
+:- module("test0").
+:- ensure_loaded("testmain").
+
+basic_dynamic_unify <- bot.
+basic_static_unify <- bot.
+arithmetics <- bot.
+float_arithmetics <- bot.
+
+%--------------------------------------------------------------------
+
+test_item(equivalent,6,16).
+tt(equivalent, 0) :- equivalent(X, X).
+tt(equivalent, 1) :- equivalent("Test", "Test").
+tt(equivalent, 2) :- equivalent(integer, integer).
+tt(equivalent, 3) :- equivalent(434434, 434434).
+tt(equivalent, 4) :- equivalent(3.14159265358979, 3.14159265358979).
+tt(equivalent, 5) :- X is 2.14159265358979 + 1.0, equivalent(3.14159265358979, X).
+ft(equivalent, 0) :- equivalent([A&list|B], [A|A]).
+ft(equivalent, 1) :- equivalent("Test", "Tesp").
+ft(equivalent, 2) :- equivalent("Test", "Testest").
+ft(equivalent, 3) :- equivalent(integer, string).
+ft(equivalent, 4) :- equivalent(434434, 434435).
+ft(equivalent, 5) :- equivalent(2.718281828, 3.14159265358979).
+ft(equivalent, 6) :- equivalent(434434, integer).
+ft(equivalent, 7) :- equivalent("434434", string).
+ft(equivalent, 8) :- equivalent(integer, 434434).
+ft(equivalent, 9) :- equivalent(string, "434434").
+ft(equivalent, 10) :- equivalent(3, 3.0).
+ft(equivalent, 11) :- equivalent(434434, "434434").
+ft(equivalent, 12) :- equivalent(3.0, 3).
+ft(equivalent, 13) :- equivalent("434434", "434434").
+ft(equivalent, 14) :- equivalent("3.14", 3.14).
+ft(equivalent, 15) :- equivalent(3.14, "3.14").
+
+%--------------------------------------------------------------------
+
+test_item(basic_dynamic_unify,19,30).
+
+% unify INT-INT
+tt(basic_dynamic_unify, 0) :- equal(X, 3), equal(Y, 3), X = Y, equiv(X, 3), equiv(Y, 3).
+tt(basic_dynamic_unify, 1) :- equal(X, ""), equal(Y, ""), X = Y, equiv(X, "").
+tt(basic_dynamic_unify, 2) :- equal(X, "TestTest"), equal(Y, "TestTest"), X = Y, equiv(X, "TestTest").
+tt(basic_dynamic_unify, 3) :- equal(X, "ThisIsVeryLongString!"), equal(Y, "ThisIsVeryLongString!"), X = Y, equiv(X, "ThisIsVeryLongString!").
+tt(basic_dynamic_unify, 4) :- equal(X, integer), equal(Y, 3), X = Y, equiv(X, 3).
+tt(basic_dynamic_unify, 5) :- equal(X, 3), equal(Y, integer), X = Y, equiv(Y, 3).
+tt(basic_dynamic_unify, 6) :- equal(X, bot), equal(Y, 3), X = Y, equiv(X, 3).
+tt(basic_dynamic_unify, 7) :- equal(X, 3), equal(Y, bot), X = Y, equiv(Y, 3).
+tt(basic_dynamic_unify, 8) :- equal(X, string), equal(Y, "testest"), X = Y, equiv(X, "testest").
+tt(basic_dynamic_unify, 9) :- equal(X, "testest"), equal(Y, string), X = Y, equiv(Y, "testest").
+tt(basic_dynamic_unify, 10) :- equal(X, bot), equal(Y, "testest"), X = Y, equiv(X, "testest").
+tt(basic_dynamic_unify, 11) :- equal(X, "testest"), equal(Y, bot), X = Y, equiv(Y, "testest").
+tt(basic_dynamic_unify, 12) :- equal(X, 3.14), equal(Y, 3.14), X = Y, equiv(X, 3.14).
+tt(basic_dynamic_unify, 13) :- equal(X, 3.14), equal(Y, float), X = Y, equiv(X, 3.14).
+tt(basic_dynamic_unify, 14) :- equal(X, float), equal(Y, 3.14), X = Y, equiv(X, 3.14).
+tt(basic_dynamic_unify, 15) :- equal(X, 3.14), equal(Y, bot), X = Y, equiv(X, 3.14).
+tt(basic_dynamic_unify, 16) :- equal(X, bot), equal(Y, 3.14), X = Y, equiv(X, 3.14).
+tt(basic_dynamic_unify, 17) :- equal(X, [integer,3,string,"testest"]), equal(Y, [4,integer,"stestes",string]), X = Y, equiv(X, [4,3,"stestes","testest"]).
+tt(basic_dynamic_unify, 18) :- equal(X, [4,integer,"stestes",string]), equal(Y, [integer,3,string,"testest"]), X = Y, equiv(X, [4,3,"stestes","testest"]).
+
+
+% unify INT-INT
+ft(basic_dynamic_unify, 0) :- equal(X, 3), equal(Y, -3), X = Y.
+ft(basic_dynamic_unify, 1) :- equal(X, ""), equal(Y, "    "), X = Y.
+ft(basic_dynamic_unify, 2) :- equal(X, "A"), equal(Y, "B"), X = Y.
+ft(basic_dynamic_unify, 3) :- equal(X, "ThisIsVeryLongString"), equal(Y, "ThisIsVeryLongString?"), X = Y.
+ft(basic_dynamic_unify, 4) :- equal(X, "ThisIsVeryLongString?"), equal(Y, "ThisIsVeryLongString!"), X = Y.
+ft(basic_dynamic_unify, 5) :- equal(X, integer), equal(Y, string), X = Y.
+ft(basic_dynamic_unify, 6) :- equal(X, integer), equal(Y, "integer"), X = Y.
+ft(basic_dynamic_unify, 7) :- equal(X, "integer"), equal(Y, integer), X = Y.
+ft(basic_dynamic_unify, 8) :- equal(X, float), equal(Y, "float"), X = Y.
+ft(basic_dynamic_unify, 9) :- equal(X, "float"), equal(Y, float), X = Y.
+ft(basic_dynamic_unify, 10) :- equal(X, 123), equal(Y, "123"), X = Y.
+ft(basic_dynamic_unify, 11) :- equal(X, "123"), equal(Y, 123), X = Y.
+ft(basic_dynamic_unify, 12) :- equal(X, [3,"testest"]), equal(Y, [integer,"testesto"]), X = Y.
+ft(basic_dynamic_unify, 13) :- equal(Y, [3,"testest"]), equal(X, [4,string]), X = Y.
+ft(basic_dynamic_unify, 14) :- equal(X, 123), equal(Y, 123.0), X = Y.
+ft(basic_dynamic_unify, 15) :- equal(X, 123.0), equal(Y, 123), X = Y.
+ft(basic_dynamic_unify, 16) :- equal(X, "123.0"), equal(Y, 123.0), X = Y.
+ft(basic_dynamic_unify, 17) :- equal(X, 123.0), equal(Y, "123.0"), X = Y.
+ft(basic_dynamic_unify, 18) :- equal(X, integer), equal(Y, 123.0), X = Y.
+ft(basic_dynamic_unify, 19) :- equal(X, 123.0), equal(Y, integer), X = Y.
+ft(basic_dynamic_unify, 20) :- equal(X, string), equal(Y, 123), X = Y.
+ft(basic_dynamic_unify, 21) :- equal(X, 123), equal(Y, string), X = Y.
+ft(basic_dynamic_unify, 22) :- equal(X, string), equal(Y, 123.0), X = Y.
+ft(basic_dynamic_unify, 23) :- equal(X, 123.0), equal(Y, string), X = Y.
+ft(basic_dynamic_unify, 24) :- equal(X, list), equal(Y, 123.0), X = Y.
+ft(basic_dynamic_unify, 25) :- equal(X, 123.0), equal(Y, list), X = Y.
+ft(basic_dynamic_unify, 24) :- equal(X, list), equal(Y, 123), X = Y.
+ft(basic_dynamic_unify, 25) :- equal(X, 123), equal(Y, list), X = Y.
+ft(basic_dynamic_unify, 26) :- equal(X, list), equal(Y, "list"), X = Y.
+ft(basic_dynamic_unify, 27) :- equal(X, "list"), equal(Y, list), X = Y.
+ft(basic_dynamic_unify, 28) :- equal(X, 123), equal(Y, float), X = Y.
+ft(basic_dynamic_unify, 29) :- equal(X, float), equal(Y, 123), X = Y.
+
+%--------------------------------------------------------------------
+
+test_item(basic_static_unify,21,19).
+
+% unify INT-INT
+tt(basic_static_unify, 0) :- equal(X, 3), X = 3, equiv(X, 3).
+tt(basic_static_unify, 1) :- equal(X, ""), X = "", equiv(X, "").
+tt(basic_static_unify, 2) :- equal(X, "TestTest"), X = "TestTest", equiv(X, "TestTest").
+tt(basic_static_unify, 3) :- equal(X, "ThisIsVeryLongString!"), X = "ThisIsVeryLongString!".
+tt(basic_static_unify, 4) :- equal(X, bot), X = 3, equiv(X, 3).
+tt(basic_static_unify, 5) :- equal(X, integer), X = 3, equiv(X, 3).
+tt(basic_static_unify, 6) :- equal(X, 3), X = integer, equiv(X, 3).
+tt(basic_static_unify, 7) :- equal(X, integer), X = integer, equiv(X, integer).
+tt(basic_static_unify, 8) :- equal(X, bot), X = integer, equiv(X, integer).
+tt(basic_static_unify, 9) :- equal(X, bot), X = "testest", equiv(X, "testest").
+tt(basic_static_unify, 10) :- equal(X, string), X = "testest", equiv(X, "testest").
+tt(basic_static_unify, 11) :- equal(X, "testest"), X = string, equiv(X, "testest").
+tt(basic_static_unify, 12) :- equal(X, string), X = string, equiv(X, string).
+tt(basic_static_unify, 13) :- equal(X, bot), X = string, equiv(X, string).
+tt(basic_static_unify, 14) :- equal(X, [integer,3,string,"testest"]), X= [4,integer,"stestes",string], equiv(X, [4,3,"stestes","testest"]).
+tt(basic_static_unify, 15) :- equal(X, [4,integer,"stestes",string|cons]), X= [integer,3,string,"testest"|cons], equiv(X, [4,3,"stestes","testest"|cons]).
+tt(basic_static_unify, 16) :- equal(X, bot), X = 123.0, equiv(X, 123.0).
+tt(basic_static_unify, 17) :- equal(X, float), X = 123.0, equiv(X, 123.0).
+tt(basic_static_unify, 18) :- equal(X, 123.0), X = float, equiv(X, 123.0).
+tt(basic_static_unify, 19) :- equal(X, float), X = float, equiv(X, float).
+tt(basic_static_unify, 20) :- equal(X, bot), X = float, equiv(X, float).
+
+
+% unify INT-INT
+ft(basic_static_unify, 0) :- equal(X, 3), X = -3.
+ft(basic_static_unify, 1) :- equal(X, ""), X = "    ".
+ft(basic_static_unify, 2) :- equal(X, "A"), X = "B".
+ft(basic_static_unify, 3) :- equal(X, "ThisIsVeryLongString"), X = "ThisIsVeryLongString?".
+
+ft(basic_static_unify, 4) :- equal(X, "ThisIsVeryLongString?"), X = "ThisIsVeryLongString".
+ft(basic_static_unify, 5) :- equal(X, integer), X = string.
+ft(basic_static_unify, 6) :- equal(X, integer), X = "integer".
+ft(basic_static_unify, 7) :- equal(X, "integer"), X = integer.
+ft(basic_static_unify, 8) :- equal(X, 123), X = "123".
+ft(basic_static_unify, 9) :- equal(X, "123"), X = 123.
+ft(basic_static_unify, 10) :- equal(X, string), X = 123.
+ft(basic_static_unify, 11) :- equal(X, 123), X = string.
+ft(basic_static_unify, 12) :- equal(X, [integer,3,string,"testest"]), X= [4,integer,"stestes","testesp"].
+ft(basic_static_unify, 13) :- equal(X, 123), X = float.
+ft(basic_static_unify, 14) :- equal(X, 123.0), X = integer.
+ft(basic_static_unify, 15) :- equal(X, 123.0), X = string.
+ft(basic_static_unify, 16) :- equal(X, "123"), X = list.
+ft(basic_static_unify, 17) :- equal(X, 123), X = list.
+ft(basic_static_unify, 18) :- equal(X, 123.0), X = list.
+
+%--------------------------------------------------------------------
+
+test_item(arithmetics,68,13).
+
+tt(arithmetics, 0) :- X is 1 + 2, equiv(X, 3).
+tt(arithmetics, 1) :- X is 1 + -2, equiv(X, -1).
+tt(arithmetics, 2) :- X is -121 + 121, equiv(X, 0).
+tt(arithmetics, 3) :- X is 12 * 3, equiv(X, 36).
+tt(arithmetics, 4) :- X is 12 * -3, equiv(X, -36).
+tt(arithmetics, 5) :- X is -12 * 3, equiv(X, -36).
+tt(arithmetics, 6) :- X is 11 - 33, equiv(X, -22).
+tt(arithmetics, 7) :- X is 11 - -33, equiv(X, 44).
+tt(arithmetics, 8) :- X is -11 - 33, equiv(X, -44).
+tt(arithmetics, 9) :- X is 47 // 3, equiv(X, 15).
+tt(arithmetics, 10) :- X is -47 // 3, equiv(X, -15).
+tt(arithmetics, 11) :- X is 47 // -3, equiv(X, -15).
+tt(arithmetics, 12) :- X is -47 // -3, equiv(X, 15).
+tt(arithmetics, 13) :- X is 47 mod 3, equiv(X, 2).
+tt(arithmetics, 14) :- X is 47 mod -3, equiv(X, 2).
+tt(arithmetics, 15) :- X is -47 mod 3, equiv(X, -2).
+tt(arithmetics, 16) :- X is -47 mod -3, equiv(X, -2).
+
+tt(arithmetics, 17) :- equal(A, 1), X is A + 2, equiv(X, 3).
+tt(arithmetics, 18) :- equal(A, 1), X is A + -2, equiv(X, -1).
+tt(arithmetics, 19) :- equal(A, -121), X is A + 121, equiv(X, 0).
+tt(arithmetics, 20) :- equal(A, 12), X is A * 3, equiv(X, 36).
+tt(arithmetics, 21) :- equal(A, 12), X is A * -3, equiv(X, -36).
+tt(arithmetics, 22) :- equal(A, -12), X is A * 3, equiv(X, -36).
+tt(arithmetics, 23) :- equal(A, 11), X is A - 33, equiv(X, -22).
+tt(arithmetics, 24) :- equal(A, 11), X is A - -33, equiv(X, 44).
+tt(arithmetics, 25) :- equal(A, -11), X is A - 33, equiv(X, -44).
+tt(arithmetics, 26) :- equal(A, 47), X is A // 3, equiv(X, 15).
+tt(arithmetics, 27) :- equal(A, -47), X is A // 3, equiv(X, -15).
+tt(arithmetics, 28) :- equal(A, 47), X is A // -3, equiv(X, -15).
+tt(arithmetics, 29) :- equal(A, -47), X is A // -3, equiv(X, 15).
+tt(arithmetics, 30) :- equal(A, 47), X is A mod 3, equiv(X, 2).
+tt(arithmetics, 31) :- equal(A, 47), X is A mod -3, equiv(X, 2).
+tt(arithmetics, 32) :- equal(A, -47), X is A mod 3, equiv(X, -2).
+tt(arithmetics, 33) :- equal(A, -47), X is A mod -3, equiv(X, -2).
+
+tt(arithmetics, 34) :- equal(B, 2), X is 1 + B, equiv(X, 3).
+tt(arithmetics, 35) :- equal(B, -2), X is 1 + B, equiv(X, -1).
+tt(arithmetics, 36) :- equal(B, 121), X is -121 + B, equiv(X, 0).
+tt(arithmetics, 37) :- equal(B, 3), X is 12 * B, equiv(X, 36).
+tt(arithmetics, 38) :- equal(B, -3), X is 12 * B, equiv(X, -36).
+tt(arithmetics, 39) :- equal(B, 3), X is -12 * B, equiv(X, -36).
+tt(arithmetics, 40) :- equal(B, 33), X is 11 - B, equiv(X, -22).
+tt(arithmetics, 41) :- equal(B, -33), X is 11 - B, equiv(X, 44).
+tt(arithmetics, 42) :- equal(B, 33), X is -11 - B, equiv(X, -44).
+tt(arithmetics, 43) :- equal(B, 3), X is 47 // B, equiv(X, 15).
+tt(arithmetics, 44) :- equal(B, 3), X is -47 // B, equiv(X, -15).
+tt(arithmetics, 45) :- equal(B, -3), X is 47 // B, equiv(X, -15).
+tt(arithmetics, 46) :- equal(B, -3), X is -47 // B, equiv(X, 15).
+tt(arithmetics, 47) :- equal(B, 3), X is 47 mod B, equiv(X, 2).
+tt(arithmetics, 48) :- equal(B, -3), X is 47 mod B, equiv(X, 2).
+tt(arithmetics, 49) :- equal(B, 3), X is -47 mod B, equiv(X, -2).
+tt(arithmetics, 50) :- equal(B, -3), X is -47 mod B, equiv(X, -2).
+
+tt(arithmetics, 51) :- equal(B, 2), equal(A, 1), X is A + B, equiv(X, 3).
+tt(arithmetics, 52) :- equal(B, -2), equal(A, 1), X is A + B, equiv(X, -1).
+tt(arithmetics, 53) :- equal(B, 121), equal(A, -121), X is A + B, equiv(X, 0).
+tt(arithmetics, 54) :- equal(B, 3), equal(A, 12), X is A * B, equiv(X, 36).
+tt(arithmetics, 55) :- equal(B, -3), equal(A, 12), X is A * B, equiv(X, -36).
+tt(arithmetics, 56) :- equal(B, 3), equal(A, -12), X is A * B, equiv(X, -36).
+tt(arithmetics, 57) :- equal(B, 33), equal(A, 11), X is A - B, equiv(X, -22).
+tt(arithmetics, 58) :- equal(B, -33), equal(A, 11), X is A - B, equiv(X, 44).
+tt(arithmetics, 59) :- equal(B, 33), equal(A, -11), X is A - B, equiv(X, -44).
+tt(arithmetics, 60) :- equal(B, 3), equal(A, 47), X is A // B, equiv(X, 15).
+tt(arithmetics, 61) :- equal(B, 3), equal(A, -47), X is A // B, equiv(X, -15).
+tt(arithmetics, 62) :- equal(B, -3), equal(A, 47), X is A // B, equiv(X, -15).
+tt(arithmetics, 63) :- equal(B, -3), equal(A, -47), X is A // B, equiv(X, 15).
+tt(arithmetics, 64) :- equal(B, 3), equal(A, 47), X is A mod B, equiv(X, 2).
+tt(arithmetics, 65) :- equal(B, -3), equal(A, 47), X is A mod B, equiv(X, 2).
+tt(arithmetics, 66) :- equal(B, 3), equal(A, -47), X is A mod B, equiv(X, -2).
+tt(arithmetics, 67) :- equal(B, -3), equal(A, -47), X is A mod B, equiv(X, -2).
+
+ft(arithmetics, 0) :- X is 1 + _.
+ft(arithmetics, 1) :- X is _ + 1.
+ft(arithmetics, 2) :- X is 1 - _.
+ft(arithmetics, 3) :- X is _ - 1.
+ft(arithmetics, 4) :- X is 1 * _.
+ft(arithmetics, 5) :- X is _ * 1.
+ft(arithmetics, 6) :- X is 1 // _.
+ft(arithmetics, 7) :- X is _ // 1.
+ft(arithmetics, 8) :- X is 1 mod _.
+ft(arithmetics, 9) :- X is _ mod 1.
+ft(arithmetics, 10) :- equal(A, 0), X is 1 / A.
+ft(arithmetics, 11) :- equal(A, 0), X is 1 // A.
+ft(arithmetics, 12) :- equal(A, 0), X is 1 mod A.
+
+test_item(float_arithmetics,52,9).
+
+tt(float_arithmetics, 0) :- X is 1.3 + 2.0, equiv(X, 3.3).
+tt(float_arithmetics, 1) :- X is -121.249 + 121.249, equiv(X, 0.0).
+tt(float_arithmetics, 2) :- X is 3.375 + 121, equiv(X, 124.375).
+tt(float_arithmetics, 3) :- X is 121 + 121.5, equiv(X, 242.5).
+tt(float_arithmetics, 4) :- X is 12.0 * 3.0, equiv(X, 36.0).
+tt(float_arithmetics, 5) :- X is 1.25 * 8, equiv(X, -10.0).
+tt(float_arithmetics, 6) :- X is -12 * 3.0, equiv(X, -36.0).
+tt(float_arithmetics, 7) :- X is 1.23 - 33.23, equiv(X, -32.0).
+tt(float_arithmetics, 8) :- X is 11.5 - -33, equiv(X, 44.5).
+tt(float_arithmetics, 9) :- X is -11 - 33.0, equiv(X, -44.0).
+tt(float_arithmetics, 10) :- X is 48.0 / 3.0, equiv(X, 16.0).
+tt(float_arithmetics, 11) :- X is 3 / -12.0, equiv(X, -0.25).
+tt(float_arithmetics, 12) :- X is 3.0 / -12, equiv(X, -0.25).
+
+tt(float_arithmetics, 13) :- equal(A, 1.3), X is A + 2.0, equiv(X, 3.3).
+tt(float_arithmetics, 14) :- equal(A, -121.249), X is A + 121.249, equiv(X, 0.0).
+tt(float_arithmetics, 15) :- equal(A, 3.375), X is A + 121, equiv(X, 124.375).
+tt(float_arithmetics, 16) :- equal(A, 121), X is A + 121.5, equiv(X, 242.5).
+tt(float_arithmetics, 17) :- equal(A, 12.0), X is A * 3.0, equiv(X, 36.0).
+tt(float_arithmetics, 18) :- equal(A, 1.25), X is A * 8, equiv(X, -10.0).
+tt(float_arithmetics, 19) :- equal(A, -12), X is A * 3.0, equiv(X, -36.0).
+tt(float_arithmetics, 20) :- equal(A, 1.23), X is A - 33.23, equiv(X, -32.0).
+tt(float_arithmetics, 21) :- equal(A, 11.5), X is A - -33, equiv(X, 44.5).
+tt(float_arithmetics, 22) :- equal(A, -11), X is A - 33.0, equiv(X, -44.0).
+tt(float_arithmetics, 23) :- equal(A, 48.0), X is A / 3.0, equiv(X, 16.0).
+tt(float_arithmetics, 24) :- equal(A, 3), X is A / -12.0, equiv(X, -0.25).
+tt(float_arithmetics, 25) :- equal(A, 3.0), X is A / -12, equiv(X, -0.25).
+
+tt(float_arithmetics, 26) :- equal(B, 2.0), X is 1.3 + B, equiv(X, 3.3).
+tt(float_arithmetics, 27) :- equal(B, 121.249), X is -121.249 + B, equiv(X, 0.0).
+tt(float_arithmetics, 28) :- equal(B, 121), X is 3.375 + B, equiv(X, 124.375).
+tt(float_arithmetics, 29) :- equal(B, 121.5), X is 121 + B, equiv(X, 242.5).
+tt(float_arithmetics, 30) :- equal(B, 3.0), X is 12.0 * B, equiv(X, 36.0).
+tt(float_arithmetics, 31) :- equal(B, 8), X is 1.25 * B, equiv(X, -10.0).
+tt(float_arithmetics, 32) :- equal(B, 3.0), X is -12 * B, equiv(X, -36.0).
+tt(float_arithmetics, 33) :- equal(B, 33.23), X is 1.23 - B, equiv(X, -32.0).
+tt(float_arithmetics, 34) :- equal(B, -33), X is 11.5 - B, equiv(X, 44.5).
+tt(float_arithmetics, 35) :- equal(B, 33.0), X is -11 - B, equiv(X, -44.0).
+tt(float_arithmetics, 36) :- equal(B, 3.0), X is 48.0 / B, equiv(X, 16.0).
+tt(float_arithmetics, 37) :- equal(B, -12.0), X is 3 / B, equiv(X, -0.25).
+tt(float_arithmetics, 38) :- equal(B, -12), X is 3.0 / B, equiv(X, -0.25).
+
+tt(float_arithmetics, 39) :- equal(A, 1.3), equal(B, 2.0), X is A + B, equiv(X, 3.3).
+tt(float_arithmetics, 40) :- equal(A, -121.249), equal(B, 121.249), X is A + B, equiv(X, 0.0).
+tt(float_arithmetics, 41) :- equal(A, 3.375), equal(B, 121), X is A + B, equiv(X, 124.375).
+tt(float_arithmetics, 42) :- equal(A, 121), equal(B, 121.5), X is A + B, equiv(X, 242.5).
+tt(float_arithmetics, 43) :- equal(A, 12.0), equal(B, 3.0), X is A * B, equiv(X, 36.0).
+tt(float_arithmetics, 44) :- equal(A, 1.25), equal(B, 8), X is A * B, equiv(X, -10.0).
+tt(float_arithmetics, 45) :- equal(A, -12), equal(B, 3.0), X is A * B, equiv(X, -36.0).
+tt(float_arithmetics, 46) :- equal(A, 1.23), equal(B, 33.23), X is A - B, equiv(X, -32.0).
+tt(float_arithmetics, 47) :- equal(A, 11.5), equal(B, -33), X is A - B, equiv(X, 44.5).
+tt(float_arithmetics, 48) :- equal(A, -11), equal(B, 33.0), X is A - B, equiv(X, -44.0).
+tt(float_arithmetics, 49) :- equal(A, 48.0), equal(B, 3.0), X is A / B, equiv(X, 16.0).
+tt(float_arithmetics, 50) :- equal(A, 3), equal(B, -12.0), X is A / B, equiv(X, -0.25).
+tt(float_arithmetics, 51) :- equal(A, 3.0), equal(B, -12), X is A / B, equiv(X, -0.25).
+
+
+ft(float_arithmetics, 0) :- X is 1.0 + _.
+ft(float_arithmetics, 1) :- X is _ + 1.0.
+ft(float_arithmetics, 2) :- X is 1.0 - _.
+ft(float_arithmetics, 3) :- X is _ - 1.0.
+ft(float_arithmetics, 4) :- X is 1.0 * _.
+ft(float_arithmetics, 5) :- X is _ * 1.0.
+ft(float_arithmetics, 6) :- X is 1.0 / _.
+ft(float_arithmetics, 7) :- X is _ / 1.0.
+ft(float_arithmetics, 8) :- equal(A, 0.0), X is 1.0 / A.

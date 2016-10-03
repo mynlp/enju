@@ -1,0 +1,405 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html>
+
+<!-- Time-stamp: "2004-05-14 23:12:16 yusuke" -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="prev" href="chap2.html">
+<link rel="next" href="chap4.html">
+<link rel="stylesheet" type="text/css" href="style-chap3.css">
+<title>Chap. 3  Types and Features</title>
+</head>
+
+
+<body>
+
+<h1>Types and Features</h1>
+
+<a href="chap3.ja.html">Japanese version</a>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#feature_structure">Feature Structure</a>
+  <li><a href="#type_hierarchy">Type Hierarchy</a>
+  <li><a href="#type_unification">Type Unification</a>
+  <li><a href="#feature">Feature</a>
+  <li><a href="#unification">Unification</a>
+  <li><a href="#structure_sharing">Structure Sharing</a>
+  <li><a href="#misc">Misc</a>
+</ul>
+
+<hr noshade>
+
+
+<!-- Feature Structure -->
+<h2><a name="feature_structure">Feature Structure</a></h2>
+
+<p><key>Feature Structure</key>(<key>FS</key>) is a Directed Graph, in which all the nodes and              
+edges have an associated name. The name associated with a node is called <a href="#type_hierarchy">Type</a>             
+and the name associated with a edge is called <a href="#feature">Feature</a>.             
+             
+The types of edges or attributes that can be associated with a node are determined uniquely by the Type.             
+             
+             
+<a name="figure_fs">             
+<blockquote>             
+<table border="0" width="416">             
+<caption align="bottom">Figure 3.1 Example of Feature Structure</caption>            
+<tr><td width="408">            
+<pre>
+       Name
+     −−−−→Dance in the Dark
+    ｜            Lineage
+→Racing Horse−−−−−→Hail to Reason
+    ｜＼  Father          Lineage ↑
+    ｜  −−→Stud Horse−−−−
+    ｜          ｜ Name
+    ｜           −−−→Sunday Science
+    ｜ Mother         Name
+     −−→ Mare−−−−→Dancing Queen
+              ｜ Lineage
+               −−−→Northern Dancer
+</pre>            
+</td></tr>            
+</table>            
+</blockquote>            
+</a>            
+            
+<p>The left most node 'Racing Horse' (with the arrow in front) is a special node         
+called the Root node. Every Feature Structure must have a Root node. 'Hail to         
+Reason' is connected to by two edges. This type of structure is called             
+<a href="#structure_sharing">Structure Sharing</a>．</p>            
+            
+<p>Since it is difficult and time consuming to represent the feature structures         
+by drawing graphs, the following representation called as Attribute-Value Matrix         
+(AVM) is used.</p>            
+            
+<p>　</p>    
+    
+<blockquote>    
+<table border="0" width="418">    
+<caption align="bottom">Figure 3.2 AVM Representation of Example Feature Structure</caption>             
+<tr><td width="410">             
+<pre>
+|~Racing Horse                        ~|
+| Name: Dance in the Dark              |
+| Lineage:$1 Hail to Reason            |
+|        |~Stud Horse               ~| |
+| Father:| Name: Sunday Science      | |
+|        |_Lineage:$1               _| |
+|        |~Mare                  ~|    |
+| Mother:| Name: Dancing Queen    |    |
+|_       |_Lineage:Northern Dance_|   _|
+</pre>             
+</td></tr>             
+</table>             
+</blockquote>             
+             
+<p>That figure represents the same structure than the <a href="#figure_fs">previous        
+one</a>.&nbsp; The part encircled is a Feature Structure. $1 is an example  
+of&nbsp;&nbsp; <a href="#structure_sharing">Structure Sharing</a>. LiLFeS  
+displays the Feature Structure in the above format.</p>            
+            
+<hr noshade>            
+            
+            
+<h2><a name="type_hierarchy">Type Hierarchy</a></h2>            
+            
+<p>A type</key> have a structure hierarchy. For example, for the types of        
+triangles, we could write the next structure hierarchy.</p>            
+            
+<a name="figure_triangle">            
+<blockquote>            
+<table border="0">            
+<caption align="bottom">Fig 3.3 Example of Type Hierarchy</caption>            
+<tr><td>            
+<pre>
+Equilateral  Isometric Right Angle
+   ＼      ／         ＼
+   Isometric    Right Angle Triangle
+          ＼        ／
+             Triangle
+               ｜
+              bot
+</pre>            
+</td></tr>            
+</table>            
+</blockquote>            
+</a>            
+            
+<p>The lines above represent the supertype-subtype relation. In the figure  
+above, the lower direction is the supertype and the upper direction is subtype. All types, (except <a href="#bottom">'bot'</a>)  
+have necessarily at least one supertype.&nbsp; In LiLFes,&nbsp;<a name="bottom">  
+'<key><code>bot</code></key>'(<key>bottom, predefined)</a>,&nbsp; is the supertype of  
+of all the types.</p>           
+           
+<hr noshade>           
+           
+           
+<h2><a name="type_unification">Type Unification</a></h2>            
+            
+<p>The operation between different data types is defined as unification. As can  
+be easily seen from the above figure, the process of finding the common parent  
+or subtype is called as Unification. It is also called as <key>LUB</key>(<key>Least Upper Bound</key>).</p>            
+            
+<p>Let us assume we have two types <var>X,Y</var>，and we unify in LiLFeS :            
+            
+<blockquote>            
+<code>            
+<pre>
+X = Y
+</pre>            
+</code>            
+</blockquote>            
+            
+For example，             
+<a href="#figure_triangle">in the above figure</a>            
+            
+<blockquote>            
+<table border="0">            
+<tr><td>            
+<code>            
+<pre>
+&gt; ?- X = Triangle, X = Isometric.
+X: Isometric
+&gt; ?- X = Isometric, X = Right Angle Triangle.
+X: Isometric Right Angle Triangle
+&gt; ?- X = Equilateral, X = Right Angle Triangle.
+no
+</pre>            
+</code>            
+</td></tr>            
+</table>            
+</blockquote>            
+            
+If no common subtype exists, the function fails. Since             
+<a href="#bottom">'bot'</a> is supertype of all types, unification will always  
+succeed and unification of bot with X will always be X.<p>In LiLFeS Type  
+Hierarchy, the unification must always always be LUB i.e., it does not allow  
+type types having common multiple subtypes, that too with no supertype-subtype  
+relation. For example, in the above figure, it is not possible to define a new  
+supertype for Isometric and Right Angle triangle, which makes LiLFeS more rigid,  
+error-free&nbsp; and efficient compared to PROLOG.</p>            
+            
+<hr noshade>            
+            
+            
+<h2><a name="feature">Feature</a></h2>            
+            
+<p>Each node can have Feature associated. If a supertype has a feature all  
+children will have the feature inherited. When a node has multiple supertype(s)  
+with the same feature, it will be inherited only once. In LiLFeS it is not  
+possible to define the same name more than two times.</p>            
+            
+<p>Values in brackets are Feature&nbsp;</p>            
+            
+<a name="figure_poker">            
+<blockquote>            
+<table border="0">            
+<caption align="bottom">Fig 3.4 Example of Feature</caption>            
+<tr><td>            
+<pre>
+Straight[Minimum Value]  Fresh[Stud]
+              ＼          ／
+               Poker's Hand
+                    ｜
+                   bot
+</pre>            
+</td></tr>            
+</table>            
+</blockquote>            
+</a>            
+            
+<p>Here, if we define 'Straight' and 'Fresh' to have a supertype called&nbsp; 'StraightFresh'  
+then it will have two features&nbsp; 'Minimum Value' and 'Stud automatically  
+derived'． If 'Poker's Hand' has some feature <var>A </var>then it will also be  
+inherited only once in 'StraightFresh'.</p>            
+            
+<hr noshade>            
+            
+            
+<h2><a name="unification">Feature Structure Unification</a></h2>           
+           
+<p>Feature Structure unification starts from the root type. If it succeeds then  
+each of the children are unified recursively till all the nodes are successful  
+resulting in successful unification.</p>           
+           
+<p><a href="#figure_poker">In Poker's Hand</a> example， Feature Structure  
+unification will be&nbsp;           
+           
+<blockquote>           
+<table border="0">           
+<tr><td>           
+<pre>
+|~Straight              ~|
+|_Minimum Value:10      _|</pre>           
+<pre>
+|~Fresh                 ~|
+|_Stud:Speed            _|
+</pre>           
+</td></tr>           
+</table>           
+</blockquote>           
+           
+First the top level unification of 'Straight' and 'Fresh' will be performed．  
+The result of this will be 'StraightFresh'， The resultant Feature Structures  
+will be&nbsp;           
+           
+<blockquote>           
+<table border="0">           
+<tr><td>           
+<pre>
+|~StraightFresh         ~|
+| Minimum Value:10       |
+|_Stud:bot              _|</pre>           
+<pre>
+|~StraightFresh         ~|
+| Minimum Value:bot      |
+|_Stud:Speed            _|
+</pre>           
+</td></tr>           
+</table>           
+</blockquote>           
+           
+Next,&nbsp; Feature Structure associated with each Feature will be unified．  
+Feature 'Minimum Value''s Feature Structure will be&nbsp; '10'， Feature 'Stud''s  
+Feature Structure will be 'Speed'．Thus the final unification result will be:            
+            
+<blockquote>            
+<table border="0">            
+<tr><td>            
+<pre>
+|~StraightFresh         ~|
+| Minimum Value:10       |
+|_Stud:Speed            _|
+</pre>            
+</td></tr>            
+</table>            
+</blockquote>            
+            
+<hr noshade>            
+            
+            
+<h2><a name="structure_sharing">Structure Sharing</a></h2>            
+            
+<p>Feature Structure can be thought of as a graph. Unlike a tree, multiple edges  
+can point to a single node, which is refered to as Structure Sharing. In our <a href="#figure_fs">First  
+Example </a>, node 'Hail to Reason' is sharing structure and while displaying it  
+in AVM, dag $x (where x is number) is used and only expanded in once and  
+suppressed in other places. Unification of shared structures is also possible.  
+For example unification of the following:</p>            
+            
+<p>　          
+          
+<blockquote>          
+<table border="0">          
+<tr><td>          
+<pre>
+|~example  ~|
+| A:$1 bot  |
+| B:$1      |
+|_C:bot    _|</pre>          
+<pre>
+|~example  ~|
+| A:bot     |
+| B:$2 bot  |
+|_C:$2     _|
+</pre>          
+</td></tr>          
+</table>          
+</blockquote>          
+          
+When Feature A is unified, since A and B feature's are shared and also B and C  
+feature's are shared the result of unification will be&nbsp; 
+<p>　</p>
+           
+<blockquote>           
+<table border="0">           
+<tr><td>           
+<pre>
+|~example  ~|
+| A:$1 bot  |
+| B:$1      |
+|_C:$1    _ |</pre>           
+<pre>　</pre>           
+</td></tr>           
+</table>           
+</blockquote>           
+           
+<hr noshade>           
+           
+           
+<h2><a name="misc">Miscellaneous</a></h2>           
+           
+<p>LiLFeS can handle lists in the same way than PROLOG.</p>           
+           
+<blockquote>           
+<table border="0">           
+<tr><td>           
+<code>           
+<pre>
+&gt; ?- X = [1, 2, 3].
+X: &lt; 1, 2, 3 &gt;
+</pre>           
+</code>           
+</td></tr>           
+</table>           
+</blockquote>           
+           
+<p>Lists are also Feature Structure. The type of the list is 'list', and have as direct subtypes 'cons' and 'nil' and 'cons' have the features 'hd' and 'tl'.      
+'hd' would be the equivalent to 'car' in LISP and 'tl' to 'cdr'. Thus the above 
+will be represented in Feature Structure as:</p>          
+          
+<blockquote>          
+<table border="0">          
+<tr><td>          
+<pre>
+|~cons                ~|
+| hd:1                 |
+|    |~cons         ~| |
+|    | hd:2          | |
+| tl:|    |~cons  ~| | |
+|    | tl:| hd:3   | | |
+|_   |_   |_tl:nil_|_|_|
+</pre>          
+</td></tr>          
+</table>          
+</blockquote>          
+          
+<p>List being a Feature Structure can also contains structure sharing.. For       
+example, in the next example，a alternating infinite series of 1, 2 can be  
+represented:</p>           
+           
+<blockquote>           
+<table border="0">           
+<tr><td>           
+<code>           
+<pre>
+&gt; ?- X = [1, 2 | X].
+X: [$1] &lt; 1, 2 | [$1] ... &gt;
+</pre>           
+</code>           
+</td></tr>           
+</table>           
+</blockquote>           
+           
+<p>In LiLFeS, predicates, feature names, etc. can also be treated as Feature Structures.&nbsp;</p>           
+           
+           
+           
+<hr>           
+<a href="chap2.html">Prev: Getting Started</a>            
+<a href="chap4.html">Next: Grammar</a>            
+            
+<hr>
+<a href="index.html">Table of Contents</a> 
+<a href="../index.html">LiLFeS Documents</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/">LiLFeS Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Lab.</a>
+
+</body>             
+</html>             

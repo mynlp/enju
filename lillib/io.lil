@@ -1,0 +1,160 @@
+%/**
+  * @module    = lillib:io
+  * @cvs       = $Id: io.lil,v 1.2 2004-04-18 10:37:38 yusuke Exp $
+  * @copyright = Copyright (c) 1998--1999, MITSUISHI Yutaka and KANAYAMA Hiroshi
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @author    = KANAYAMA Hiroshi (kanayama@is.s.u-tokyo.ac.jp)
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @version   = April 07, 1999
+  * @since     = July 08, 1998
+  * @desc      = Input/Output routines
+  * Input and output routines
+%*/
+
+:- module("lillib:io").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+format <- [pred].
+'format/2' <- [format, 'pred/2'].
+'format/3' <- ['format/2', 'pred/3'].
+
+formattostr <- [pred].
+'formattostr/2' <- [formattostr, 'pred/2'].
+'formattostr/3' <- ['formattostr/2', 'pred/3'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lists").
+
+inttodlist <- [pred].
+inttodlist_sub <- [pred].
+inttodlist_sub($NUM1, [45|$CHARs1], $CHARs2) :-		% 45: '-'
+    $NUM1 < 0,
+    !,
+    $NUM2 is -$NUM1,
+    inttodlist_sub($NUM2, $CHARs1, $CHARs2).
+
+inttodlist_sub($NUM, [$CHAR|$CHARs1], $CHARs1) :-
+    $QUOTIENT is $NUM // 10,
+    $QUOTIENT =:= 0,
+    !,
+    $CHAR is $NUM + 48.					% 48: '0'
+
+inttodlist_sub($NUM, $CHARs1, $CHARs2) :-
+    $QUOTIENT is $NUM // 10,
+    $REMAINDER is $NUM mod 10,
+    $CHAR is $REMAINDER + 48,				% 48: '0'
+    inttodlist_sub($QUOTIENT, $CHARs1, [$CHAR|$CHARs2]).
+
+inttodlist($NUM, $CHARs1, $CHARs2) :-
+    inttodlist_sub($NUM, $CHARs1, $CHARs2).
+
+%/**
+  * @predicate = format(+$STREAM, +$FORMAT)
+  * @param     = +$STREAM/integer or handle_stream
+  * @param     = +$FORMAT/string
+  * @see       = #format/3
+  * This is the same as in Prolog, but partially implemented currently.
+  * The current control sequences are `~d', `~f', `~s' and `~~', and
+  * the current control codes are `\n' and `\t'.
+%*/
+%/**
+  * @predicate = format(+$STREAM, +$FORMAT, +$ARGs)
+  * @param     = +$STREAM/integer or handle_stream
+  * @param     = +$FORMAT/string
+  * @param     = +$ARGs/list
+  * @see       = #format/2
+  * This is the same as in Prolog, but partially implemented currently.
+  * The current control sequences are `~d', `~f', `~s' and `~~', and
+  * the current control codes are `\n' and `\t'.
+%*/
+
+format_sub <- [pred].
+format_sub([], _, _, $CHARs, $CHARs) :- !.
+format_sub([126, 126|$CHARs1], $ARGs, $ALL, [126|$CHARs2], $CHARs3) :-
+    %%      '~'  '~'                         '~'
+    !,
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+format_sub([126, 115|$CHARs1], $ARGs1, $ALL, $CHARs2, $CHARs3) :-
+    %%      '~'  's'
+    !,
+    $ARGs1 = [$ARG|$ARGs2],
+    strtolist($ARG, $LIST),
+    append($LIST, $CHARs4, $CHARs2),
+    format_sub($CHARs1, $ARGs2, $ALL, $CHARs4, $CHARs3).
+format_sub([126, 102|$CHARs1], $ARGs1, $ALL, $CHARs2, $CHARs3) :-
+    %%      '~'  'f'
+    !,
+    $ARGs1 = [$ARG|$ARGs2],
+    floattostr($ARG, $STR),
+    strtolist($STR, $LIST),
+    append($LIST, $CHARs4, $CHARs2),
+    format_sub($CHARs1, $ARGs2, $ALL, $CHARs4, $CHARs3).
+format_sub([126, 100|$CHARs1], $ARGs1, $ALL, $CHARs2, $CHARs3) :-
+    %%      '~'  'd'
+    !,
+    $ARGs1 = [$ARG|$ARGs2],
+    inttodlist($ARG, $CHARs2, $CHARs4),
+    format_sub($CHARs1, $ARGs2, $ALL, $CHARs4, $CHARs3).
+format_sub([92, 110|$CHARs1], $ARGs, $ALL, [10|$CHARs2], $CHARs3) :-
+    %%      '\'  'n'                        NL
+    !,
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+format_sub([92, 114|$CHARs1], $ARGs, $ALL, [13|$CHARs2], $CHARs3) :-
+    %%      '\'  'r'                        CR
+    !,
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+format_sub([92, 116|$CHARs1], $ARGs, $ALL, [9|$CHARs2], $CHARs3) :-
+    %%      '\'  't'                        TAB
+    !,
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+format_sub([92, $CHAR|$CHARs1], $ARGs, $ALL, [$CHAR|$CHARs2], $CHARs3) :-
+    %%      '\'                              
+    !,
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+format_sub([$CHAR|$CHARs1], $ARGs, $ALL, [$CHAR|$CHARs2], $CHARs3) :-
+    format_sub($CHARs1, $ARGs, $ALL, $CHARs2, $CHARs3).
+
+handle_mapping <- [pred].
+handle_mapping(0, $StdOut) :- stdout_stream($StdOut).
+handle_mapping(1, $StdErr) :- stderr_stream($StdErr).
+handle_mapping(handle_stream & $Handle, $Handle).
+
+format($STREAM, $FORMAT, $ARGs) :-
+    handle_mapping($STREAM, $HANDLE),
+    strtolist($FORMAT, $LIST1),
+    format_sub([0|$LIST1], $ARGs, $LIST2, $LIST2, []),
+    $LIST2 = [_|$LIST3],
+    write_stream($HANDLE, $LIST3).
+
+format($STREAM, $FORMAT) :- format($STREAM, $FORMAT, []).
+
+%/**
+  * @predicate = formattostr(+$FORMAT, -$STRING)
+  * @param     = +$FORMAT/string
+  * @param     = -$STRING/string
+  * @see       = #format/3 #formattostr/3
+  * same as <a href="#format/2">'format/2'</a>, but output to a string.
+%*/
+%/**
+  * @predicate = formattostr(+$FORMAT, +$ARGs, -$STRING)
+  * @param     = +$FORMAT/string
+  * @param     = +$ARGs/list
+  * @param     = -$STRING/string
+  * @see       = #format/3 #formattostr/2
+  * same as <a href="#format/3">'format/3'</a>, but output to a string.
+%*/
+
+formattostr($FORMAT, $ARGs, $STRING) :-
+    strtolist($FORMAT, $LIST1),
+    format_sub([0|$LIST1], $ARGs, $LIST2, $LIST2, []),
+    $LIST2 = [_|$LIST3],
+    listtostr($LIST3, $STRING).
+formattostr($FORMAT, $STRING) :- formattostr($FORMAT, [], $STRING).
+

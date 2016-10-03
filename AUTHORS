@@ -1,0 +1,27 @@
+The LiLFeS project is conducted by
+
+    Jun'ichi Tsujii              tsujii@is.s.u-tokyo.ac.jp
+    Kentaro Torisawa             torisawa@jaist.ac.jp
+
+The LiLFeS language and system are designed by
+
+    Kentaro Torisawa             torisawa@jaist.ac.jp
+    Takaki Makino                mak@is.s.u-tokyo.ac.jp
+
+The LiLFeS system is developed by ...
+
+    Takaki Makino                mak@is.s.u-tokyo.ac.jp
+    Kenji Nishida                nishiken@is.s.u-tokyo.ac.jp
+    Yutaka Mitsuishi             mitsuisi@is.s.u-tokyo.ac.jp
+    Takashi Ninomiya             ninomi@is.s.u-tokyo.ac.jp
+    Minoru Yoshida               mino@is.s.u-tokyo.ac.jp
+    Yusuke Miyao                 yusuke@is.s.u-tokyo.ac.jp
+    Masachika Fuchigami          fchigami@kansai.oki.co.jp, masatic@mc.kcom.ne.jp
+    Yoshimasa Tsuruoka           tsuruoka@is.s.u-tokyo.ac.jp
+
+and others.
+
+Acknowledgement
+   Thanks Dr. Yuka Tateisi for finding a lot of bugs in the LiLFeS system.
+   Thanks Toshihiro Yoshino for a readline patch
+

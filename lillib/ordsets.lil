@@ -1,0 +1,170 @@
+%/**
+  * @module    = lillib:ordsets
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @copyright = Copyright (c) 2001, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @cvs       = $Id: ordsets.lil,v 1.2 2006-06-28 14:28:16 yusuke Exp $
+  * @version   = Time-stamp: <2006-06-28 23:27:50 yusuke>
+  * @since     = Jan 06, 2001
+  * @desc      = Implementation of a set
+  * This module provides various predicates for manipulating
+  * a set.  A set is represented as an ordered list.
+%*/
+
+:- module("lillib:ordsets").
+
+:- module_interface.
+
+%/**
+  * @predicate = empty_ordset($Set)
+  * @param     = $Set/list : an empty set
+  * @desc      = an empty set
+%*/
+empty_ord_set <- [pred].
+
+%/**
+  * @predicate = list_to_ord_set(+$List, -$Set)
+  * @param     = +$List/list : an input list
+  * @param     = -$Set/list : an output set
+  * @desc      = convert a list to a set
+%*/
+list_to_ord_set <- [pred].
+
+%/**
+  * @predicate = ord_add_element(+$Set1, +$Elem, -$Set2)
+  * @param     = +$Set1/list : an input set
+  * @param     = +$Elem/bot  : an element to be inserted
+  * @param     = -$Set2/list : an output set
+  * @desc      = insert an element to a set
+  * $Elem is inserted into $Set1, and the result is returned to $Set2.
+%*/
+ord_add_element <- [pred].
+
+%/**
+  * @predicate = ord_del_element(+$Set1, +$Elem, -$Set2)
+  * @param     = +$Set1/list : an input set
+  * @param     = +$Elem/bot  : an element to be deleted
+  * @param     = -$Set2/list : an output set
+  * @desc      = delete an element from a set
+  * $Elem is deleted from $Set1, and the result is returned to $Set2.
+%*/
+ord_del_element <- [pred].
+
+%/**
+  * @predicate = ord_member(+$Elem, +$Set)
+  * @param     = +$Elem/bot  : an element
+  * @param     = +$Set/list : an input set
+  * @desc      = true if $Elem is an element of $Set
+%*/
+ord_member <- [pred].
+
+%/**
+  * @predicate = ord_seteq(+$Set1, +$Set2)
+  * @param     = +$Set1/list : an input set
+  * @param     = +$Set2/list : an input set
+  * @desc      = Compare two sets
+  * This is true when $Set1 and $Set2 are equivalent
+%*/
+ord_seteq <- [pred].
+
+%/**
+  * @predicate = ord_subset(+$Set1, +$Set2)
+  * @param     = +$Set1/list : an input set
+  * @param     = +$Set2/list : an input set
+  * @desc      = Compare two sets
+  * This is true when $Set1 is a subset of $Set2
+%*/
+ord_subset <- [pred].
+
+%/**
+  * @predicate = ord_union(+$Set1, +$Set2, -$Set3)
+  * @param     = +$Set1/list : an input set
+  * @param     = +$Set2/list : an input set
+  * @param     = -$Set3/list : a union of the sets
+  * @desc      = merge two sets
+  * $Set1 and $Set2 are merged, and the result is returned to $Set3.
+%*/
+ord_union <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lists").
+
+empty_ord_set([]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+list_to_set_sub <- [pred].
+list_to_set_sub([], $Set, $Set).
+list_to_set_sub([$Elem|$List], $InSet, $OutSet) :-
+    ord_add_element($InSet, $Elem, $Set),
+    list_to_set_sub($List, $Set, $OutSet).
+list_to_ord_set($List, $Set) :-
+    list_to_set_sub($List, [], $Set).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_add_element([], $Elem, [$Elem]).
+ord_add_element([$E|$Set], $Elem, $Out) :-
+    fs_compare($Elem, $E, $Order),
+    ($Order =:= -1 ->
+     $Out = [$Elem, $E|$Set] ;
+     ($Order =:= 0 ->
+      $Out = [$Elem|$Set] ;
+      $Out = [$E|$Next],
+      ord_add_element($Set, $Elem, $Next))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_del_element([$E|$Set], $Elem, $Out) :-
+    fs_compare($Elem, $E, $Order),
+    ($Order =:= 0 ->
+     $Out = $Set ;
+     ($Order =:= -1 ->
+      fail ;
+      $Out = [$E|$Next],
+      ord_del_element($Set, $Elem, $Next))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_member($Elem, $Set) :-
+    member_e($Elem, $Set).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_seteq([], []).
+ord_seteq([$Elem1|$Set1], [$Elem2|$Set2]) :-
+    fs_compare($Elem1, $Elem2, 0),
+    ord_seteq($Set1, $Set2).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_subset([], _).
+ord_subset([$Elem1|$Set1], [$Elem2|$Set2]) :-
+    fs_compare($Elem1, $Elem2, $Order),
+    ($Order =:= 0 ->
+     ord_subset($Set1, $Set2) ;
+     ($Order = -1 ->
+      fail ;
+      ord_subset([$Elem1|$Set1], $Set2))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ord_union_sub <- [pred].
+ord_union_sub([], $Set, $Set).
+ord_union_sub([$Elem1|$Set1], [$Elem2|$Set2], [$Elem|$Set]) :-
+    fs_compare($Elem1, $Elem2, $Order),
+    ($Order =:= -1 ->
+     $Elem = $Elem1,
+     ord_union_sub($Set1, [$Elem2|$Set2], $Set) ;
+     ($Order =:= 0 ->
+      $Elem = $Elem1,
+      ord_union($Set1, $Set2, $Set) ;
+      $Elem = $Elem2,
+      ord_union_sub($Set2, [$Elem1|$Set1], $Set))).
+ord_union([], $Set, $Set).
+ord_union($Set1 & cons, $Set2, $Set) :-
+    ord_union_sub($Set2, $Set1, $Set).
+

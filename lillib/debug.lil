@@ -1,0 +1,161 @@
+%/**
+  * @module    = lillib:debug
+  * @copyright = Copyright (c) 1998--1999, MITSUISHI Yutaka
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @cvs       = $Id: debug.lil,v 1.2 2004-05-09 15:29:27 yusuke Exp $
+  * @author    = MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @version   = April 07, 1999
+  * @since     = July 08, 1998
+  * @desc      = Useful debugging routines
+  * This module provides useful debugging routines.
+%*/
+
+:- module("lillib:debug").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+set_debug_mode <- [pred].
+unset_debug_mode <- [pred].
+is_debug_mode <- [pred].
+debug_message <- [pred].
+'debug_message/2' <- [debug_message, 'pred/2'].
+'debug_message/3' <- ['debug_message/2', 'pred/3'].
+error_message <- [pred].
+'error_message/1' <- [error_message, 'pred/1'].
+'error_message/2' <- ['error_message/1', 'pred/2'].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+:- ensure_loaded("io").
+
+'*debug_switch*' <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%  Predicates for switching debugging states
+
+%/**
+  * @predicate = set_debug_mode(+$KEY)
+  * @param     = +$KEY/bot : a key for a debug mode
+  * @desc      = enable debug mode
+  * @see       = #unset_debug_mode/1 #is_debug_mode/1
+  * @see       = #debug_message/3 #debug_message/2
+  * @see       = #error_message/2 #error_message/1
+  * This predicate enables the debug mode corresponding to $KEY.
+  * $KEY = "error" corresponds to the error mode, and is set by default.
+%*/
+set_debug_mode($KEY) :-
+     set_array('*debug_switch*'($KEY, 1)).
+%/**
+  * @predicate = unset_debug_mode(+$KEY)
+  * @param     = +$KEY/bot : a key for a debug mode
+  * @desc      = disable debug mode
+  * @see       = #set_debug_mode/1 #is_debug_mode/1
+  * @see       = #debug_message/3 #debug_message/2
+  * @see       = #error_message/2 #error_message/1
+  * This predicate disables the debug mode corresponding to $KEY.
+  * $KEY = "error" corresponds to the error mode, and is set by default.
+%*/
+unset_debug_mode($KEY) :-
+    set_array('*debug_switch*'($KEY, 0)).
+%/**
+  * @predicate = is_debug_mode(+$KEY)
+  * @param     = +$KEY/bot : a key for a debug mode
+  * @desc      = check debug mode
+  * @see       = #set_debug_mode/1 #unset_debug_mode/1
+  * @see       = #debug_message/3 #debug_message/2
+  * @see       = #error_message/2 #error_message/1
+  * This predicate succeeds when the debug mode corresponding to $KEY is enabled.
+  * $KEY = "error" corresponds to the error mode, and is enabled by default.
+%*/
+is_debug_mode($KEY) :-
+    get_array('*debug_switch*'($KEY, 1)).
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%  Predicates for displaying debugging messages
+
+%/**
+  * @predicate = debug_message(+$KEY, +$MESSAGE, +$ARGS)
+  * @param     = +$KEY/bot : a key for a debug mode
+  * @param     = +$MESSAGE/string : a message
+  * @param     = +$ARGS/list : arguments for the message
+  * @desc      = print debug messages
+  * @see       = #set_debug_mode/1 #unset_debug_mode/1 #is_debug_mode/1
+  * @see       = #debug_message/2
+  * @see       = io#format/3
+  * This predicate prints a debug message if the debug mode $KEY is enabled.
+  * Otherwise, do nothing.
+  * $MESSAGE and $ARGS follow the description of
+  * <a href="io.html#format/3">'format/3'</a>
+%*/
+debug_message($KEY, $MESSAGE, $ARGS) :-
+    (is_debug_mode($KEY) ->
+     format(1, $MESSAGE, $ARGS)
+     ;
+     true).
+%/**
+  * @predicate = debug_message(+$KEY, +$MESSAGE)
+  * @param     = +$KEY/bot : a key for a debug mode
+  * @param     = +$MESSAGE/string : a message
+  * @desc      = print debug messages
+  * @see       = #set_debug_mode/1 #unset_debug_mode/1 #is_debug_mode/1
+  * @see       = #debug_message/3
+  * @see       = io#format/2
+  * This predicate prints a debug message if the debug mode $KEY is enabled.
+  * Otherwise, do nothing.
+%*/
+debug_message($KEY, $MESSAGE) :-
+    (is_debug_mode($KEY) ->
+     format(1, $MESSAGE)
+     ;
+     true).
+%/**
+  * @predicate = error_message(+$MESSAGE, +$ARGS)
+  * @param     = +$MESSAGE/string : a message
+  * @param     = +$ARGS/list : arguments for the message
+  * @desc      = print error messages
+  * @see       = #set_debug_mode/1 #unset_debug_mode/1 #is_debug_mode/1
+  * @see       = #error_message/1
+  * @see       = io#format/3
+  * This predicate prints an error message if the debug mode "error" is enabled.
+  * Otherwise, do nothing.
+  * $MESSAGE and $ARGS follow the description of
+  * <a href="io.html#format/3">'format/3'</a>
+%*/
+error_message($MESSAGE, $ARGS) :-
+    (is_debug_mode("error") ->
+     strcat("ERROR: ", $MESSAGE, $M),
+     format(1, $M, $ARGS)
+     ;
+     true).
+%/**
+  * @predicate = error_message(+$MESSAGE)
+  * @param     = +$MESSAGE/string : a message
+  * @desc      = print error messages
+  * @see       = #set_debug_mode/1 #unset_debug_mode/1 #is_debug_mode/1
+  * @see       = #error_message/2
+  * @see       = io#format/2
+  * This predicate prints an error message if the debug mode "error" is enabled.
+  * Otherwise, do nothing.
+%*/
+error_message($MESSAGE) :-
+    (is_debug_mode("error") ->
+     strcat("ERROR: ", $MESSAGE, $M),
+     format(1, $M)
+     ;
+     true).
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%  Initialize debugging states
+
+:-
+    declare_array('*debug_switch*'(key_fs, array_value_integer)),
+    set_debug_mode("error").
+

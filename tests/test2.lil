@@ -1,0 +1,192 @@
+% -----------------------------------------------------------
+%  test2.lil : clause test code.
+%   Tests from ISO/IEC 13211-1 Prolog standard
+% -----------------------------------------------------------
+
+:- module("test2").
+:- ensure_loaded("testmain").
+
+:- module_implementation.
+% -----------------------------------------------------------
+
+outstr <- pred.
+:- declare_array(outstr(array_value_string)).
+
+append <- pred.
+init_out <- pred.
+out <- pred.
+get_out <- pred.
+twice <- pred.
+goal <- pred.
+
+append([],X,X).
+append([A|X],Y,[A|Z]) :- append(X, Y, Z).
+
+% strcat(A, B, C) :- strtolist(A, AL), strtolist(B, BL), append(AL, BL, CL), listtostr(CL, C).
+
+init_out :- set_array(outstr("")).
+out(X) :- get_array(outstr(STR)), strcat(STR, X, NEWSTR), set_array(outstr(NEWSTR)).
+get_out(X) :- get_array(outstr(X)).
+
+% -----------------------------------------------------------
+cut <- bot.
+test_item(cut,11,1).
+
+twice(!) :- out("C ").
+twice(true) :- out("Moss ").
+
+goal((twice(_), !)).
+goal(out("Three ")).
+
+cut1 <- pred.
+cut1 :- !.
+
+tt(cut,0) :- cut1.
+
+tt(cut,1) :- call(!), fail; true.
+
+cut3 <- pred.
+cut3 :- twice(_), !, out("Forwards "), fail.
+
+tt(cut,2) :- init_out, \+ cut3, get_out(S), equiv(S,"C Forwards ").
+
+cut4 <- pred.
+cut4 :- (! ; out("No ")), out("Cut disjunction "), fail.
+
+tt(cut,3) :- init_out, \+ cut4, get_out(S), equiv(S,"Cut disjunction ").
+
+cut5 <- pred.
+cut5 :- twice(_), (out("No "); !), out("Cut "), fail.
+
+tt(cut,4) :- init_out, \+ cut5, get_out(S), equiv(S,"C No Cut Cut ").
+
+cut6 <- pred.
+cut6 :- twice(_), (!, fail; out("No ")).
+
+tt(cut,5) :- init_out, \+ cut6, get_out(S), equiv(S,"C ").
+
+cut7 <- pred.
+cut7 :- twice(X), call(X), out("Forwards "), fail.
+
+tt(cut,6) :- init_out, \+ cut7, get_out(S), equiv(S,"C Forwards Moss Forwards ").
+
+cut8 <- pred.
+cut8 :- goal(X), call(X), out("Forwards "), fail.
+
+tt(cut,7) :- init_out, \+ cut8, get_out(S), equiv(S,"C Forwards Three Forwards ").
+
+cut9 <- pred.
+cut9 :- twice(_), \+ ( \+ ( ! ) ), out("Forwards "), fail.
+
+tt(cut,8) :- init_out, \+ cut9, get_out(S), equiv(S,"C Forwards Moss Forwards ").
+
+cut10 <- pred.
+cut10 :- twice(_), call(!), out("Forwards "), fail.
+
+tt(cut,9) :- init_out, \+ cut10, get_out(S), equiv(S,"C Forwards Moss Forwards ").
+
+tt(cut,10) :- call(!).
+
+cut2 <- pred.
+cut2 :- (!, fail ; true).
+ft(cut, 0) :- cut2.
+
+
+% -----------------------------------------------------------
+conj <- bot.
+test_item(conj,2,1).
+
+tt(conj, 0) :- ','( is_bot(X), X=1 ), equiv(X, 1).
+tt(conj, 1) :- ','( X=true, call(X) ), equiv(X, true).
+ft(conj, 0) :- ','( X=1, is_bot(X) ).
+
+% -----------------------------------------------------------
+disj <- bot.
+test_item(disj,8,2).
+
+tt(disj, 0) :- ';'(true, fail).
+tt(disj, 1) :- ';'(!, call(3)).
+tt(disj, 2) :- ';'((X=1, !), X=2), equiv(X, 1).
+
+disj1 <- pred.
+disj1(X) :- ','( ';'( X=1, X=2 ), ';'(true, !) ).
+
+tt(disj, 3) :- findall(X, disj1(X), Y), equiv(Y, [1, 1]).
+tt(disj, 4) :- ';'(X=1, true), equiv(X, 1).
+tt(disj, 5) :- ';'(X=1, true), equivalent(X, bot).
+tt(disj, 6) :- ';'(true, X=2), equiv(X, bot).
+tt(disj, 7) :- ';'(true, X=2), equivalent(X, 2).
+
+
+ft(disj, 0) :- ';'((!, fail), true).
+ft(disj, 1) :- ';'((X=1, !), X=2), equivalent(X, 2).
+
+% -----------------------------------------------------------
+ifthen <- bot.
+test_item(ifthen,8,3).
+
+ifthen1 <- pred.
+ifthen1(X) :- '->'(true, X=1).
+ifthen2 <- pred.
+ifthen2(X) :- '->'(';'(X=1, X=2), true).
+ifthen3 <- pred.
+ifthen3(X) :- '->'(true, ';'(X=1, X=2)).
+
+tt(ifthen, 0) :- '->'(true, true).
+tt(ifthen, 1) :- ifthen1(X), equiv(X, 1).
+tt(ifthen, 2) :- findall(X, ifthen1(X), Y), equiv(Y, [1]).
+tt(ifthen, 3) :- ifthen2(X), equiv(X, 1).
+tt(ifthen, 4) :- findall(X, ifthen2(X), Y), equiv(Y, [1]).
+tt(ifthen, 5) :- ifthen3(X), equiv(X, 1).
+tt(ifthen, 6) :- ifthen3(X), equivalent(X, 2).
+tt(ifthen, 7) :- findall(X, ifthen3(X), Y), equiv(Y, [1,2]).
+ft(ifthen, 0) :- '->'(true, fail).
+ft(ifthen, 1) :- '->'(fail, true).
+ft(ifthen, 2) :- ifthen2(X), equivalent(X, 2).
+
+% -----------------------------------------------------------
+ifthenelse <- bot.
+test_item(ifthenelse,13,3).
+expected_failure(tt(ifthenelse, 11)).
+
+tt(ifthenelse, 0) :- ';'('->'(true, true), fail).
+tt(ifthenelse, 1) :- ';'('->'(fail, fail), true).
+tt(ifthenelse, 2) :- ';'('->'(true, X=1), X=2), equiv(X, 1).
+tt(ifthenelse, 3) :- ';'('->'(fail, X=1), X=2), equiv(X, 2).
+tt(ifthenelse, 4) :- ';'('->'(true, X=1), true), equiv(X, 1).
+tt(ifthenelse, 5) :- ';'('->'(fail, X=1), true), equiv(X, bot).
+tt(ifthenelse, 6) :- ';'('->'(true, true), X=2), equiv(X, bot).
+tt(ifthenelse, 7) :- ';'('->'(fail, true), X=2), equiv(X, 2).
+tt(ifthenelse, 8) :- ';'('->'(true, ';'(X=1, X=2)), true), equiv(X, 1).
+tt(ifthenelse, 9) :- ';'('->'(true, ';'(X=1, X=2)), true), equivalent(X, 2).
+tt(ifthenelse,10) :- ';'('->'(';'(X=1, X=2), true), true), equiv(X, 1).
+tt(ifthenelse,11) :- ';'('->'((!, fail), true), true).	% Expected to be failed in the current implementation
+tt(ifthenelse,12) :- (true -> A = [1, B] ; A = [2, B]), A = tl\ hd\ C, identical(B, C).
+
+ft(ifthenelse, 0) :- ';'('->'(true, fail), fail).
+ft(ifthenelse, 1) :- ';'('->'(fail, true), fail).
+ft(ifthenelse, 2) :- ';'('->'(';'(X=1, X=2), true), true), equivalent(X, 2).
+
+% -----------------------------------------------------------
+not <- bot.
+test_item(not,3,2).
+expected_failure(tt(not, 0)).
+expected_failure(tt(not, 1)).
+
+tt(not, 0) :- \+((!, fail)).
+tt(not, 1) :- (X=1 ; X=2), \+((!, fail)), equivalent(X, 2).
+tt(not, 2) :- \+(4 = 5).
+
+ft(not, 0) :- \+(true).
+ft(not, 1) :- \+(!).
+
+% -----------------------------------------------------------
+test_item(findall,5,1).
+
+tt(findall, 0) :- findall(X, (X=1; X=2), S), equiv(S, [1,2]).
+tt(findall, 1) :- findall(X+Y, (X=1), S), equiv(S, [1+_]).
+tt(findall, 2) :- findall(_X, fail, S), equiv(S, []).
+tt(findall, 3) :- findall(X, (X=1; X=1), S), equiv(S, [1, 1]).
+tt(findall, 4) :- findall(X, (X=1; X=2), [X,Y]), equiv(X, 1), equiv(Y, 2).
+
+ft(findall, 0) :- findall(X, (X=2; X=1), [1,2]).

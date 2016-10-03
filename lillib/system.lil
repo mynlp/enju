@@ -1,0 +1,42 @@
+%/**
+  * @module    = lillib:system
+  * @cvs       = $Id: system.lil,v 1.2 2005-01-20 13:25:50 yusuke Exp $
+  * @copyright = Copyright (c) 2003-2004, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @desc      = System tools
+%*/
+
+:- module("lillib:system").
+
+:- module_interface.
+
+mkdir <- [pred].
+test_and_mkdir <- [pred].
+
+:- module_implementation.
+
+:- ensure_loaded("strings").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = mkdir(+$DIR)
+  * @param     = +$DIR/string : a directory to be made
+  * @desc      = create a new directory
+  * Create a new directory $DIR
+%*/
+mkdir($DIR) :-
+    concatenate_string("mkdir ", $DIR, $MKDIR),
+    system($MKDIR).
+
+%/**
+  * @predicate = test_and_mkdir(+$DIR)
+  * @param     = +$DIR/string : a directory to be made
+  * @desc      = check whether a directory exists and make it when not existing
+  * Make a directory if a directory $DIR does not exist.
+%*/
+test_and_mkdir($DIR) :-
+    concatenate_string("test -d ", $DIR, $TEST),
+    (system($TEST) -> true ; mkdir($DIR)).
+

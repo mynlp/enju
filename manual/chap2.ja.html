@@ -1,0 +1,124 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html lang=ja>
+
+<!-- Time-stamp: "2005-02-25 11:28:59 yusuke" -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="prev" href="chap1.ja.html">
+<link rel="next" href="chap3.ja.html">
+<link rel="stylesheet" type="text/css" href="style-chap2.css">
+<title>Chap. 2  Running LiLFeS</title>
+</head>
+
+
+
+<body>
+<h1>インストールと実行</h1>
+
+<a href="chap2.html">English version</a>
+
+<h2>LiLFeS のインストール</h2>
+
+最新版のLiLFeSはautoconfに対応しているので，インストールはとても簡単です．
+
+インストールは以下の手順になります．
+
+<ol>
+  <li><em>configureスクリプトを使ってホストマシンの設定を行う．</em>
+      <pre>% ./configure</pre>
+      このとき，いくつかのオプションを指定することが出来ます．オプションは
+       -h オプションで見ることができます．
+
+      LiLFeSシステムは，デフォルトでは/usr/local 以下にインストールされるので，
+       そこにファイルを書き込む権限を持っているときは，
+       そのまま上のコマンドを実行して下さい．
+       ルート権限が無いときは，
+       自分のホームディレクトリにインストールすることもできます．
+       例えば，$HOME/lilfes にインストールするときは，
+      <pre>--prefix=$HOME/lilfes</pre>
+      というオプションを指定して下さい．
+      <p>
+  <li><em>makeを使ってLiLFeSをコンパイルする．</em>
+      <pre>% make</pre>
+      コンパイルが無事完了すると<em>lilfes</em>
+       という実行ファイルが作成されます．
+       <p>
+  <li><em>組み込み述語，ライブラリのマニュアルを作成します．</em>
+      <pre>% make doc <em>(英語)</em></pre>
+      <pre>% make jdoc <em>(日本語)</em></pre>
+  <li><em>実行ファイル，ライブラリ，ドキュメントをインストールする．</em>
+      <pre>% make install</pre>
+</ol>
+
+これで<tt>/usr/local/bin/lilfes</tt>が利用できるようになりました．
+
+
+<h2>LiLFeS の実行</h2>
+
+以下のようにlilfesコマンドを起動します．
+<pre>
+% lilfes
+LiLFeS 1.2.0          by Takaki Makino and Tsujii lab., Tokyo Univ.
+&gt;
+</pre>
+">"はlilfesのコマンドプロンプトです．ここでlilfesのプログラムを入力す
+ることが出来ます．
+
+lilfesコマンドには以下のオプションを指定することが出来ます．これらのオ
+プションは-hオプションで見ることが出来ます．
+<center>
+<table border>
+<tr><th>オプション</th><th>説明</th></tr>
+<tr><td>-I</td><td rowspan=2>モジュールのサーチパスを追加する</td></tr>
+<tr><td>--include-path</td></tr>
+<tr><td>--include_verbose</td><td>読み込んだファイル名を表示する</td></tr>
+<tr><td>-l</td><td rowspan=2>モジュールを読み込む</td></tr>
+<tr><td>--load</td></tr>
+<tr><td>-n</td><td rowspan=2>初期化ファイルを読み込まない</td></tr>
+<tr><td>--no_initialize</td></tr>
+<tr><td>-u</td><td rowspan=2>ユーザ定義の初期化ファイル
+(デフォルトでは~/.lilfesrc)を読み込まない</td></tr>
+<tr><td>--no_user_initialize</td></tr>
+<tr><td>--warn-module-override</td>
+<td>異なるパスで同じモジュールを読み込もうとしたときにワーニングを出す</td></tr>
+<tr><td>-w</td><td rowspan=2>全てのワーニングメッセージを表示する</td></tr>
+<tr><td>--warning</td></tr>
+<tr><td>-a</td><td rowspan=2>モジュールに渡すコマンドライン引数を指定する</td></tr>
+<tr><td>--argv</td></tr>
+<tr><td>-e</td><td rowspan=2>コマンドラインからLiLFeSプログラムを実行する</td></tr>
+<tr><td>--eval</td></tr>
+<tr><td>-h</td><td rowspan=2>lilfesのオプションとその説明を見る</td></tr>
+<tr><td>--help</td></tr>
+<caption>lilfesコマンドのオプション</caption>
+</table>
+</center>
+lilfesは，以下の環境変数を参照しているので，
+これらを使って実行環境を設定することもできます．
+<center>
+<table border>
+<tr><th>環境変数</th><th>説明</th></tr>
+<tr><td>LILFES_PATH</td><td>モジュールを探索するパスのリスト．":"で区切る．</td>
+<tr><td>LILFESRC</td><td>lilfes起動時に読み込まれる初期化ファイル
+(デフォルトでは "~/.lilfesrc")</td></tr>
+<caption>lilfesコマンドが認識する環境変数</caption>
+</table>
+</center>
+
+
+
+<hr>
+<a href="chap1.ja.html">1章 LiLFeSとは</a>
+<a href="chap3.ja.html">3章 型と素性</a>
+
+<hr>
+<a href="index.ja.html">目次</a>
+<a href="../index.ja.html">LiLFeSドキュメント</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/index-j.html">LiLFeSホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/index-j.shtml">辻井研究室</a>
+
+</body>
+</html>
+

@@ -1,0 +1,405 @@
+% -----------------------------------------------------------
+%  btest.lil : builtin test code.
+%  Change log:
+%  1998.4.1 Created. / Zhidao
+%  1998.4.9 Treated. / Zhidao
+%  1998.4.14 Treated. / Zhidao
+%  1998.5.7 Treated. / Zhidao
+%  1998.8.31 Updated. / Zhidao
+%  1998.9.7 Updated. / Zhidao
+% -----------------------------------------------------------
+
+:- module("test9").
+:- ensure_loaded("testmain").
+
+:- module_implementation.
+%====================================================================
+%  sample types and features.
+%====================================================================
+%--------------------------------------------------------------------
+name <- bot.
+person <- bot + NAME\name.
+child <- person + MOTHER\person.
+%--------------------------------------------------------------------
+taro <- name.
+jiro <- name.
+haruko <- name.
+natsuko <- name.
+%--------------------------------------------------------------------
+triangle <- bot.
+isosceles <- triangle.
+rightangled <- triangle.
+i_r_triangle <- isosceles, rightangled.
+square <- bot.
+%--------------------------------------------------------------------
+a <- bot.
+b <- a.
+p <- 'pred/2'.
+%--------------------------------------------------------------------
+append <- pred.
+append([],X,X).
+append([A|X],Y,[A|Z]) :- append(X,Y,Z).
+%====================================================================
+%  Each 'builtin' predicates
+%====================================================================
+
+
+%--------------------------------------------------------------------
+% follow(+FS1,+LIST,?FS2)
+% - follow the paths in LIST from FS1 and unify the result with FS2.
+test_item(follow,3,6).
+tt(follow,0) :-
+	HARUKO = person & NAME\haruko, 
+	TARO = child & NAME\taro & MOTHER\HARUKO, 
+	follow(TARO, [MOTHER\,NAME\], X), equiv(X, haruko).
+tt(follow,1) :- follow([a,b,3], [tl\,tl\], X), equiv(X, [3]) .
+tt(follow,2) :- X = p(a,b), follow(X, arg1\, Y), equiv(Y, a).
+ft(follow,0) :- follow(1, arg1\, _).
+ft(follow,1) :- follow(p, arg3\, _).
+ft(follow,2) :- follow("hoge", arg3\, _).
+ft(follow,3) :- follow(p, 3, _).
+ft(follow,4) :- follow(p, "hahaha", _).
+ft(follow,5) :- follow(p(a,b), _, a).
+
+%--------------------------------------------------------------------
+% restriction($FS,+LIST)
+% - restrict the paths of FS in LIST.
+test_item(restriction,11,0).
+tt(restriction,0) :-
+        X = [a,b,a,b,a], restriction(X,[tl\,tl\,tl\]), equiv(X, [a,b,a|_]).
+tt(restriction,1) :-
+        X = [a,b,1,b,a], restriction(X,[tl\,tl\,hd\]), equiv(X, [a,b,_,b,a]).
+tt(restriction,2) :-
+	X = p(Y & [a,b], Y), restriction(X, arg2\), equiv(X, p([a,b], _)).
+tt(restriction,3) :-
+	X = p(Y & [a,b], Y), restriction(X, [arg2\,hd\]), equiv(X, p(Z & [_,b], Z)).
+tt(restriction,4) :-
+	X = [a,b], restriction(X, [hd\, hd\]), equiv(X, [a,b]).
+tt(restriction,5) :-
+	X = [1,b], restriction(X, [hd\, hd\]), equiv(X, [1,b]).
+tt(restriction,6) :-
+	X = ["hoge",b], restriction(X, [hd\, hd\]), equiv(X, ["hoge",b]).
+
+tt(restriction,7) :- restriction(1, "hahaha").
+tt(restriction,8) :- restriction(a, b).
+tt(restriction,9) :-
+	X = 1, restriction(X, arg1\).
+tt(restriction,10) :-
+	X = 1, restriction(X, 1).
+
+%--------------------------------------------------------------------
+% compound(+FS)
+% - find if FS has any features.
+test_item(compound,3,4).
+tt(compound,0) :- compound(person & NAME\taro).
+tt(compound,1) :- compound(p(a,b)).
+tt(compound,2) :- compound([a]).
+ft(compound,0) :- compound(1).
+ft(compound,1) :- compound("hahaha").
+ft(compound,2) :- compound(person).
+ft(compound,3) :- compound(p).
+
+%--------------------------------------------------------------------
+% simple(+FS)
+% - find if FS doesn't have any features.
+test_item(simple,4,3).
+tt(simple,0) :- simple(1).
+tt(simple,1) :- simple("hahaha").
+tt(simple,2) :- simple(person & NAME\bot).
+tt(simple,3) :- simple(p).
+ft(simple,0) :- simple(person & NAME\taro).
+ft(simple,1) :- simple(p(a,b)).
+ft(simple,2) :- simple([a]).
+
+%--------------------------------------------------------------------
+% isshared(+FS1,+FS2)
+% - find if there are any shared nodes between FS1 and FS2.
+test_item(isshared,6,4).
+tt(isshared,0) :-
+	HARUKO = person & NAME\haruko,
+	TARO = child & NAME\taro & MOTHER\HARUKO,
+	isshared(TARO, HARUKO).
+tt(isshared,1) :- isshared([a|X],X).
+tt(isshared,2) :-
+	X = [Y], Y = [X], isshared(X, Y).
+tt(isshared,3) :-
+	X = [Y], Y = [Z], Z = [X],
+	isshared(X, Z).
+tt(isshared,4) :- X = [[[[[X]]]]], isshared(X, X).	
+tt(isshared,5) :- isshared([A,B,A,B,A,B,C,B,A], [E,F,E,F,E,F,E,F,E,F,E,F,C]).
+ft(isshared,0) :- isshared(a, a).
+ft(isshared,1) :-
+	TARO = child & NAME\taro,
+	JIRO = child & NAME\jiro,
+	isshared(TARO, JIRO).
+ft(isshared,2) :- isshared([a,b],b).
+ft(isshared,3) :-
+	isshared([a,b,_], [b,_]).
+
+%--------------------------------------------------------------------
+% isnotshared(+FS1,+FS2)
+% - find if there are any notshared nodes between FS1 and FS2.
+test_item(isnotshared,4,6).
+ft(isnotshared,0) :-
+	HARUKO = person & NAME\haruko,
+	TARO = child & NAME\taro & MOTHER\HARUKO,
+	isnotshared(TARO, HARUKO).
+ft(isnotshared,1) :- isnotshared([a|X],X).
+ft(isnotshared,2) :-
+	X = [Y], Y = [X], isnotshared(X, Y).
+ft(isnotshared,3) :-
+	X = [Y], Y = [Z], Z = [X],
+	isnotshared(X, Z).
+ft(isnotshared,4) :- X = [[[[[X]]]]], isnotshared(X, X).	
+ft(isnotshared,5) :- isnotshared([A,B,A,B,A,B,C,B,A], [E,F,E,F,E,F,E,F,E,F,E,F,C]).
+tt(isnotshared,0) :- isnotshared(a, a).
+tt(isnotshared,1) :-
+	TARO = child & NAME\taro,
+	JIRO = child & NAME\jiro,
+	isnotshared(TARO, JIRO).
+tt(isnotshared,2) :- isnotshared([a,b],b).
+tt(isnotshared,3) :-
+	isnotshared([a,b,_], [b,_]).
+
+%--------------------------------------------------------------------
+% type_toptype(+FS,-TYPE)
+% - abstract the top type from FS to TYPE.
+test_item(type_toptype,7,4).
+tt(type_toptype,0) :- type_toptype(1, X), equiv(X, 1).
+tt(type_toptype,1) :- type_toptype(a, X), equiv(X, a).
+tt(type_toptype,2) :- type_toptype("hahaha", X), equiv(X, "hahaha").
+tt(type_toptype,3) :- type_toptype(a, b).
+tt(type_toptype,4) :- X = child & NAME\taro, type_toptype(X, Y), equiv(Y, child).
+tt(type_toptype,5) :- type_toptype(X, child), equiv(X, bot).
+tt(type_toptype,6) :- type_toptype(NAME\, X), equiv(X, NAME\).
+ft(type_toptype,0) :- type_toptype(a, list).
+ft(type_toptype,1) :- type_toptype(a, 1).
+ft(type_toptype,2) :- type_toptype("hahaha", a).
+ft(type_toptype,3) :- type_toptype(a, person).
+
+%--------------------------------------------------------------------
+% type_equal(+FS1,+FS2)
+% - compare the toptype of FS1 and FS2.
+test_item(type_equal,5,6).
+tt(type_equal,0) :- type_equal(1, 1).
+tt(type_equal,1) :- type_equal("hahaha", "hahaha").
+tt(type_equal,2) :- X = a, type_equal(a, X).
+tt(type_equal,3) :-
+	TARO = child & NAME\taro,
+	JIRO = child & NAME\jiro,
+	type_equal(TARO, JIRO).
+tt(type_equal,4) :- type_equal(p(a,a),p(b,b)).
+ft(type_equal,0) :- type_equal(1, 2).
+ft(type_equal,1) :- type_equal("hahaha", "heeheehee").
+ft(type_equal,2) :- type_equal(NAME\, MOTHER\).
+ft(type_equal,3) :- type_equal(a, b).
+ft(type_equal,4) :- type_equal(a, X), printAVM(X).
+ft(type_equal,5) :- type_equal(X, a), printAVM(X).
+
+%--------------------------------------------------------------------
+% type_subsume(+TYPE1,+TYPE2)
+% - find if TYPE2 is one of the descendant of TYPE1.
+test_item(type_subsume,10,7).
+tt(type_subsume,0) :- type_subsume(a, b).
+tt(type_subsume,1) :- type_subsume(integer, 1).
+tt(type_subsume,2) :- type_subsume(string, "hahaha").
+tt(type_subsume,3) :- type_subsume(a, a).
+tt(type_subsume,4) :- type_subsume(1, 1).
+tt(type_subsume,5) :- type_subsume("ho", "ho").
+tt(type_subsume,6) :- type_subsume(bot, b).
+tt(type_subsume,7) :- type_subsume([a], [a|_]).
+tt(type_subsume,8) :- type_subsume(person, child).
+tt(type_subsume,9) :- type_subsume(person & NAME\taro, child).
+ft(type_subsume,0) :- type_subsume(a, bot).
+ft(type_subsume,1) :- type_subsume(1, bot).
+ft(type_subsume,2) :- type_subsume("que", bot).
+tt(type_subsume,3) :- type_subsume(1, integer).
+tt(type_subsume,4) :- type_subsume("hohoho", string).
+tt(type_subsume,5) :- type_subsume(1, 3).
+tt(type_subsume,6) :- type_subsume("hohoho", "string").
+
+%--------------------------------------------------------------------
+% type_unify(+TYPE1,+TYPE2,-RESULT)
+% - unify TYPE1 and TYPE2 and put it to RESULT.
+test_item(type_unify,7,3).
+tt(type_unify,0) :- type_unify(isosceles, rightangled, X), equiv(X, i_r_triangle).
+tt(type_unify,1) :- type_unify(isosceles, X, i_r_triangle), equiv(X, bot).
+tt(type_unify,2) :- type_unify(isosceles, X, Y), equiv(Y, isosceles), equal(X, bot).
+tt(type_unify,3) :- type_unify(p(a,_), p(_,b), Z), equiv(Z, p).
+tt(type_unify,4) :- type_unify(1, _, X), equiv(X, 1).
+tt(type_unify,4) :- type_unify(1, 1, X), equiv(X, 1).
+tt(type_unify,5) :- type_unify("hahaha", _, X), equiv(X, "hahaha").
+tt(type_unify,5) :- type_unify("hahaha", "hahaha", X), equiv(X, "hahaha").
+tt(type_unify,6) :-
+	HARUKO = NAME\haruko,
+	type_unify(person, MOTHER\HARUKO, X), equiv(X, child).
+ft(type_unify,0) :- type_unify(a,person,_).
+ft(type_unify,1) :- type_unify(a,"hahaha",_).
+ft(type_unify,2) :- type_unify(a, _, 1).
+ft(type_unify,2) :- type_unify(1, 2, _).
+
+%--------------------------------------------------------------------
+% type_nfeature(+TYPE,-NUM)
+% - count the number of TYPE's feature paths.
+test_item(type_nfeature,5,4).
+tt(type_nfeature,0) :- type_nfeature(a, X), equiv(X, 0).
+tt(type_nfeature,1) :- type_nfeature(child, X), equiv(X, 2).
+tt(type_nfeature,2) :- type_nfeature(child, 2).
+tt(type_nfeature,3) :- type_nfeature([a|_], X), equiv(X, 2).
+tt(type_nfeature,4) :- type_nfeature("hahaha", X), equiv(X, 0).
+ft(type_nfeature,0) :- type_nfeature(a, 1).
+ft(type_nfeature,1) :- type_nfeature(a, b).
+ft(type_nfeature,2) :- type_nfeature(a, "hahaha").
+ft(type_nfeature,3) :- type_nfeature("hahaha", 2).
+
+%--------------------------------------------------------------------
+% type_havefeature(+TYPE,+FS)
+% - find if TYPE has FS as one of its feature path.
+test_item(type_havefeature,2,8).
+tt(type_havefeature,0) :- type_havefeature(person, NAME\).
+tt(type_havefeature,1) :- type_havefeature([a], hd\).
+ft(type_havefeature,0) :- type_havefeature(a, a).
+ft(type_havefeature,1) :- type_havefeature(a, 1).
+ft(type_havefeature,2) :- type_havefeature(a, "hahaha").
+ft(type_havefeature,3) :- type_havefeature(person, MOTHER\).
+ft(type_havefeature,4) :- type_havefeature(_, MOTHER\).
+ft(type_havefeature,5) :- type_havefeature(child, 1).
+ft(type_havefeature,6) :- type_havefeature(child, "1").
+ft(type_havefeature,7) :- type_havefeature(person, _).
+
+%--------------------------------------------------------------------
+% type_subtypes(+TYPE,-LIST)
+% - get the list of subtypes,the whole descendants of TYPE as LIST.
+test_item(type_subtypes,4,6).
+tt(type_subtypes,0) :- type_subtypes(triangle, X), equiv(X, [triangle,isosceles,rightangled,i_r_triangle]).
+tt(type_subtypes,1) :-
+	type_subtypes(triangle,[triangle,isosceles,rightangled,i_r_triangle]).
+tt(type_subtypes,2) :- type_subtypes(234, X), equiv(X, [integer]).
+tt(type_subtypes,3) :- type_subtypes("string", X), equiv(X, [string]).
+ft(type_subtypes,0) :- type_subtypes(triangle, 1).
+ft(type_subtypes,1) :- type_subtypes(triangle, a).
+ft(type_subtypes,2) :- type_subtypes(triangle, child).
+ft(type_subtypes,3) :- type_subtypes(triangle, [_,_,_,_,_,_,_,_]).
+ft(type_subtypes,4) :- type_subtypes(integer, 1).
+ft(type_subtypes,5) :- type_subtypes(string, "hahaha").
+
+%--------------------------------------------------------------------
+% type_supertypes(+TYPE,-LIST)
+% - get the list of supertypes,the whole ansesters of TYPE as LIST.
+test_item(type_supertypes,4,3).
+tt(type_supertypes,0) :- type_supertypes(i_r_triangle, X), equiv(X, [i_r_triangle,rightangled,isosceles,triangle,bot]).
+tt(type_supertypes,1) :-
+	type_supertypes(i_r_triangle,
+                        [i_r_triangle,rightangled,isosceles,triangle,bot]).
+tt(type_supertypes,2) :- type_supertypes(1, X), equiv(X, [integer, bot]).
+tt(type_supertypes,3) :- type_supertypes("hahaha", X), equiv(X, [string, bot]).
+ft(type_supertypes,0) :- type_supertypes(integer, [_,_,_,_,_]).
+ft(type_supertypes,1) :- type_supertypes(1, 345).
+ft(type_supertypes,2) :- type_supertypes("hahaha", "string").
+
+%--------------------------------------------------------------------
+% type_featurelist(+TYPE,-LIST)
+% - get the list of the whole TYPE's feature paths as LIST.
+test_item(type_featurelist,6,4).
+tt(type_featurelist,0) :- type_featurelist(child, X), equiv(X, [MOTHER\, NAME\]).
+tt(type_featurelist,1) :- type_featurelist(child, [MOTHER\, NAME\]).
+tt(type_featurelist,2) :- type_featurelist(p, X), equiv(X, [arg1\, arg2\]).
+tt(type_featurelist,3) :- type_featurelist(a, X), equiv(X, []).
+tt(type_featurelist,4) :- type_featurelist(1, X), equiv(X,[]).
+tt(type_featurelist,5) :- type_featurelist("hahaha", X), equiv(X, []).
+ft(type_featurelist,0) :-
+	type_featurelist(X, [_,_]).
+ft(type_featurelist,1) :- type_featurelist(a, a).
+ft(type_featurelist,2) :- type_featurelist(a, 1).
+ft(type_featurelist,3) :- type_featurelist(a, "hahaha").
+
+%/*
+
+%--------------------------------------------------------------------
+% subnodelist(+FS,-LIST)
+% - get the list of FS's whole subnodes as LIST.
+test_item(subnodelist,7,3).
+tt(subnodelist,0) :- subnodelist(a, X), printAVM(X).
+tt(subnodelist,1) :- subnodelist(a, [a]).
+tt(subnodelist,2) :- subnodelist(X, [a]), printAVM(X).
+tt(subnodelist,3) :- subnodelist(1, X), printAVM(X).
+tt(subnodelist,4) :- subnodelist("hahaha", X), printAVM(X).
+tt(subnodelist,5) :- subnodelist(person & NAME\taro, X), printAVM(X).
+tt(subnodelist,6) :- subnodelist(p(a,b), X), printAVM(X).
+ft(subnodelist,0) :- subnodelist(a, a).
+ft(subnodelist,1) :- subnodelist(1, 1).
+ft(subnodelist,2) :- subnodelist("hahaha", "hahaha").
+
+%--------------------------------------------------------------------
+% sharednodelist(+FS,-LIST)
+% - get the list of nodes that is shared from multiple paths in FS as LIST.
+test_item(sharednodelist,7,4).
+tt(sharednodelist,0) :- sharednodelist(1, X), printAVM(X).
+tt(sharednodelist,1) :- sharednodelist("hahaha", X), printAVM(X).
+tt(sharednodelist,2) :- sharednodelist(a, []).
+tt(sharednodelist,3) :- sharednodelist(p(X,X), Y), printAVM(Y).
+tt(sharednodelist,4) :-
+	X = [A,B,C,[A]|B], printAVM(X), sharednodelist(X, Y), printAVM(Y).
+tt(sharednodelist,5) :-
+	X = [A,B,C,[A]|B], printAVM(X), sharednodelist(X, [A,B]).
+tt(sharednodelist,6) :-
+	X = ( p(A, B) :- p(a, A), p(b, B) ), printAVM(X),
+	sharednodelist(X, Y), printAVM(Y).
+ft(sharednodelist,0) :- sharednodelist(1, 1).
+ft(sharednodelist,1) :- sharednodelist("hahaha", "hahaha").
+ft(sharednodelist,2) :- sharednodelist(a, a).
+ft(sharednodelist,3) :- sharednodelist(X, [X]), printAVM(X).
+
+%--------------------------------------------------------------------
+%--------------------------------------------------------------------
+% intersectionlist(+FS1,+FS2,-LIST)
+% - get the list of shared nodes between FS1 and FS2 as LIST.
+test_item(intersectionlist,5,1).
+tt(intersectionlist,0) :-
+	HARUKO = person & NAME\haruko,
+	TARO = child & NAME\taro & MOTHER\HARUKO,
+	JIRO = child & NAME\jiro & MOTHER\HARUKO,
+	intersectionlist(TARU, JIRO, X), printAVM(X).
+tt(intersectionlist,1) :-
+	intersectionlist([a,X,Y,d], [X,b,Y,Z], R),
+	printAVM(R).
+tt(intersectionlist,2) :- intersectionlist(1, 1, X), printAVM(X).
+tt(intersectionlist,3) :- intersectionlist("hahaha", "hahaha", X), printAVM(X).
+tt(intersectionlist,4) :- intersectionlist(a, a, []).
+ft(intersectionlist,0) :-
+	HARUKO = person & NAME\haruko,
+	TARO = child & NAME\taro & MOTHER\HARUKO,
+	JIRO = child & NAME\jiro & MOTHER\HARUKO,
+	intersectionlist(TARU, X, HARUKO), printAVM(X).
+ft(intersectionlist,1) :- intersectionlist(p(a,X), p(X,b), X), printAVM(X).
+ft(intersectionlist,2) :- intersectionlist(1, 1, 1).
+ft(intersectionlist,3) :- intersectionlist(a, a, a).
+
+%--------------------------------------------------------------------
+% contains(+FS1,+FS2)
+% - find if FS1 shares FS2 as one of its nodes.
+test_item(contains,5,6).
+tt(contains,0) :- contains(X, X).
+tt(contains,1) :- X = Y, contains(X, Y).
+tt(contains,2) :- X = Y, Y = Z, contains(X, Z).
+tt(contains,3) :- contains(p(a,X) ,X).
+tt(contains,4) :-
+	HARUKO = person & NAME\haruko, printAVM(HARUKO),
+	TARO = child & NAME\taro & MOTHER\HARUKO, printAVM(TARO),
+	contains(TARO, HARUKO).
+ft(contains,0) :- contains(a, a).
+ft(contains,1) :- contains(1, 1).
+ft(contains,2) :- contains("hahaha", "wahaha").
+ft(contains,3) :-
+	HARUKO = person & NAME\haruko, printAVM(HARUKO),
+	TARO = child & NAME\taro & MOTHER\NAME\haruko, printAVM(TARO),
+	contains(TARO, HARUKO).
+ft(contains,4) :-
+	TARO = child & NAME\taro, printAVM(TARO),
+	JIRO = child & NAME\jiro, printAVM(JIRO),
+	contains(TARO, JIRO).
+ft(contains,5) :-
+	HARUKO = NAME\haruko, printAVM(HARUKO),
+	TARO = child & NAME\taro & MOTHER\HARUKO, printAVM(TARO),
+	contains(TARO, X), printAVM(X).
+%*/
