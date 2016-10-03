@@ -1,0 +1,389 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<html lang=ja>
+
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-2022-jp">
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.ja.html">
+<link rel="prev" href="chap4.ja.html">
+<link rel="next" href="chap6.ja.html">
+<link rel="stylesheet" type="text/css" href="style-chap5.css">
+<title>Chap. 5  Error Messages</title>
+</head>
+
+
+
+<body>
+<h1>エラーメッセージ</h1>
+
+<a href="chap5.html">English version</a>
+
+<h2>目次</h2>
+
+<ul>
+  <li><a href="#inerr">コンパイル時のエラー</a>
+  <li><a href="#inwarn">コンパイル時のワーニング</a>
+  <li><a href="#runerr">実行時のエラー</a>
+  <li><a href="#runwarn">実行時のワーニング</a>
+</ul>
+
+<hr>
+
+
+
+<h2><a name="inerr">コンパイル時のエラー</a></h2>
+
+<dl>
+  <dt><a name="parse_error">parse error</a>
+  <dd>構文が間違っています．単なるタイプミスが多いですが，
+       型や述語の定義の最後のピリオドを忘れたりすると，
+       次の行でエラーとなったりするので，注意が必要です．
+       また，型や素性の名前として使えないようなものを，
+       そのまま書いてしまった時に出ることがあります．
+       その様な時は，'でくくって下さい．
+  <dt><a name="trace_non_predicate">
+       Trace function called to non-predicate type [type]
+       </a>
+  <dd>組み込み述語'<code>trace/1</code>'を，
+       述語でないものに適用しようとしています．つづりを間違えた時も，
+       <a href="#undefined_type">型未定義</a>のワーニングとともに，
+       出る可能性があります．
+  <dt><a name="loop_type_definition">
+       Type '[type1]' and '[type2]' makes a loop in the type hierarchy
+       </a>
+  <dd>型階層がループを作っています．まだ定義されていない型<code>a</code>で，
+       <code>a &lt;- a.</code>という型定義をしたりすると，
+       このメッセージが出ます．
+  <dt><a name="bad_hierarchy">
+       Type '[type1]' and '[type2]' have two MGSATs, '[type3]' and '[type4]'
+       </a>
+  <dd>単一化の結果が一意に定まらないような型階層を作ろうとしています．
+       詳しくは，<a href="chap3.ja.html#type_unification">
+       型の単一化</a>の説明を見て下さい．
+  <dt><a name="redefined_feature">
+       Feature '[feature]' is defined twice
+       </a>
+  <dd>同じ名前の素性を，2度以上定義しようとしています．素性名は，
+       プログラム全体で重ならないように定義しなければなりません．
+  <dt><a name="redefined_type">
+       Type '[type]' is defined twice
+       </a>
+  <dd>同じ名前の型を，2度以上定義しようとしています．型名は，
+       プログラム全体で重ならないように定義しなければなりません．
+  <dt><a name="cannot_generate">
+       Cannot generate a feature structure
+       </a>
+  <dd>エラーなどにより，素性構造が定義できなかった時に出るメッセージです．
+       他のエラーメッセージとともに出ることが多く，
+       そちらのエラーを修正すると，これも消えます．
+  <dt><a name="unknown_feature">
+       Unknown feature name: '[feature]'
+       </a>
+  <dd>定義されていない素性を使おうとしています．定義のしわすれか，
+       つづりの間違いが多いです．
+  <dt><a name="feature_restriction">
+       Feature '[feature]' is restricted to '[type1]', and cannot take '[type2]'
+       </a>
+  <dd>素性'[feature]'の先には型'[type1]'がくると定義したのに，
+       その制約を破る型'[type2]'が指定されています．
+       素性'[feature]'の先には，型'[type1]'か，そのsubtypeを指定して下さい．
+<!-- Type '[type]' used as a [num]-arity predicate -->
+<!-- これは昔のエラーです．今は使われていません． -->
+  <dt><a name="wrong_number_arity">
+       Predicate '[type]' cannot take [num]-arity
+       </a>
+  <dd>述語'[type]'は，[num]個の引数をとることができません．
+       述語の引数の数が間違っている時に出るエラーです．
+  <dt><a name="cannot_unify">
+       Cannot unify these two TFSs<br>
+       Cannot unify: [type1] &amp; [type2]
+       </a>
+  <dd>コンパイル段階で，単一化できないことがわかる時に出るエラーです．
+       タイプミスや勘違いで起きることが多いですが，そうでない時は，
+       必ず失敗するので，記述する意味がありません．
+  <dt><a name="too_many_arguments">
+       Argument list length over [MAXNUM]
+       </a>
+  <dd>引数の数が多過ぎます．引数の数の最大値[MAXNUM]は，
+       LiLFeSのコンパイル時に決まってしまうので，
+       述語をいくつかに分けるなどして，
+       問題となっている述語の引数を減らして下さい．
+  <dt><a name="wrong_tail">
+       Tail of a list is restricted to 'list', and cannot take '[type]'
+       </a>
+  <dd>素性'<code>tl\</code>'に'<code>list</code>'型(または'<code>cons</code>',
+       '<code>nil</code>')以外の型を指定しようとしています．
+       Lispと違って，
+       <code>'tl\'</code>には<code>'list'</code>型(または<code>'cons',
+       'nil'</code>)以外は指定できません．
+  <dt><a name="not_predicate">
+       Type [type] is not a subtype of 'pred' but used as a predicate
+       </a>
+  <dd>述語として定義されていない型を，述語として使おうとしています．
+       タイプミスや，プログラムの書き方のミスから来ることが多いですが，
+       実際に述語として使いたい時は，型'<code>pred</code>'
+       のsubtypeとして定義して下さい．
+  <dt><a name="redefine_builtin">
+       Built-in procedure '[type]' cannot be redefined
+       </a>
+  <dd>組み込み述語と同じ名前の述語を定義しようとしています．
+       クエリーの頭の'?-'を付け忘れると，
+       それは述語の定義だとみなされるため，
+       このエラーが起きることが多いです．
+       本当にその名前の述語を定義しようとした時は，
+       述語の名前を他のものに変更して下さい．
+  <dt><a name="trace_builtin">
+       Built-in procedure '[type]' cannot be traced
+       </a>
+  <dd>組み込み述語をtraceしようとしています．
+       '<code>=/2</code>'以外の組み込み述語は，トレースできません．
+       あきらめて下さい．
+  <dt><a name="illegal_definition">
+       Input is neither type declaration nor clause definition
+       </a>
+  <dd>parse errorではありませんが，文法的に間違っています．
+       型定義または述語定義になっているか，確かめて下さい．</dl>
+
+<hr>
+
+
+<h2><a name="inwarn">コンパイル時のワーニング</a></h2>
+
+<dl>
+  <dt><a name="obsolete_feature_definition">
+       Feature definition form 'FEAT(pr):type' is obsolete; use new form 'FEAT:type(pr)'
+       </a>
+  <dd>素性の定義が古い記法になっています．
+       今後サポートされる保証はないので，新しい記法に修正して下さい．
+  <dt><a name="undefined_type">
+       Type '[type]' is undefined; treated as a subtype of 'bot'
+       </a>
+  <dd>型'[type]'が定義されていません．型は使われる前に定義して下さい．
+  <dt><a name="undefined_feature">
+       Type '[feature]' is undefined; treated as a subtype of 'feature'
+       </a>
+  <dd>素性'[feature]'の定義がされていません．
+       素性は使われる前に定義して下さい．
+  <dt><a name="undefined_predicate">
+       Type '[pred]' is undefined; treated as a subtype of 'pred'
+       </a>
+  <dd>述語'[pred]'の型定義がされていません．
+       述語は使われるまたは定義される前に型定義して下さい．
+  <dt><a name="singleton_variable">
+       Singleton Variable '[variable]'
+       </a>
+  <dd>一つの述語定義の中で，変数[variable]が1回しか現れていません．
+       タイプミスの場合が多いですが，
+       本当に[variable]が1回しか現れる必要がない場合は，
+       そこはどんな型でもいいということなので，
+       変数の代わりに<code>_</code>または'<code>bot</code>'を指定すれば，
+       このワーニングは消えます．
+</dl>
+
+<hr>
+
+
+<h2><a name="runerr">実行時のエラー</a></h2>
+
+<dl>
+  <dt><a name="include_require_file">
+       include/1 requires a file name
+       </a>
+  <dd>組み込み述語'<code>include/1</code>'の引数が，
+       '<code>string</code>'になっていません．
+       ファイル名を表す'<code>string</code>'にして下さい．
+  <dt><a name="open_include_file">
+       Cannot open include file: '[filename]'
+       </a>
+  <dd>組み込み述語'<code>include/1</code>'
+       で指定されたファイル名のファイルから読み込むことができません．
+       読み込み可能なファイルの名前を指定して下さい．
+  <dt><a name="read_lilfes_require_file">
+       read_lilfes/3 requires a file name
+       </a>
+  <dd>組み込み述語'<code>read_lilfes/3</code>'の第1引数が，
+       '<code>string</code>'になっていません．
+       ファイル名を表す'<code>string</code>'にして下さい．
+  <dt><a name="open_read_file">
+       Cannot open read file: '[filename]'
+       </a>
+  <dd>ファイルを読み込む組み込み述語で，
+       指定されたファイルから読み込むことができません．
+       読み込み可能なファイルの名前を指定して下さい．
+  <dt><a name="read_lilfes_with_prefix_require_file">
+       read_lilfes_with_prefix/3 requires a file name
+       </a>
+  <dd>組み込み述語'<code>read_lilfes_with_prefix/3</code>'の第一引数が，
+       '<code>string</code>'になっていません．
+       ファイル名を表す'<code>string</code>'を指定して下さい．
+  <dt><a name="switch_output_to_file_require_file">
+       switch_output_to_file/1 requires a file name
+       </a>
+  <dd>組み込み述語'<code>switch_output_to_file/1</code>'の第1引数が，
+       '<code>string</code>'になっていません．
+       ファイル名を表す'<code>string</code>'を指定して下さい．
+  <dt><a name="open_switch_output_file">
+       switch_output_to_file/1 cannot open file '[filename]'
+       </a>
+  <dd>組み込み述語'<code>switch_output_to_file/1</code>'
+       で指定されたファイルに書き込むことができません．
+       書き込み可能なファイルの名前を指定して下さい．
+  <dt><a name="switch_output_to_file_append_require_file">
+       switch_output_to_file_append/1 requires a file name
+       </a>
+  <dd>組み込み述語'<code>switch_output_to_file_append/1</code>'
+       の引数が'<code>string</code>'になっていません．
+       ファイル名を表す'<code>string</code>'を指定して下さい．
+  <dt><a name="open_switch_output_append_file">
+       switch_output_to_file_append/1 cannot open file '[filename]'
+       </a>
+  <dd>組み込み述語'<code>switch_output_to_file_append/1</code>'
+       で指定されたファイルに追加書き込みができません．
+       追加書き込みが可能なファイルの名前を指定して下さい．
+  <dt><a name="assert_query">
+       assert/1 cannot take a query
+       </a>
+  <dd>クエリーを'<code>assert</code>'しようとしています．
+       クエリーは'<code>assert</code>'できません．
+  <dt><a name="asserta_query">
+       asserta/1 cannot take a query
+       </a>
+  <dd>クエリーを'<code>asserta</code>'しようとしています．
+       クエリーは'<code>asserta</code>'できません．
+  <dt><a name="value_intval_require_integer">
+       value_intval requires an integer in setting an array
+       </a>
+  <dd>配列の要素を'<code>value_intval</code>'と指定した配列で，
+       '<code>integer</code>'型以外の値をセットしようとしています．
+       配列の要素は'<code>integer</code>'にして下さい．
+  <dt><a name="value_string_require_string">
+       value_string requires a string in seting an array
+       </a>
+  <dd>配列の要素を'<code>value_string</code>'と指定した配列で，
+       '<code>string</code>'型以外の値をセットしようとしています．
+       配列の要素は'<code>string</code>'にして下さい．
+  <dt><a name="key_integer_require_base_and_size">
+       Error: both ARRAY_BASE and ARRAY_SIZE must be specified for key_integer
+       </a>
+  <dd>配列の添字を'<code>key_integer</code>'で指定した配列で，
+       '<code>ARRAY_BASE</code>'と'<code>ARRAY_SIZE</code>'
+       の指定がされていません．添字が'<code>key_integer</code>'の配列では，
+       両方指定して下さい．
+  <dt><a name="array_size_require_integer">
+       Error: ARRAY_SIZE must be integer
+       </a>
+  <dd>'<code>ARRAY_SIZE</code>'を'<code>integer</code>'以外で指定しています．
+       '<code>integer</code>'で指定して下さい．
+  <dt><a name="set_array_require_declared_array">
+       Error:: predicate set_array/1 can be used to only declare_array'ed predicate
+       </a>
+  <dd>組み込み述語'<code>set_array/1</code>'の引数に，
+       配列の宣言がされていない素性構造を指定しています．
+       あらかじめ'<code>declare_array</code>'
+       で宣言されている配列を指定して下さい．
+<!--
+Error:: predicate array_equivalent must be applied to the same
+predicate Error:: predicate array_equivalent can be used to only
+declare_array'ed predicate Error:: predicate array_different must be
+applied to the same predicate Error:: predicate array_different can be
+used to only declare_array'ed predicate
+-->
+  <dt><a name="follow_require_feature">
+       Error: Predicate follow/3 requires feature in the 2nd argument
+       </a>
+  <dd>組み込み述語'<code>follow/3</code>'の第2引数が素性名になっていません．
+       素性名であることを表す"<code>\</code>"が抜けていることが多いです．
+</dl>
+
+<hr>
+
+
+<h2><a name="runwarn">実行時のワーニング</a></h2>
+
+<dl>
+  <dt><a name="non_integer_key">
+       Non-integer cannot use as a key of an integer array
+       </a>
+  <dd>添字に'<code>key_integer</code>'を指定した配列で，
+       '<code>integer</code>'以外の添字を使っています．
+       添字は'<code>integer</code>'にして下さい．
+  <dt><a name="out_of_range">
+       Integer out of array-range
+       </a>
+  <dd>配列の添字が，初めに定義した範囲を越えています．
+       このままでは正常に動作しないので，範囲を大きくするか，
+       範囲を越えた添字を使わないようにして下さい．
+  <dt><a name="non_string_key">
+       Non-string cannot use as a key of a string hash
+       </a>
+  <dd>添字に'<code>key_string</code>'を指定した配列で，
+       '<code>string</code>'以外の添字を使っています．
+       添字は'<code>string</code>'にして下さい．
+  <dt><a name="non_inthash_key">
+       Non-integer cannot use as a key of an integer hash
+       </a>
+  <dd>添字に'<code>key_int_hash</code>'を指定した配列で，
+       '<code>integer</code>'以外の添字を使っています．
+       添字は'<code>integer</code>'にして下さい．
+  <dt><a name="follow_require_feature">
+       Warning: Predicate follow/3 requires feature in the 2nd argument
+       </a>
+  <dd>組み込み述語'<code>follow/3</code>'の第2引数が，
+       素性名になっていません．素性ではない素性構造を指定しているか，
+       素性名であることを示す"<code>\</code>"が抜けているかしているので，
+       正しく指定して下さい．
+  <dt><a name="restriction_require_feature">
+       Warning: Predicate restriction/2 requires feature in the 2nd argument
+       </a>
+  <dd>組み込み述語'<code>restriction/2</code>'の第2引数が，
+       素性名になっていません．素性ではない素性構造を指定しているか，
+       素性名であることを示す"<code>\</code>"が抜けているかしているので，
+       正しく指定して下さい．
+  <dt><a name="strtotype_require_string">
+       strtotype/2 requires a string
+       Warning: strtotype/2 requires a string
+       </a>
+  <dd>組み込み述語'<code>strtotype/2</code>'の第1引数が，
+       '<code>string</code>'になっていません．
+       型名を表す'<code>string</code>'にして下さい．
+  <dt><a name="listtostr_require_list">
+       Warning: listtostr requires a list
+       </a>
+  <dd>組み込み述語'<code>listtostr/2</code>'の第1引数が，
+       '<code>list</code>'になっていません．第1引数は，
+       必ず'<code>integer</code>'の'<code>list</code>'にして下さい．
+  <dt><a name="listtostr_require_integer_list">
+       Warning: listtostr requires a list of integer
+       </a>
+  <dd>組み込み述語'<code>listtostr</code>'の第1引数のリストの中に，
+       '<code>integer</code>'でない要素が含まれています．第1引数は，
+       要素は全て'<code>integer</code>'の'<code>list</code>'にして下さい．
+  <dt><a name="strprint_require_string">
+       Warning: strprint/1 requires a string
+       </a>
+  <dd>組み込み述語'<code>strprint/1</code>'の引数が，
+       '<code>string</code>'になっていません．
+       引数は'<code>string</code>'にして下さい．
+  <dt><a name="strprintln_require_string">
+       Warning: strprintln/1 requires a string
+       </a>
+  <dd>組み込み述語'<code>strprintln/1</code>'の引数が，
+       '<code>string</code>'になっていません．
+       引数は'<code>string</code>'にして下さい．
+</dl>
+
+
+
+<hr>
+<a href="chap4.ja.html">4章 文法</a>
+<a href="chap6.ja.html">6章 Programming Tips</a>
+
+<hr>
+<a href="index.ja.html">目次</a>
+<a href="../index.ja.html">LiLFeSドキュメント</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/index-j.html">LiLFeSホームページ</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/index-j.shtml">辻井研究室</a>
+
+</body>
+</html>

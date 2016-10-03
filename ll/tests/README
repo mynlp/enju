@@ -1,0 +1,6 @@
+Test programs
+
+Run:
+
+lilfes -l testX.lil -e ':- main.'
+

@@ -1,0 +1,101 @@
+:- module("testmain").
+:- module_interface.
+
+main <- pred.
+
+test_item <- pred.
+tt <- pred.
+ft <- pred.
+equiv <- pred.
+equal <- pred.
+
+ttest <- pred.
+ftest <- pred.
+
+expected_failure <- pred.
+
+% compliance for old lilfes
+% main <- pred. printl <- pred. printl(X) :- printAVM(X).
+
+:- module_implementation.
+
+:- ensure_loaded("lillib/io").
+
+success <- pred.
+failure <- pred.
+unexpected_failure <- pred.
+
+:- multifile(test_item).
+:- multifile(tt).
+:- multifile(ft).
+:- multifile(expected_failure).
+
+
+:-
+	declare_array(success(array_value_integer)),
+	declare_array(unexpected_failure(array_value_integer)),
+	declare_array(failure(array_value_integer)),
+	set_array(success(0)),
+	set_array(unexpected_failure(0)),
+	set_array(failure(0)).
+
+main :-
+        test_item(ITEM, NT, NF),
+        printAVM(["+++ test : ", ITEM, " +++"]),
+        ttest(ITEM, 0, NT),
+        ftest(ITEM, 0, NF),
+        fail.
+
+main :-
+	get_array(success(S)), get_array(failure(F)), get_array(unexpected_failure(Q)),
+	printAVM([S, " good, ", F, " bad (", Q, " unexpected failure)."]),
+        printAVM("***** completed *****"),
+	halt(0).
+%	stdin_stream(X), parse_stream(X, "STDIN").
+%	(Q = 0 -> halt(0) ; halt(1)).
+
+
+equiv(A, B) :- equivalent(A, B).
+equiv(A, B) :- printAVM(["Difference found"]),
+	printAVM(A), printAVM(B), fail.
+
+equal(A, B) :- call( A = B ).
+
+%--------------------------------------------------------------------
+ttest(_, N, N) :- !.
+ttest(ITEM, N, _) :-
+        ( tt(ITEM, N) ->
+                printAVM(["tt(", ITEM, ", ", N, ")", " good."]),
+                get_array(success(S)), S1 is S+1, set_array(success(S1))
+                ;
+                get_array(failure(F)), F1 is F+1, set_array(failure(F1)),
+		( expected_failure( tt(ITEM,N) ) -> 
+	                printAVM(["tt(", ITEM, ", ", N, ")", " BAD (expected)"])
+		;
+	                printAVM(["tt(", ITEM, ", ", N, ")", " ******** BAD ********"]),
+			get_array(unexpected_failure(Q)), Q1 is Q + 1, set_array(unexpected_failure(Q1)) )
+        ),
+        fail.
+ttest(ITEM, N, NS) :-
+        N1 is N + 1,
+        ttest(ITEM, N1, NS).
+%--------------------------------------------------------------------
+ftest(_, N, N) :- !.
+ftest(ITEM, N, _) :-
+        ( ft(ITEM, N) ->
+                get_array(failure(F)), F1 is F+1, set_array(failure(F1)),
+		( expected_failure( ft(ITEM,N) ) -> 
+	                printAVM(["ft(", ITEM, ", ", N, ")", " BAD (expected) "])
+ ;
+	                printAVM(["ft(", ITEM, ", ", N, ")", " ******** BAD ********"]),
+			get_array(unexpected_failure(Q)), Q1 is Q + 1, set_array(unexpected_failure(Q1)) )
+                ;
+                printAVM(["ft(", ITEM, ", ", N, ")", " good."]),
+                get_array(success(S)), S1 is S+1, set_array(success(S1))
+        ),
+        fail.
+ftest(ITEM, N, NS) :-
+        N1 is N + 1,
+        ftest(ITEM, N1, NS).
+%--------------------------------------------------------------------
+

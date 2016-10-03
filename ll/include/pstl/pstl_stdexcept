@@ -1,0 +1,121 @@
+// -*- C++ -*-
+/*
+ * Copyright (c) 1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ * Copyright (c) 2005
+ * Takashi Tsunakawa, Kenta Oouchida and Takashi Ninomiya
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Takashi Tsunakawa, Kenta Oouchida and
+ * Takashi Ninomiya make no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+*/ 
+
+#ifndef __SGI_PSTL_STDEXCEPT
+#define __SGI_PSTL_STDEXCEPT
+
+#include <cstring>
+
+#include "_pstl_exception.h"
+
+#if defined(__PSTL_USE_EXCEPTIONS) || \
+    !(defined(_MIPS_SIM) && defined(_ABIO32) && _MIPS_SIM == _ABIO32)
+
+#include "_pstl_string_fwd.h"
+
+__PSTL_BEGIN_NAMESPACE
+
+template <class _Arch>
+class __Named_exception : public __STD_QUALIFIER __PSTL_EXCEPTION_BASE {
+public:
+    __Named_exception(const string<_Arch> &__str) {
+	__STD::strncpy(_M_name, __get_c_string(__str), _S_bufsize);
+	_M_name[_S_bufsize - 1] = '\0';
+    }
+    virtual const char *what() const __PSTL_NOTHROW { return _M_name; }
+
+private:
+    enum { _S_bufsize = 256 };
+    char _M_name[_S_bufsize];
+};
+
+template <class _Arch>
+class logic_error : public __Named_exception<_Arch> {
+public:
+    logic_error(const string<_Arch> &__s) : __Named_exception<_Arch>(__s) {}
+};
+
+template <class _Arch>
+class runtime_error : public __Named_exception<_Arch> {
+public:
+    runtime_error(const string<_Arch> &__s) : __Named_exception<_Arch>(__s) {}
+};
+
+template <class _Arch>
+class domain_error : public logic_error<_Arch> {
+public:
+    domain_error(const string<_Arch> &__arg) : logic_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class invalid_argument : public logic_error<_Arch> {
+public:
+    invalid_argument(const string<_Arch> &__arg) : logic_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class length_error : public logic_error<_Arch> {
+public:
+    length_error(const string<_Arch> &__arg) : logic_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class out_of_range : public logic_error<_Arch> {
+public:
+    out_of_range(const string<_Arch> &__arg) : logic_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class range_error : public runtime_error<_Arch> {
+public:
+    range_error(const string<_Arch> &__arg) : runtime_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class overflow_error : public runtime_error<_Arch> {
+public:
+    overflow_error(const string<_Arch> &__arg) : runtime_error<_Arch>(__arg) {}
+};
+
+template <class _Arch>
+class underflow_error : public runtime_error<_Arch> {
+public:
+    underflow_error(const string<_Arch> &__arg) : runtime_error<_Arch>(__arg) {}
+};
+
+__PSTL_END_NAMESPACE
+
+#ifndef __SGI_PSTL_STRING
+#include "pstl_string"
+#endif
+
+#endif /* Not o32, and no exceptions */
+
+#endif /* __SGI_PSTL_STDEXCEPT */
+
+// Local Variables:
+// mode:C++
+// End:

@@ -1,0 +1,1071 @@
+#!/usr/local/bin/perl
+######################################################################
+####
+####  Copyright (c) 2000, MIYAO Yusuke
+####  You may distribute under the terms of the Artistic License.
+####
+####  Name: LiLDoc
+####  Author: MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+####  Time-stamp: <2000-04-28 23:55:44 yusuke>
+####  Purpose: Automatically create HTML document from LiLFeS 
+####           source code
+####  $Id: lildoc.prl,v 1.8 2004-05-18 10:17:18 ninomi Exp $
+####
+######################################################################
+
+# To Do
+# 1. Type を出力するようにする．
+
+use strict;
+
+######################################################################
+
+# Constants
+my $css_file = "style.css";
+my $manual_index = "index.html";
+my ( %description_start, %description_end, %comment_start, %comment_end, %comment_line );
+$description_start{ "lilfes" } = "%\\/\\*\\*";
+$description_start{ "C" } = "\\/\\*\\*";
+$description_end{ "lilfes" } = "%\\*\\/";
+$description_end{ "C" } = "\\*\\/";
+$comment_start{ "lilfes" } = "%\\/\\*";
+$comment_start{ "C" } = "\\/\\*";
+$comment_end{ "lilfes" } = "%\\*\\/";
+$comment_end{ "C" } = "\\*\\/";
+$comment_line{ "lilfes" } = "%";
+$comment_line{ "C" } = "\\/\\/";
+my %label;  # initialized later
+
+# Environments & options
+my $url_base = "";
+my $document_base = "";
+my $output_directory = "";
+my $output_prefix = "";
+my $index_file = "index.html";
+my $package_mode = 0;
+my $help_mode = 0;
+my $source_language = "";
+my $file_name_base = "";
+my $file_name_ext = "";
+my $language = $ENV{ "LANG" };
+my $verbose = 0;
+my $do_nothing = 0;
+my $output_summary = 0;
+my $recursive = 0;
+my $search_path = "";
+my @lilfes_paths = ();
+
+# Arguments
+my @options = @ARGV;
+my $input_module = "";
+my $input_file = "";
+my $output_file = "";
+
+# Package data
+my $package_name = "";
+my @package_sub_packages = ();
+my @package_sub_modules = ();
+my @package_sub_htmls = ();
+my @package_sub_summaries = ();
+
+# Module data
+my $module_name = "";
+my @module_copyright = ();
+my @module_authors = ();
+my $module_version = "";
+my @module_references = ();
+my $module_since = "";
+my $module_deprecated = "";
+my $module_summary = "";
+my $module_description = "";
+my $module_note = "";
+my $module_example = "";
+my @public_modules = ();
+my @private_modules = ();
+my $module_mode = "preface";
+
+# Predicate data
+my %short_descriptions = ();
+my %description_tables = ();
+my @types = ();
+my @interfaces = ();
+my @predicates = ();
+my @variables = ();
+
+######################################################################
+
+# Analyze arguments
+while ( my $arg = shift @ARGV ) {
+  if ( $arg =~ /^-(.*)$/ ) {
+    if ( $1 eq "h" ) {
+      $help_mode = 1;
+    } elsif ( $1 eq "e" ) {
+      $language = "english";
+    } elsif ( $1 eq "j" ) {
+      $language = "japanese";
+    } elsif ( $1 eq "v" ) {
+      $verbose = 1;
+    } elsif ( $1 eq "s" ) {
+      $verbose = -1;
+    } elsif ( $1 eq "n" ) {
+      $do_nothing = 1;
+    } elsif ( $1 eq "p" ) {
+      $output_summary = 1;
+    } elsif ( $1 eq "r" ) {
+      $recursive = 1;
+    } elsif ( $1 eq "t" ) {
+      $package_name = shift @ARGV;
+    } elsif ( $1 eq "d" ) {
+      $search_path = shift @ARGV;
+    } elsif ( $1 eq "b" ) {
+      $url_base = shift @ARGV;
+    } elsif ( $1 eq "o" ) {
+      $output_directory = shift @ARGV;
+    } elsif ( $1 eq "c" ) {
+      $css_file = shift @ARGV;
+    } elsif ( $1 eq "i" ) {
+      $index_file = shift @ARGV;
+    } elsif ( $1 eq "f" ) {
+      $output_prefix = shift @ARGV;
+    } elsif ( $1 eq "-" ) {
+      last;
+    } else {
+      &print_error( "Unknown argument: -$1" );
+    }
+  } else {
+    unshift @ARGV, $arg;
+    last;
+  }
+}
+
+######################################################################
+
+# Messages
+if ( $language eq "japanese" ) {
+  %label = ( "Illegal input" => "入力ファイル名が間違っています",
+	     "Illegal output" => "出力ファイル名が間違っています",
+	     "Many arguments" => "引数が多すぎます",
+	     "Cannot open" => "ファイルが開けません",
+	     "Unknown source language" => "ソースの言語が分かりません",
+	     "Unknown keyword" => "キーワードが間違っています",
+	     "Module not found" => "\@module キーワードが見つかりません",
+	     "Description not found" => "lildoc 用のコメントが見つかりません",
+	     "No class" => "module, type, predicate, interface, variable のどれかを定義してください",
+	     "Input directory" => "入力ディレクトリ",
+	     "Input file" => "入力ファイル",
+	     "Output file" => "出力ファイル",
+	     "Package" => "パッケージ",
+	     "Module" => "モジュール",
+	     "Packages" => "パッケージ",
+	     "Modules" => "モジュール",
+	     "Contents" => "目次",
+	     "Example" => "使用例",
+	     "Ensure loaded" => "読み込まれるモジュール",
+	     "Copyright" => "著作権",
+	     "Format" => "書式",
+	     "Arguments" => "引数",
+	     "Note" => "注意",
+	     "Deprecated" => "削除",
+	     "Version" => "バージョン",
+	     "Since" => "登場したバージョン",
+	     "Author" => "著者",
+	     "See also" => "関連項目",
+	     "type" => "型定義",
+	     "interface" => "インタフェース",
+	     "predicate" => "述語",
+	     "variable" => "変数",
+	     "Mail to" => "コメントはこちら",
+	     "UNKNOWN" => "UNKNOWN"
+	   );
+} else {
+  %label = ( "Illegal input" => "Illegal input file name",
+	     "Illegal output" => "Illegal output file name",
+	     "Many arguments" => "Too many arguments",
+	     "Cannot open" => "Cannot open file",
+	     "Unknown source language" => "Cannot recognize source language",
+	     "Unknown keyword" => "Unknown keyword",
+	     "Module not found" => "\@module keyword not found",
+	     "Description not found" => "Description for lildoc not found",
+	     "No class" => "You must specify one of the keywords: module, type, predicate, interface, or variable",
+	     "Input directory" => "Input directory",
+	     "Input file" => "Input file",
+	     "Output file" => "Output file",
+	     "Package" => "Package",
+	     "Module" => "Module",
+	     "Packages" => "Packages",
+	     "Modules" => "Modules",
+	     "Contents" => "Contents",
+	     "Example" => "Example",
+	     "Ensure loaded" => "Loaded modules",
+	     "Copyright" => "Copyright",
+	     "Format" => "Format",
+	     "Arguments" => "Arguments",
+	     "Note" => "Note",
+	     "Deprecated" => "Deprecated",
+	     "Version" => "Version",
+	     "Since" => "Since",
+	     "Author" => "Author",
+	     "See also" => "See also",
+	     "type" => "Type",
+	     "interface" => "Interface",
+	     "predicate" => "Predicate",
+	     "variable" => "Variable",
+	     "Mail to" => "Send comments to",
+	     "UNKNOWN" => "UNKNOWN"
+	   );
+}
+
+######################################################################
+
+# Input and output file initialization
+if ( $#ARGV == -1 ) {
+  $help_mode = 1;
+} else {
+  if ( $#ARGV == 0 ) {
+    $input_module = $ARGV[0];
+    pop @options;
+  } elsif ( $#ARGV == 1 ) {
+    $input_module = $ARGV[0];
+    pop @options;
+    $output_file = $ARGV[1];
+    pop @options;
+  } else {
+    &print_error( "$label{ 'Many arguments' }: @ARGV" );
+  }
+  $input_module =~ s/\/$//;
+  $input_file = $input_module;
+  # setup $input_file
+  @lilfes_paths = split ':', $ENV{ 'LILFES_PATH' };
+  @lilfes_paths = (".", @lilfes_paths, "/usr/local/lib/lilfes");
+  @lilfes_paths = ($search_path, @lilfes_paths) if $search_path ne "";
+  $input_file = &find_file( $input_file, @lilfes_paths ) ||
+    &find_file( "$input_file.lil", @lilfes_paths ) ||
+      $input_file;
+  &print_error( "$label{ 'Cannot open' }: $input_file" ) unless ( -r $input_file );
+  # setup source language
+  if ( -d $input_file ) {
+      $source_language = "directory";
+      $package_mode = 1;
+      $file_name_base = $input_file;
+      $file_name_ext = "";
+  } elsif ( $input_file =~ /\.lil$/ ) {
+      $source_language = "lilfes";
+      ( $file_name_base, $file_name_ext ) = $input_file =~ /^(.+)\.(lil)$/;
+  } elsif ( $input_file =~ /\.(cpp|cc|c)$/ ) {
+      $source_language = "C";
+      ( $file_name_base, $file_name_ext ) = $input_file =~ /^(.+)\.(cpp|cc|c)$/;
+  } else {
+      &print_error( "$label{ 'Unknown source language' }: $input_file" );
+  }
+  # setup $output_file
+  $output_directory = "." if $output_directory eq "";
+  if ( $output_file eq "" ) {
+    $output_file = $input_file;
+    if ( $package_mode ) {
+      $output_file .= "/${output_prefix}index";
+    } else {
+      &print_error( "$label{ 'Illegal input' }" )
+	  unless $output_file = "$output_prefix$file_name_base";
+    }
+    if ( $language eq "japanese" ) {
+        $output_file .= ".ja.html";
+    } else {
+        $output_file .= ".html";
+    }
+  }
+  # setup $url_base
+  if ( $url_base eq "" ) {
+    $url_base = $input_module;
+    $url_base =~ s/[^\/]+/\.\./g;
+    unless ( $package_mode ) {
+      $url_base =~ s/\.\.$//;
+      chop $url_base;
+    }
+    if ( $url_base eq "" ) {
+      $url_base = ".";
+    }
+  }
+  # setup $document_base
+  $document_base = $output_file;
+  $document_base =~ s/\.\///g;
+  $document_base =~ s/[^\/]+$//;
+  chop $document_base;
+}
+
+######################################################################
+
+# Help message
+if ( $help_mode ) {
+print <<END_OF_HELP;
+使い方
+  perl lildoc.prl [options] module [html]
+  perl lildoc.prl [options] directory [html]
+  options:
+    -h              このへルプメッセージを表示します．
+    -e              英語のドキュメントを出力します．
+    -j              日本語のドキュメントを出力します．
+    -v              標準エラー出力にメッセージを表示します．
+    -s              メッセージを表示しません．
+    -n              ドキュメントを出力しません．
+    -p              モジュールの簡単な説明を標準出力に表示します．
+    -r              ディレクトリを再帰的にたどりドキュメントを
+                    作成します．
+    -t              パッケージの名前を指定します．
+    -d directory    モジュール探索パスを指定します．
+    -b directory    ドキュメントのルートアドレス(URL)を指定します．
+    -o directory    出力ディレクトリを指定します．
+    -c file         CSS ファイルを指定します．
+    -i file         インデックスの html ファイルを指定します．
+    -f file         出力ファイルのプレフィックスを指定します．
+    --              これ以降はオプションとして認識されません．
+LiLFeS のモジュールまたはディレクトリ中のモジュールを解析し，
+述語などの html マニュアルを自動作成します．
+モジュールは，以下の順番で検索されます．
+  1. -d オプションで指定されたディレクトリ
+  2. カレントディレクトリ
+  3. LILFES_PATH 環境変数で指定されたディレクトリ
+  4. モジュールのデフォルトパス(/usr/local/share/lilfes/)
+html を省略したときは，module の拡張子を .html に変えた名前に
+出力されます．
+directory を指定したときは，そのディレクトリの index.html に
+出力されます．
+
+LiLFeS プログラムの書き方
+  /** から */ までが特別なコメントとして処理されます．
+  この中に
+    \@keyword = value
+  という行があると，keyword に応じてマニュアル中の文が生成されます．
+  それ以外の行はそのまま説明文として使われます．
+
+必要なキーワード
+  一つの /** ... */ ブロックの中で，以下のキーワードのうち
+  どれか一つだけ指定しなければなりません．
+\@module      モジュールの説明を書くときに使います．
+\@type        型の説明を書くときに使います．
+             (まだ実装されていません)
+\@interface   インタフェース(述語の型定義だけされているもの)の
+             説明を書くときに使います．
+\@predicate   述語の説明を書くときに使います．
+\@variable    変数の説明を書くときに使います．
+
+その他のキーワード
+  以下のキーワードを用いることができます．値の中では<i>などの
+  html タグを用いることができます．
+\@copyright   著作権に関する事項を書きます．複数指定可能です．
+             \@module のみに有効です．
+\@cvs         CVS の ID などを書きます．とりあえず無視されます．
+             複数指定できます．
+\@desc        短い説明文を書きます．目次に使われます．複数指定
+             可能です．
+\@param       引数の説明を書きます．variable/value: description
+             というふうに書きます．対応する variable が
+             \@interface (または \@predicate または \@variable)
+             に書かれていなければなりません．もちろん複数指定
+             可能です．
+\@note        特に注意することを書きます．複数指定できます．
+\@author      このモジュール(または述語など)の作者を書きます．
+             メールアドレスやホームページアドレスは自動的に
+             リンクに変換されます．複数指定できます．
+\@version     バージョン情報を書きます．
+\@since       このモジュール(または述語など)が最初に作られた
+             バージョンを書きます．
+\@see         他のモジュールへのリンクを作ります．モジュール名
+             を書くと，自動的にリンクに変換されます．述語を指定
+             したいときは，# で区切って述語名を指定します．" で
+             囲むとリンクは作られません．複数指定することが
+             できます．
+\@deprecated  このモジュール(または述語など)がすでに削除された
+             (または他のモジュールに置き換えらた）場合は
+             コメントを書きます．
+\@example     LiLFeS プログラムの例を書きます．\@end_example まで
+             がそのまま出力されます．
+
+END_OF_HELP
+  exit;
+}
+
+######################################################################
+
+# print error
+sub print_error {
+  if ( $verbose >= 0 ) {
+    print STDERR @_;
+    print STDERR "\n";
+  }
+  exit 1;
+}
+
+# print message
+sub print_message {
+  if ( $verbose > 0 ) {
+    print STDERR @_;
+  }
+}
+
+# find file or directory in a path list
+sub find_file {
+  my $file_name = shift @_;
+  return $file_name if ( -r $file_name );
+  foreach my $find_path ( @_ ) {
+    if ( -r "$find_path/$file_name" ) {
+      return "$find_path/$file_name";
+    }
+  }
+  return undef;
+}
+
+# search module file
+sub search_module {
+  my $module_file = $_[0];
+  $module_file .= ".lil" unless $module_file =~ /\.lil$/;
+  unless ( -r "$document_base/$module_file" ) {
+    if ( -r "$document_base/$url_base/$module_file" ) {
+      $module_file = "$url_base/$module_file";
+    } else {
+      $module_file = "$url_base/$module_file";
+    }
+  }
+  return $module_file;
+}
+
+# convert URL descriptions to hyperlinks
+sub translate_link {
+  my $link = $_[0];
+  if ( $link =~ /^\"(.*)\"$/ ) {
+    $link = $1;
+  } else {
+    my ( $module, $pred ) = split /\s*#\s*/, $link;
+    my $url = $module;
+    $url =~ s/:/\//g;
+    $url .= ".html" if $url ne "";
+    $url = "$url_base/$url" if $url =~ /\//;
+    $url .= "#$pred" if $pred ne "";
+    if ( $module eq "" ) {
+      $module = $pred;
+    } else {
+      $module .= ":'$pred'" if $pred ne "";
+    }
+    $link = "<a href=\"$url\">$module</a>";
+  }
+  return $link;
+}
+
+######################################################################
+
+# Analyze special comments
+sub description {
+  # descriptions
+  my $class = "";
+  my $target = "";
+  my @copyright = ();
+  my @desc = ();
+  my %param = ();
+  my @note = ();
+  my @author = ();
+  my $version = "";
+  my @see = ();
+  my $since = "";
+  my $deprecated = "";
+  my $example_mode = 0;
+  my @example = ();
+  my @description = ();
+  # japanese version
+  my @jcopyright = ();
+  my @jdesc = ();
+  my %jparam = ();
+  my @jnote = ();
+  my @jauthor = ();
+  my $jversion = "";
+  my $jsince = "";
+  my $jdeprecated = "";
+  my $jexample_mode = 0;
+  my @jexample = ();
+  my $japanese_mode = 0;
+  my @jdescription = ();
+
+  while ( <IN> ) {
+    # exit at the end of the comment
+    last if /$description_end{ $source_language }/o;
+    # remove preceeding "*"s
+    s/^\s*\**//;
+    # get keywords
+    if ( /^\s*\@(\S*)\s*=\s*(.*)\s*$/ ) {
+      if ( $1 eq "module" ) {
+	# definition of a module
+	$class = "module";
+	$target = $2;
+      } elsif ( $1 eq "type" ) {
+	# definition of a type
+	$class = "type";
+	$target = $2;
+      } elsif ( $1 eq "predicate" ) {
+	# definition of a predicate
+	$class = "predicate";
+	$target = $2;
+      } elsif ( $1 eq "variable" ) {
+	# definition of a variable
+	$class = "variable";
+	$target = $2;
+      } elsif ( $1 eq "interface" ) {
+	# definition of an interface
+	$class = "interface";
+	$target = $2;
+      } elsif ( $1 eq "copyright" ) {
+	# copyright notice
+	push @copyright, $2;
+      } elsif ( $1 eq "jcopyright" ) {
+	# copyright notice (japanese)
+	push @jcopyright, $2;
+      } elsif ( $1 eq "cvs" ) {
+	# CVS notice
+	# do nothing
+      } elsif ( $1 eq "desc" ) {
+	# brief description
+	push @desc, $2;
+      } elsif ( $1 eq "jdesc" ) {
+	# brief description (japanese)
+	push @jdesc, $2;
+      } elsif ( $1 eq "param" ) {
+	# description of arguments
+	$2 =~ /^\s*([^\/\s]+)\s*(\/\s*((\'.+\')|([^:]+)))?\s*(:\s*(.+))?\s*$/;
+	$param{ $1 } = "$3\n$7";
+      } elsif ( $1 eq "jparam" ) {
+	# description of arguments (japanese)
+	$2 =~ /^\s*([^\/\s]+)\s*(\/\s*((\'.+\')|([^:]+)))?\s*(:\s*(.+))?\s*$/;
+	$jparam{ $1 } = "$3\n$7";
+      } elsif ( $1 eq "note" ) {
+	# note
+	push @note, $2;
+      } elsif ( $1 eq "jnote" ) {
+	# note (japanese)
+	push @jnote, $2;
+      } elsif ( $1 eq "author" ) {
+	# author
+	my $author = $2;
+	$author =~ s/([\w-\.]+\@[\w-\.]+)/<a href=\"mailto:$1\">$1<\/a>/g;
+	$author =~ s/(http:\/\/[\w-\.:\/~]+)/<a href=\"$1\">$1<\/a>/g;
+	push @author, $author;
+      } elsif ( $1 eq "jauthor" ) {
+	# author (japanese)
+	my $author = $2;
+	$author =~ s/([\w-\.]+\@[\w-\.]+)/<a href=\"mailto:$1\">$1<\/a>/g;
+	$author =~ s/(http:\/\/[\w-\.:\/~]+)/<a href=\"$1\">$1<\/a>/g;
+	push @jauthor, $author;
+      } elsif ( $1 eq "version" ) {
+	# version
+	$version = $2;
+      } elsif ( $1 eq "jversion" ) {
+	# version (japanese)
+	$jversion = $2;
+      } elsif ( $1 eq "see" ) {
+	# link to another document
+	my @links = map &translate_link( $_ ), ( split /\s+/, $2 );
+	push @see, @links;
+      } elsif ( $1 eq "since" ) {
+	# the version since
+	$since = $2;
+      } elsif ( $1 eq "jsince" ) {
+	# the version since (japanese)
+	$jsince = $2;
+      } elsif ( $1 eq "deprecated" ) {
+	$deprecated = $2;
+      } elsif ( $1 eq "jdeprecated" ) {
+	$jdeprecated = $2;
+      } elsif ( $1 eq "example" ) {
+	$example_mode = 1;
+	$_ = $2;
+	s/&/&amp;/g;
+	s/</&lt;/g;
+	s/>/&gt;/g;
+	push @example, $_ if $_ ne "";
+      } elsif ( $1 eq "jexample" ) {
+	$jexample_mode = 1;
+	$_ = $2;
+	s/&/&amp;/g;
+	s/</&lt;/g;
+	s/>/&gt;/g;
+	push @jexample, $_ if $_ ne "";
+      } elsif ( $1 eq "japanese" ) {
+	$japanese_mode = 1;
+	$_ = $2;
+	push @jdescription, $_ if $_ ne "";
+      } else {
+	print STDERR "$label{ 'Unknown keyword' }: $1 = $2\n";
+      }
+      next;
+    } elsif ( /\@end_example/ ) {
+      $example_mode = 0;
+      next;
+    } elsif ( /\@end_jexample/ ) {
+      $jexample_mode = 0;
+      next;
+    } elsif ( /\@end_japanese/ ) {
+      $japanese_mode = 0;
+    } elsif ( $example_mode == 1 ) {
+      s/&/&amp;/g;
+      s/</&lt;/g;
+      s/>/&gt;/g;
+      push @example, $_ if $_ ne "";
+    } elsif ( $jexample_mode == 1 ) {
+      s/&/&amp;/g;
+      s/</&lt;/g;
+      s/>/&gt;/g;
+      push @jexample, $_ if $_ ne "";
+    } elsif ( /^\s*$/ ) {
+      next;
+    } elsif ( $japanese_mode == 1 ) {
+      push @jdescription, $_ if $_ ne "";
+    } else {
+      push @description, $_ if $_ ne "";
+    }
+  }
+
+  # output a table
+  &print_error( "$label{ 'No class' }" ) if $class eq "";
+
+  if ( $language eq "japanese" ) {
+      @copyright = @jcopyright if @jcopyright;
+      @desc = @jdesc if @jdesc;
+      %param = %jparam if %jparam;
+      @note = @jnote if @jnote;
+      @author = @jauthor if @jauthor;
+      $version = $jversion if $jversion;
+      $since = $jsince if $jsince;
+      $deprecated = $jdeprecated if $jdeprecated;
+      @example = @jexample if @jexample;
+      @description = @jdescription if @jdescription;
+  }
+
+  @description = @desc if ! @description;
+  if ( $class eq "module" ) {
+    $module_name = $target if $target ne "";
+    $module_version = $version;
+    @module_copyright = @copyright;
+    @module_authors = @author;
+    @module_references = @see;
+    $module_since = $since;
+    $module_deprecated = $deprecated;
+    $module_summary = join '', @desc;
+    $module_description = join '', @description;
+    $module_note = join '', @note;
+    $module_example = join '', @example;
+  } elsif ( $class eq "type" ) {
+    &print_error( "class 'type' is not implemented yet" );
+  } else {
+    # "predicate", "interface" or "variable"
+    my ( $body, $arglist );
+    if ( $target =~ /\(.*\)/ ) {
+      ($body, $arglist) = $target =~ /^([^\(]*)\((.*)\)\s*$/;
+    } else {
+      ($body, $arglist) = ($target, "");
+    }
+    my @arguments = split /[(),\s]+/, $arglist;
+    #print "$arglist\n";
+    $arglist =~ s/\([^()]*\)/_/g;
+    #print "$arglist\n";
+    my @dummy = split /\s*,\s*/, $arglist;
+    $body .= "/" . ( $#dummy + 1 );
+    my $param_output = "";
+    foreach my $arg ( @arguments ) {
+      if ( exists $param{ $arg } ) {
+	my ( $value, $desc ) = split "\n", $param{ $arg };
+	$param_output .= "<tr><td><code>$arg</code></td><td><i>$value</i></td><td>$desc</td></tr>\n";
+      }
+    }
+    if ( $param_output ne "" ) {
+      $param_output = "<tr><th>$label{ Arguments }</th>\n" .
+	"<td><table>\n" . $param_output . "</table></td></tr>\n";
+    }
+
+    my $output = "";
+    $output .= "<h3 class=$class><a name=\"$body\">$body</a></h3>\n";
+    $output .= "<table border class=$class width=\"90%\" align=\"center\">\n";
+    $output .= "<tr><th>$label{ Format }</th><td class=format><code>$target</code></td></tr>\n"
+      if ( $class eq "predicate" || $class eq "interface" || $class eq "variable" );
+    $output .= $param_output;
+    $output .= "<tr><th>$label{ Note }</th><td class=note><strong>@note</strong></td></tr>\n"
+      if ( $#note >= 0 );
+    $output .= "<tr><th>$label{ Deprecated }</th><td class=deprecated>$deprecated</td></tr>\n"
+      if ( $deprecated ne "" );
+    $output .= "<tr><th>$label{ Version }</th><td class=version>$version</td></tr>\n"
+      if ( $version ne "" );
+    $output .= "<tr><th>$label{ Since }</th><td class=since>$since</td></tr>\n"
+      if ( $since ne "" );
+    $output .= "<tr><th>$label{ Author }</th><td class=author>@author</td></tr>\n"
+      if ( $#author >= 0 );
+    $output .= "<tr><th>$label{ 'See also' }</th><td class=see>@see</td></tr>\n"
+      if ( $#see >= 0 );
+    $output .= "<tr><td colspan=2 class=description>@description</td></tr>\n"
+      if ( $#description >= 0 );
+    $output .= "<tr><td colspan=2 class=example><pre>@example</pre></td></tr>\n"
+      if ( $#example >= 0 );
+    $output .= "</table>\n\n";
+
+    if ( $class eq "interface" ) {
+      push @interfaces, $body;
+    } elsif ( $class eq "predicate" ) {
+      push @predicates, $body;
+    } elsif ( $class eq "variable" ) {
+      push @variables, $body;
+    } else {
+      &print_error( "Unknown class: $class" );
+    }
+    $short_descriptions{ $body } = join '', @desc;
+    $description_tables{ $body } = $output;
+  }
+}
+
+######################################################################
+
+# output subroutines
+sub output_index {
+  my $class = shift @_;
+  my $title = $label{ $class };
+  if ( @_ ) {
+    print OUT "<h3 class=$class>$title</h3>\n";
+    print OUT "<ul>\n";
+    foreach my $item ( @_ ) {
+      print OUT "<li class=$class><a href=\"#$item\">$item</a>";
+      if ( $short_descriptions{ $item } ne "" ) {
+	print OUT ": $short_descriptions{ $item }\n";
+      } else {
+	print OUT "\n";
+      }
+    }
+    print OUT "</ul>\n";
+    print OUT "\n";
+  }
+}
+
+sub output_tables {
+  my $class = shift @_;
+  my $title = $label{ $class };
+  if ( @_ ) {
+    print OUT "<h2><a name=\"$class\">$title</a></h2>\n";
+    foreach my $item ( @_ ) {
+      print OUT $description_tables{ $item };
+    }
+  }
+}
+
+sub output_links {
+  print OUT <<END_OF_OUTPUT;
+<hr>
+
+<div align=\"right\">
+<a href=\"#Top\">Top of this page</a>
+<a href=\"#Contents\">Contents</a>
+END_OF_OUTPUT
+  print OUT "<a href=\"$index_file\">Index of this package</a>\n" unless $package_mode;
+  print OUT <<END_OF_OUTPUT;
+<a href=\"$url_base/$manual_index\">LiLFeS Documents</a>
+<a href=\"http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/\">LiLFeS Home Page</a>
+<a href=\"http://www-tsujii.is.s.u-tokyo.ac.jp/\">Tsujii laboratory</a>
+</div>
+
+END_OF_OUTPUT
+}
+
+sub output_footer {
+  my $date = localtime( $^T );
+
+  print OUT <<END_OF_OUTPUT;
+<hr>
+
+<div align=\"right\">
+This document is automatically created by <i>lildoc</i> on $date
+</div>
+
+</body>
+
+</html>
+
+END_OF_OUTPUT
+
+}
+
+######################################################################
+####
+####  Main routine
+####
+######################################################################
+
+######################################################################
+
+# Output package manual
+if ( $package_mode ) {
+  &print_message( "$label{ 'Input directory' }: $input_file\n" );
+  opendir DIR, "$input_file" || &print_error( "$label{ 'Cannot open' }: $input_file" );
+  my $command = "$^X $0 @options ";
+  while ( my $subfile = readdir( DIR ) ) {
+    if ( -d "$document_base/$subfile" && $recursive ) {
+      # For directories
+      next if $subfile =~ /^\.|(\.\.)|(CVS)$/;
+      my $subpackage = "$input_module/$subfile";
+      push @package_sub_packages, $subpackage
+	if ( ( system "$command $subpackage" ) == 0 );
+    } elsif ( $subfile =~ /\.lil$/ || $subfile =~ /\.(cpp|cc|c)$/ ) {
+      # For lilfes or C files
+      my( $submodule ) = $subfile =~ /^(.+)\.(lil|cpp|cc|c)$/;
+      my $subhtml = $submodule;
+      if ( $language eq "japanese" ) {
+          $subhtml .= ".ja.html";
+      } else {
+          $subhtml .= ".html";
+      }
+      $subhtml = "$output_directory/$output_prefix$subhtml";
+      open( SUB_FILE, "$command -p -i $output_file $input_module/$subfile $subhtml |" );
+      my @summaries = <SUB_FILE>;
+      my $submodule_name = shift @summaries;
+      chop $submodule_name;
+      close( SUB_FILE );
+      if ( $? == 0 ) {
+        push @package_sub_htmls, $subhtml;
+	push @package_sub_modules, $submodule_name;
+	push @package_sub_summaries, ( join '', @summaries );
+      }
+    }
+  }
+  closedir( DIR );
+
+  # Output package document
+  &print_message( "$label{ 'Output file' }: $output_file\n" );
+
+  if ( $do_nothing ) { exit 0; }
+
+  $input_module =~ s/\//:/g;
+  $package_name = $input_module if ( $package_name eq "" );
+
+  open OUT, "> $output_directory/$output_file" || &print_error( "$label{ 'Cannot open' }: $output_file" );
+
+print OUT<<END_OF_OUTPUT;
+<!doctype html public \"-//w3c//dtd html 4.0//en\">
+<html>
+
+<head>
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=euc-jp\">
+<link rel=\"stylesheet\" type=\"text/css\" href=\"$url_base/$css_file\">
+<title>Package \"$package_name\" - LiLFeS Users Manual</title>
+
+<body>
+
+<h1><a name=\"Top\">$label{ Package } $package_name</a></h1>
+
+END_OF_OUTPUT
+
+  if ( @package_sub_packages ) {
+    print OUT "<hr>\n";
+    print OUT "<h2>$label{ 'Packages' }</h2>\n";
+    print OUT "<ul>\n";
+    foreach my $package ( @package_sub_packages ) {
+      print OUT "<li><a href=\"$url_base/$package\">$package</a>\n";
+    }
+    print OUT "</ul>\n";
+  }
+  if ( @package_sub_modules ) {
+    print OUT "<hr>\n";
+    print OUT "<h2>$label{ 'Modules' }</h2>\n";
+    print OUT "<ul>\n";
+    foreach my $module ( @package_sub_modules ) {
+      my $summary = shift @package_sub_summaries;
+      my $html = shift @package_sub_htmls;
+      print OUT "<li><a href=\"$html\">";
+      if ( $summary =~ /\S+/ ) {
+        chop $summary;
+	print OUT "$summary: ";
+      }
+      print OUT "$module</a>\n";
+    }
+    print OUT "</ul>\n";
+  }
+
+  &output_links;
+  &output_footer;
+
+  close OUT;
+
+  exit 0;
+}
+
+######################################################################
+
+# Output module manual
+&print_message( "$label{ 'Input file' }: $input_file\n" );
+
+open IN, "$input_file" || &print_error( "$label{ 'Cannot open' }: $input_file" );
+
+my( $description_found ) = 0;  # whether description is found
+
+while ( <IN> ) {
+  # read descriptions
+  if ( /$description_start{ $source_language }/o ) {
+    ++$description_found;
+    &description;
+    next;
+  }
+  # skip comments
+  if ( /$comment_start{ $source_language }/o ) {
+    while ( <IN> ) { last if /$comment_end{ $source_language }/o };
+    next;
+  }
+  next if /$comment_line{ $source_language }/o;
+  # read module specs
+  if ( /:-\s*module\(\"([^\"]*)\"\)/ && $module_name eq "" ) {
+    ++$description_found;
+    $module_name = $1;
+    next;
+  }
+  if ( /:-\s*ensure_loaded\(\"([^\"]*)\"\)/ ) {
+    my $module = $1;
+    my $module_file = &search_module( $module );
+    $module_file =~ s/\.lil/\.html/;
+    $module =~ s/([\w-:\/-]+)/<a href=\"$module_file\">$1<\/a>/g;
+    if ( $module_mode eq "interface" ) {
+      push @public_modules, $module;
+    } else {
+      push @private_modules, $module;
+    }
+    next;
+  }
+  if ( /:-\s*module_interface/ ) {
+    $module_mode = "interface";
+    next;
+  }
+  if ( /:-\s*module_implementation/ ) {
+    $module_mode = "implementation";
+    next;
+  }
+}
+
+close IN;
+
+######################################################################
+
+# Output
+
+if ( $do_nothing ) { exit 0; }
+
+if ( $output_summary ) {
+  print STDOUT "$module_name\n";
+  print STDOUT "$module_summary\n";
+}
+
+&print_message( "$label{ 'Output file' }: $output_file\n" );
+
+&print_error( "$label{ 'Description not found' }" ) if $description_found == 0;
+
+&print_error( "$label{ 'Module not found' }" ) if $module_name eq "";
+
+$module_example = "<h3>$label{ Example }</h3>\n<pre>$module_example</pre>" unless $module_example eq "";
+
+my $module_info = "";
+$module_info .= "<h3 class=note>$label{ Note }</h3>\n$module_note\n"
+  unless $module_note eq "";
+if ( @public_modules ) {
+  $module_info .= "<h3>$label{ 'Ensure loaded' }</h3>\n";
+  $module_info .= "<ul>\n";
+  foreach my $module ( @public_modules ) {
+    $module_info .= "<li>$module\n";
+  }
+  $module_info .= "</ul>\n";
+}
+$module_info .= "<h3>$label{ Version }</h3>\n$module_version\n"
+  unless $module_version eq "";
+$module_info .= "<h3>$label{ Since }</h3>\n$module_since\n"
+  unless $module_since eq "";
+$module_info .= "<h3>$label{ Deprecated }</h3>\n$module_deprecated\n"
+  unless $module_deprecated eq "";
+if ( @module_authors ) {
+  $module_info .= "<h3>$label{ 'Author' }</h3>\n";
+  $module_info .= "<ul>\n";
+  foreach my $author ( @module_authors ) {
+    $module_info .= "<li>$author\n";
+  }
+  $module_info .= "</ul>\n";
+}
+if ( @module_references ) {
+  $module_info .= "<h3>$label{ 'See also' }</h3>\n";
+  $module_info .= "<ul>\n";
+  foreach my $ref ( @module_references ) {
+    $module_info .= "<li>$ref\n";
+  }
+  $module_info .= "</ul>\n";
+}
+$module_info = "\n$module_info\n" unless $module_info eq "";
+
+my $module_authors = "";
+if ( @module_authors ) {
+  $module_authors .= "<hr>\n";
+  $module_authors .= "\n";
+  $module_authors .= "<div align=\"right\">\n";
+  $module_authors .= "$label{ 'Mail to' }:\n";
+  foreach my $author ( @module_authors ) {
+    $module_authors .= "<address>$author</address>\n";
+  }
+  $module_authors .= "</div>\n";
+}
+
+######################################################################
+
+open OUT, "> $output_directory/$output_file" || &print_error( "$label{ 'Cannot open' }: $output_file" );
+
+print OUT<<END_OF_OUTPUT;
+<!doctype html public \"-//w3c//dtd html 4.0//en\">
+<html>
+
+<head>
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=euc-jp\">
+<link rel=\"stylesheet\" type=\"text/css\" href=\"$url_base/$css_file\">
+<title>Module \"$module_name\" - LiLFeS Users Manual</title>
+</head>
+
+<body>
+
+<h1><a name=\"Top\">$label{ Module } $module_name</a></h1>
+
+<strong>
+$module_description
+</strong>
+
+$module_example
+
+$module_info
+
+END_OF_OUTPUT
+
+# output contents
+
+if ( @types || @interfaces || @variables || @predicates ) {
+
+print OUT "<hr>\n";
+print OUT "\n";
+print OUT "<h2><a name=\"Contents\">$label{ Contents }</a></h2>\n";
+print OUT "\n";
+
+&output_index( "type", @types );
+&output_index( "interface", @interfaces );
+&output_index( "variable", @variables );
+&output_index( "predicate", @predicates );
+
+&output_links;
+
+print OUT "<hr>\n";
+print OUT "\n";
+
+# output tables
+
+&output_tables( "type", @types );
+&output_tables( "interface", @interfaces );
+&output_tables( "variable", @variables );
+&output_tables( "predicate", @predicates );
+
+}
+
+&output_links;
+
+print OUT $module_authors;
+
+&output_footer;
+
+close OUT;
+

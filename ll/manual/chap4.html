@@ -1,0 +1,488 @@
+<!doctype html public "-//w3c//dtd html 4.0//en">
+<!-- Time-stamp: "2004-05-14 23:12:51 yusuke" -->
+
+<html>
+
+<head>
+<link rev="made" href="mailto:yusuke@is.s.u-tokyo.ac.jp">
+<link rel="parent" href="index.html">
+<link rel="prev" href="chap3.html">
+<link rel="next" href="chap5.html">
+<link rel="stylesheet" type="text/css" href="style-chap4.css">
+<title>Chap. 4  Grammar</title>
+</head>
+
+
+
+<BODY>
+
+<H1>Grammar</H1>
+
+<a href="chap4.ja.html">Japanese version</a>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#format">Symbol and Comment</a>
+  <li><a href="#type">Type, Feature &amp; Variables</a>
+  <li><a href="#typedefinition">Type Definition</a>
+  <li><a href="#feature">Feature</a>
+  <li><a href="#predicate">Unification &amp; Predicate</a>
+  <li><a href="#query">Query</a>
+  <li><a href="#module">Modules</a>
+  <li><a href="#builtin">Special Types</a>
+  <li><a href="#misc">Other</a>
+</ul>
+
+<hr noshade>
+
+
+
+<H2><a name="format">Symbol and Comment</a></H2>
+
+In LiLFeS the following is treated as token
+<UL>
+  <LI>TypeName, Feature Name, Variable Name
+  <LI>Numeric (integer and float)
+  <LI>String (characters within &quot;&quot;)      
+  <LI>Comment      
+  <LI> <tt>?-, :- and &lt;-</tt>
+  <LI>Symbol (any 1 byte non alpha-numeric character) but for the above 5
+</UL>
+
+Comments can be used in the following ways:      
+<UL>      
+  <LI> <TT>%/*</TT> ... are comments ... <TT>*/</TT>&nbsp; (nesting not 
+    possible)      
+  <LI> <TT>%</TT>  till end of line will be treated as comment (excluding above 
+    case)      
+</UL>      
+      
+<HR NOSHADE>      
+      
+      
+      
+<H2><a name="type">Type, Features &amp; Variables</a></H2>      
+      
+As mentioned in chapter 3, all constants in LiLFeS are treated as TYPE. Also 
+predicates becomes subtype of pred. Alphanueric, whitespace, 2 byte characters 
+etc... can be used as strings, only quote needs to be delimited with '      
+<UL>      
+  <LI>starting with lower case alphanumeric or 2 byte character     
+  <LI>alphanumeric, underscore(_) or 2 byte character      
+</UL>      
+to use quote ', delimit it with '      
+      
+<CENTER>      
+<TABLE BORDER>      
+<TR><TD ALIGN="LEFT">Types that can be used in Program</td></tr>      
+<TR><TD ALIGN="LEFT">      
+<PRE>
+    head_subject_schema
+    Tokyo Univ
+    'ABC'                  % type ABC
+    'Good morning!'        % type Good morning! 
+    'don''t'               % type don't</PRE>        
+</td></tr>      
+</TABLE></CENTER>      
+      
+Feature Name can be any string which is alphanumeric (valid characters are 
+alphanumeric, underscope, 2byte char). Like Type, strings within quotes can also 
+be used. it is necessary to add \ suffix. White space or newline character is 
+not allowed between the name and \.      
+      
+<CENTER><TABLE BORDER>      
+<TR><TD ALIGN="LEFT">Features that can be used in 
+    Program&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td></tr>      
+<TR><TD ALIGN="LEFT">      
+<PRE>
+    F1\
+    feature\
+    
+    'Let me see...'\</PRE>      
+</td></tr>      
+</TABLE></CENTER>      
+      
+variable can be any string starting with &nbsp; $ (valid characters are 
+uppercase alphanumeric, underscore, 2 byte char)      
+      
+<CENTER><TABLE BORDER>      
+<TR><TD ALIGN="LEFT">Variables that can be used in 
+    Program&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td></tr>      
+<TR><TD ALIGN="LEFT">      
+<PRE>
+    X
+    $VAR
+    $1
+    $VARIABLE</PRE>      
+</td></tr>      
+</TABLE></CENTER>      
+      
+<HR NOSHADE>      
+      
+      
+      
+<H2><a name="typedefinition">Type Definition</a></H2>     
+     
+All predicates and types have to be defined as supertype. It is not possible to 
+use the same name more than two times.<br>      
+      
+<TABLE BORDER>      
+<TR><TD ALIGN="LEFT"><font color="red"><b>Type</b></font> &lt;-       
+[ <FONT COLOR="red"><B>supertype1</B></FONT>       
+, <FONT COLOR="red"><B>supertype2</B></FONT>,ÅcÅc       
+ ] + [       
+<FONT COLOR="red"><B>Feature1</B></FONT>\ <font color="red"><b>Type1</b></font><font color="red"><b>(Priority1)</b></font>, 
+    <font color="red"><b>Feature2</b></font>\ <font color="red"><b>Type2</b></font>( 
+    <font color="red"><b>Priority2</b></font>),...].      
+</TABLE>      
+      
+<CENTER><TABLE BORDER>      
+<TR><TD ALIGN="LEFT">Type Definition</TD></TR>      
+<TR><TD ALIGN="LEFT">      
+<TABLE>      
+<TR><TD ALIGN="LEFT">(1) <TD ALIGN="LEFT"> <TT> p &lt;- pred. </TT>      
+<TR><TD ALIGN="LEFT">(2) <TD ALIGN="LEFT"> <TT>Square &lt;- [Rectangle , Rhombus]. </TT>      
+<TR><TD ALIGN="LEFT">(3) <TD ALIGN="LEFT"> <TT> employ &lt;- [act] + [EMPLOYER\, EMPLOYEE\]. </TT>      
+<TR><TD ALIGN="LEFT">(4) <TD ALIGN="LEFT"> <TT> book &lt;- [bot] + [TITLE\string(-5),AUTHOR\name(10),PUBLISHER\co(20)].</TABLE></TR><TD ALIGN="LEFT">      
+</TABLE></CENTER>      
+      
+Left hand side of &lt;-&nbsp; is the new type. The right hand side can be 
+multiple supertypes separated by +. If the supertype is only one then [] can be 
+omitted (e.g., 1). It is possible to separate multiple types by comma (e.g., 
+2).&nbsp; If feature are to be added, its priority can be omitted. if Type is 
+omitted it will be treated as bot. the order of features will be alphabetical if 
+priority is omitted. e.g., 3 it will be EMPLOYEE, EMPLOYER. In e.g., 4 it will 
+be TITLE, AUTHOR, PUBLISHER based on the priority specified.
+<p>  </p>
+      
+<HR NOSHADE>      
+      
+      
+      
+<p>  </p>
+      
+      
+      
+<H2><a name="feature">Feature</a></H2>     
+     
+<p align="left">Feature can be defined as shown:<CENTER><TABLE BORDER>      
+<TR><TD COLSPAN=2>      
+FEATURE AVM      
+<TR><TD ALIGN="LEFT"><TT> employ & EMPLOYER\"John" & EMPLOYEE\"Mary"</TT>       
+<TD ALIGN="LEFT"><PRE>
+|~employ         ~|
+| EMPLOYEE:&quot;Mary&quot; |
+|_EMPLOYER:&quot;John&quot;_|
+</PRE>       
+<TR><TD ALIGN="LEFT">       
+<PRE>
+Racing Horse &amp; Name\ Dance in the Dark &amp;
+         Lineage\ 'Hail to Reason' &amp;
+         Father\'(Stud Horse &amp; Name\Sunday Science &amp;
+                      Lineage\ 'Hail to Reason')
+</PRE>       
+<TD ALIGN="LEFT"><PRE>
+|~Racing Horse                      ~|
+| Name: Dance in the Dark            |
+| Lineage:Hail to Reason             |
+|        |~Stud Horse             ~| |
+| Father:| Name :Sunday Science    | |
+|        |_Lineage: Hail to Reason_| |
+|_Mother:bot                        _|
+</PRE>       
+</TABLE></CENTER>       
+       
+<HR NOSHADE>       
+       
+       
+       
+<H2><a name="predicate">Unification &amp; Predicate</a></H2>      
+      
+Unification is&nbsp;     
+<TABLE BORDER><TR><TD ALIGN="LEFT">     
+<FONT COLOR="red"><B>  (Type or variable)</B></FONT> = <FONT COLOR="red"><B>(Type 
+or variable)</B></FONT>
+</TABLE>
+     
+<CENTER><TABLE BORDER>     
+<TR><TD COLSPAN=2>     
+Unification Result     
+<TR><TD ALIGN="LEFT"><TT> X = man </TT>       
+<TD ALIGN="LEFT"> X can be used instead of Man      
+<TR><TD ALIGN="LEFT"><TT> Equilateral = Rectangle</TT>      
+<TD ALIGN="LEFT"> Not possible      
+<TR><TD ALIGN="LEFT"><TT> $Horse & Lineage\$1  = Father\Lineage\$1</TT>      
+<TD ALIGN="LEFT"> $Horse will be horse with same Father and Lineage      
+</TABLE></CENTER>      
+      
+  
+<p>Predicate is same syntax as in Prolog</p>
+      
+<TABLE BORDER><TR><TD ALIGN="LEFT"><FONT COLOR="red"><B>  Predicate Name</B></FONT>( <FONT      
+COLOR="red"><B>Param1</B></FONT>, <font color="red"><b>Param2, ...</b></font>)  </TABLE>
+
+<HR NOSHADE>      
+      
+      
+      
+<H2><a name="query">Query</a></H2>     
+     
+<FONT>     
+Same syntax as Prolog      
+</font>      
+     
+<FONT>     
+<TABLE BORDER>     
+<TR><TD ALIGN="LEFT">(1)<TD ALIGN="LEFT">  <B><FONT COLOR="red">Predicate</FONT><TT> . </TT></B><BR>     
+<TR><TD ALIGN="LEFT">(2)<TD ALIGN="LEFT">  <B><FONT COLOR="red">Predicate</FONT><TT> :- </TT>
+<FONT COLOR="red">structure1</FONT> , <font color="red">structure2</font>,.... .</B>       
+<TR><TD ALIGN="LEFT">(3)<TD ALIGN="LEFT"><B>  <TT>:- </TT><font color="red">structure</font> .</B>      
+</TABLE>      
+      
+<BR>      
+      
+<p>      
+      
+<B>query</B></p>
+<TABLE BORDER>      
+?-        
+<FONT COLOR="red"><B>structure1</B></FONT>       
+,&nbsp; <font color="red"><b>structure2 </b></font>,....      
+</TABLE>      
+      
+<TT>?-</TT>&nbsp; is not a prompt. Unlike Prolog, LiLFeS is not interpreted.
+<p>  </p>
+      
+<CENTER><TABLE BORDER>      
+<TR><TD ALIGN="LEFT">difference in ?- &amp; :-&nbsp;</TR>      
+<TR><TD ALIGN="LEFT"><PRE>
+<FONT COLOR="blue">&gt; </FONT>p &lt;- [pred].  q &lt;- [pred].               
+<FONT COLOR="blue">&gt; </FONT>a &lt;- [bot].  b &lt;- [bot].
+<FONT COLOR="blue">&gt; </FONT>p(a,b).
+<FONT COLOR="blue">&gt; </FONT>p(X,X) :- q(X).
+<FONT COLOR="blue">&gt; </FONT>p(b).
+
+<FONT COLOR="blue">&gt; </FONT>?- p(X,Y), q(Y).
+<FONT COLOR="blue">X: a
+Y: b
+Enter ';' for more choices, otherwise press ENTER --&gt;</FONT> ;
+<FONT COLOR="blue">X: [$1] b
+Y: [$1] ...
+Enter ';' for more choices, otherwise press ENTER --&gt;</FONT> ;
+<FONT COLOR="blue">no</FONT>
+ <FONT COLOR="red">(in case of query, variable's values are shown, inputting ; will backtrack)</FONT>
+<FONT COLOR="blue">&gt; </FONT>:- p(X,Y), X=Y, q(Y), print(Y).
+<FONT COLOR="blue">b</FONT>
+<FONT COLOR="red"> (direct execution, nothing is displayed. only print output is shown
+  and thus one can print only selected variables but cannot backtrack)</FONT>
+</PRE></TR>      
+</TABLE></CENTER>      
+      
+<BR>      
+      
+<HR NOSHADE>      
+      
+      
+      
+<h2><a name="module">Modules</a></h2>     
+     
+<p align="left">An example Module in LiLFeS is shown below:      
+      
+<center>      
+<table border>      
+<tr><TD ALIGN="LEFT">LiLFeS Program</td></tr>      
+<tr><TD ALIGN="LEFT">      
+<pre>
+    :- module(&quot;list:reverse&quot;).
+
+    :- module_interface.
+    <i>% read required modules</i>
+    :- ensure_loaded(&quot;append&quot;).
+  <i>  % make the scope global
+    reverse &lt;- [pred].</i>
+
+    :- module_implementation.
+<i>    % make the scope local</i>
+    reverse_sub &lt;- [pred].
+    <i>% Predicate Definition</i>
+    reverse_sub([], $X, $X).
+    reverse_sub([$A|$B], $C, $D) :-
+        reverse_sub($B, [$A|$C], $D).
+    reverse($X, $Y) :-
+        reverse($X, [], $Y).
+</pre>      
+</td></tr>      
+</table>      
+</center>      
+      
+   
+<p>      
+      
+module, module_interface, module_implementation etc. are predefined keywords and 
+are also referred to as directives, which can be used to write programs.</p>
+      
+<p>      
+First the module name has to be specified in the file. The module name can be 
+anything, but the &quot;/&quot; in file path is to be converted to 
+&quot;:&quot;. For example, if LILFES_PATH is ~/lilfes/ ÅCand&nbsp; module is ~/lilfes/list/reverse.lil&nbsp; 
+then the module name will be list:reverse.<p>Next is the module_interface which 
+defines the global scope of the module. for example&nbsp; reverse predicate is 
+global. This can be accessed from other modules without module path i.e., list:reverse.<p>Finally 
+is the module_implementation which defines the local scope of the modules. In 
+order to view reverse_sub, the full path has to be specified such as 
+list:reverse:reverse_sub.<p>In order to use predicates from other modules, 
+use&nbsp; ensure_loaded directive to load the module. In the above example, 
+list:append module is loaded and all predicates defined in that module can be 
+used in this program. ensure_loaded can be used both in&nbsp; module_interface 
+or module_implementation.      
+      
+<hr noshade>      
+      
+      
+<H2><a name="builtin">Special Types</a></H2>      
+      
+<FONT>      
+      
+<H3>List</H3>      
+      
+<p><b>List can be defined as: (list subtype)</b></p>  
+<TABLE BORDER><TR><TD ALIGN="LEFT">       
+  [<FONT COLOR="red"><B>Element1</B></FONT> 
+, <B><FONT COLOR="red">Element2</FONT></B> , ...]      
+<TR><TD ALIGN="LEFT">      
+  [<font color="red"><b>Head</b></font> |        
+<FONT COLOR="red"><B>Tail List</B></FONT>]  
+</TABLE>
+
+    
+<H3>Numeric</H3>    
+    
+integer, float subtype&nbsp;      
+      
+      
+<H3>String</H3>      
+      
+String is any character enclosed within " " is of string&nbsp; subtype.      
+      
+<HR NOSHADE>      
+      
+      
+      
+<H2><a name="misc">Other</a></H2>      
+      
+<FONT>      
+      
+<H3>Don't care</H3>       
+       
+variables starting with underscore (<TT>_)</TT> are treated as Don't care and   
+will always succeed in unification. Hence predicates which are not referred to   
+can be preceded by _ to ignore them. The unification part is exactly same as   
+trying to unify with bot.      
+      
+      
+<H3>Inference</H3>      
+      
+<TT> , </TT>is AND&nbsp; <TT>; </TT>is OR<BR>      
+<TT>p(a) = q(x), q(y) ; r(z).</TT> <BR>      
+will become:<BR>      
+<TT>p(a) = q(x), q(y).<BR>       
+p(a) = r(z).</TT><BR>      
+      
+      
+<H3>if&nbsp;</H3>     
+     
+        
+<TABLE BORDER>      
+<TR><TD ALIGN="LEFT">  <B><font color="red">Condition1</font> , <font color="red">Condition2</font> 
+    , ... -&gt; <FONT COLOR="red">Predicate on success</FONT>; <FONT COLOR="red">Predicate 
+    on failure</FONT></B>  
+</TABLE>
+
+  <TT> P :- Q -> R ; S. </TT><BR> 
+will be treated as<BR>
+  <TT> P :- Q , ! , R. </TT><BR> 
+  <TT> P :- S.</TT><BR>
+
+
+<CENTER><TABLE BORDER>
+<TR><TD ALIGN="LEFT">if</TR>
+<TR><TD ALIGN="LEFT"><PRE>
+<FONT COLOR="blue">&gt;</FONT> p &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> check &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> a &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> b &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> p(a).
+<FONT COLOR="blue">&gt;</FONT> check(X) :- p(X) -&gt; strprintln(&quot;succeed&quot;) ; strprintln(&quot;failed&quot;).
+<FONT COLOR="blue">&gt;</FONT> ?- check(a).
+<FONT COLOR="blue">succeed
+; (Current occupation: 9 heap, 3 stack, 10 trail cell(s), 39 instructions)
+yes
+&gt;</FONT> ?- check(b).
+<FONT COLOR="blue">failed
+; (Current occupation: 9 heap, 3 stack, 8 trail cell(s), 62 instructions)
+yes</FONT>
+</PRE></TR>
+</TABLE></CENTER>
+
+
+<H3>Negative</H3>
+
+Like Prolog, using \+, the failure of a predicate can be negated to success  
+  
+<CENTER><TABLE BORDER>  
+<TR><TD ALIGN="LEFT">Negative</TR>  
+<TR><TD ALIGN="LEFT"><PRE>
+<FONT COLOR="blue">&gt;</FONT> p &lt;- [pred].
+<FONT COLOR="blue">&gt;</FONT> a &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> b &lt;- [bot].
+<FONT COLOR="blue">&gt;</FONT> p(a).
+<FONT COLOR="blue">&gt;</FONT> ?- \+ p(a).
+<FONT COLOR="blue">; (Current occupation: 15 heap, 23 stack, 16 trail cell(s), 101 instructions)
+no
+&gt;</FONT> ?- \+ p(b).
+<FONT COLOR="blue">; (Current occupation: 11 heap, 3 stack, 10 trail cell(s), 122 instructions)
+yes</FONT>
+</PRE></TR>  
+</TABLE></CENTER>  
+  
+  
+<H3>Unification not possible cases</H3>  
+  
+It is possible to allow unification not possible cases by using&nbsp;<TT> \= </TT>which   
+is opposite of&nbsp;<TT> = </TT> , and can be used when unification fails. Note,   
+the left hand side value and \= should have a white space. If there is no white   
+space, it will be treated as feature.  
+<p>      
+      
+<CENTER></p>  
+<TABLE BORDER>      
+<TR><TD ALIGN="LEFT">Unification not possible</TR>      
+<TR><TD ALIGN="LEFT"><PRE>
+<FONT COLOR="blue">&gt;</FONT> mammal &lt;- bot.
+<FONT COLOR="blue">&gt;</FONT> birl &lt;- bot.
+<FONT COLOR="blue">&gt;</FONT> cat &lt;- mammal.
+<FONT COLOR="blue">&gt;</FONT> ?- mammal \= cat.
+<FONT COLOR="blue">; (Current occupation: 10 heap, 20 stack, 16 trail cell(s), 12 instructions)
+no
+&gt;</FONT> ?- mammal \= bird.
+<FONT COLOR="blue">; (Current occupation: 10 heap, 3 stack, 12 trail cell(s), 27 instructions)
+yes</FONT>
+</PRE></TR>      
+</TABLE></CENTER>      
+      
+      
+      
+<hr>      
+<a href="chap3.html">Prev: Types and Features</a>      
+<a href="chap5.html">Next: Error Messages</a>       
+       
+<hr>
+<a href="index.html">Table of Contents</a> 
+<a href="../index.html">LiLFeS Documents</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/lilfes/">LiLFeS Home Page</a>
+<a href="http://www-tsujii.is.s.u-tokyo.ac.jp/">Tsujii Lab.</a>
+
+</body>       
+</html>
+

@@ -1,0 +1,90 @@
+
+:- module("test7").
+
+complex_constraint2 <- bot.
+
+:- ensure_loaded("testmain").
+
+test_item(complex_constraint2, 56, 8).
+
+'*diff-list*' <- [bot] +['LIST'\'list','LAST'\'list'].
+'0-1-list' <- ['list'].
+'0-1-dlist' <- ['*diff-list*']./ constr\('LIST'\'0-1-list').
+'0-dlist' <- ['0-1-dlist']./ constr\('LAST'\($0 & 'bot') & 'LIST'\$0).
+'1-list' <- ['0-1-list', 'cons']./ constr\(tl\'nil').
+'1-dlist' <- ['0-1-dlist']./ constr\('LAST'\($0 & 'nil') & 'LIST'\('1-list' & tl\$0)).
+
+'have-difflist' <- [bot] + ['DLIST'\ '*diff-list*'].
+'have-0-1-dlist' <- ['have-difflist']./ constr\ 'DLIST'\ ('0-1-dlist' & LIST\ '0-1-list').
+'have-0-dlist' <- ['have-0-1-dlist']./ constr\ 'DLIST'\ ('0-dlist' & LIST\ _).
+'have-1-dlist' <- ['have-0-1-dlist']./ constr\ 'DLIST'\ ('1-dlist' & LIST\ '1-list').
+
+tt(complex_constraint2, 0) :- X = 'have-difflist', Y = 'have-difflist', X = Y.
+tt(complex_constraint2, 1) :- X = 'have-difflist', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2, 2) :- X = 'have-difflist', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2, 3) :- X = 'have-difflist', Y = 'have-1-dlist', X = Y.
+tt(complex_constraint2, 4) :- X = 'have-0-1-dlist', Y = 'have-difflist', X = Y.
+tt(complex_constraint2, 5) :- X = 'have-0-1-dlist', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2, 6) :- X = 'have-0-1-dlist', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2, 7) :- X = 'have-0-1-dlist', Y = 'have-1-dlist', X = Y.
+tt(complex_constraint2, 8) :- X = 'have-0-dlist', Y = 'have-difflist', X = Y.
+tt(complex_constraint2, 9) :- X = 'have-0-dlist', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,10) :- X = 'have-0-dlist', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2,11) :- X = 'have-1-dlist', Y = 'have-difflist', X = Y.
+tt(complex_constraint2,12) :- X = 'have-1-dlist', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,13) :- X = 'have-1-dlist', Y = 'have-1-dlist', X = Y.
+
+tt(complex_constraint2,14) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-difflist', X = Y.
+tt(complex_constraint2,15) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,16) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2,17) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-1-dlist', X = Y.
+tt(complex_constraint2,18) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-difflist', X = Y.
+tt(complex_constraint2,19) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,20) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2,21) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-1-dlist', X = Y.
+tt(complex_constraint2,22) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-difflist', X = Y.
+tt(complex_constraint2,23) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,24) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-dlist', X = Y.
+tt(complex_constraint2,25) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-difflist', X = Y.
+tt(complex_constraint2,26) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-1-dlist', X = Y.
+tt(complex_constraint2,27) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-1-dlist', X = Y.
+
+tt(complex_constraint2,28) :- X = 'have-difflist' , Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,29) :- X = 'have-difflist' , Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,30) :- X = 'have-difflist' , Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,31) :- X = 'have-difflist' , Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,32) :- X = 'have-0-1-dlist', Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,33) :- X = 'have-0-1-dlist', Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,34) :- X = 'have-0-1-dlist', Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,35) :- X = 'have-0-1-dlist', Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,36) :- X = 'have-0-dlist'  , Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,37) :- X = 'have-0-dlist'  , Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,38) :- X = 'have-0-dlist'  , Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,39) :- X = 'have-1-dlist'  , Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,40) :- X = 'have-1-dlist'  , Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,41) :- X = 'have-1-dlist'  , Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+
+tt(complex_constraint2,42) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,43) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,44) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,45) :- X = 'have-difflist' & DLIST\ '*diff-list*', Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,46) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,47) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,48) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,49) :- X = 'have-0-1-dlist'& DLIST\ '*diff-list*', Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,50) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,51) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,52) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,53) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-difflist' & DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,54) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-1-dlist'& DLIST\ '*diff-list*', X = Y.
+tt(complex_constraint2,55) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+
+ft(complex_constraint2, 0) :- X = 'have-0-dlist', Y = 'have-1-dlist', X = Y.
+ft(complex_constraint2, 1) :- X = 'have-1-dlist', Y = 'have-0-dlist', X = Y.
+ft(complex_constraint2, 2) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-1-dlist', X = Y.
+ft(complex_constraint2, 3) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-dlist', X = Y.
+ft(complex_constraint2, 4) :- X = 'have-0-dlist'  , Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+ft(complex_constraint2, 5) :- X = 'have-1-dlist'  , Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+ft(complex_constraint2, 6) :- X = 'have-0-dlist'  & DLIST\ '*diff-list*', Y = 'have-1-dlist'  & DLIST\ '*diff-list*', X = Y.
+ft(complex_constraint2, 7) :- X = 'have-1-dlist'  & DLIST\ '*diff-list*', Y = 'have-0-dlist'  & DLIST\ '*diff-list*', X = Y.
+

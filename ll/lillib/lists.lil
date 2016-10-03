@@ -1,0 +1,845 @@
+%/**********************************************************************
+  * @module    =  lillib:lists
+  * @author    =  MITSUISHI Yutaka (mitsuisi@is.s.u-tokyo.ac.jp)
+  * @copyright =  Copyright (c) 1998--1999, MITSUISHI Yutaka
+  * @copyright =  You may distribute this file under the terms of the Artistic License.
+  * @cvs       =  $Id: lists.lil,v 1.3 2004-04-18 13:14:52 yusuke Exp $
+  * @version   =  April 07, 1999
+  * @since     =  July 09, 1998
+  * @desc      =  Predicates for manipulating lists
+  * This module provides various predicates for manipulating lists,
+  * such as <code>append</code> and <code>reverse</code>.
+  **********************************************************************
+%*/
+
+:- module("lillib:lists").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_interface.
+
+append <- [pred].
+revappend <- [pred].
+append_list <- [pred].
+delete <-  [pred].
+reverse <- [pred].
+last <- [pred].
+'last/2' <- [last, 'pred/2'].
+'last/3' <- ['last/2', 'pred/3'].
+member <- [pred].
+member_e <- [pred].
+member_i <- [pred].
+member_s <- [pred].
+member_sd <- [pred].
+memberchk <- [pred].
+memberchk_e <- [pred].
+memberchk_i <- [pred].
+memberchk_s <- [pred].
+memberchk_sd <- [pred].
+member_2 <- [pred].
+fast_member <- [pred].
+fast_member_2 <- [pred].
+assoc <- [pred].
+assoc_e <- [pred].
+assoc_i <- [pred].
+remove_duplicates <- [pred].
+listcommon <- [pred].
+flatten_list <- [pred].
+flatten_reverse_list <- [pred].
+make_n_list <- [pred].
+make_num_list <- [pred].
+length <- [pred].
+nth <- [pred].
+set_difference <- [pred].
+set_difference_e <- [pred].
+set_difference_i <- [pred].
+input_list <- [pred].
+output_list <- [pred].
+dlength		<- [pred].
+dmember		<- [pred].
+dmember_2	<- [pred].
+
+%% obsolete
+lisp_to_lilfes <- [pred].
+lilfes_to_lisp <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+%/**
+  * @predicate = append(?$L1, ?$L2, ?$L3)
+  * @desc      = concatenation of two lists
+  * @param     = ?$L1 / list : List 1
+  * @param     = ?$L2 / list : List 2
+  * @param     = ?$L3 / list : Concatenation of List 1 and List 2
+  *
+  * This is true when $L3 is the combined list of the elements in $L1
+  * and $L2 in the original orders.
+  *
+  * @example =
+  * > ?- append([1, 2, 3], [4, 5], X).
+  * X: < 1, 2, 3, 4, 5 >
+  * @end_example
+%*/
+append([], $L, $L).
+append([$X|$L1], $L2, [$X|$L3]) :- append($L1, $L2, $L3).
+
+%/**
+  * @predicate = revappend(?$L1, ?$L2, ?$L3)
+  * @desc      = Concatenation of reversed and original ordered lists
+  * @param     = ?$L1 / list : Reversed list
+  * @param     = ?$L2 / list : List
+  * @param     = ?$L3 / list : Concatenation
+  *
+  * This is true when $L3 is the combined list of the elements in $L1
+  * and $L2, in the reversed order as to $L1 and in the original order
+  * as to $L2.
+  *
+  * @example =
+  * > ?- revappend([1, 2, 3], [4, 5], X).
+  * X: < 3, 2, 1, 4, 5 >
+  * @end_example
+%*/
+revappend([], $L, $L).
+revappend([$X|$L1], $L2, $L3) :- revappend($L1, [$X|$L2], $L3).
+
+%/**
+  * @predicate = append_list(+$LL, -$L)
+  * @desc      = Concatenation of lists
+  * @param     = +$LL / list of list : Input lists
+  * @param     = -$L / list          : Concatenation of the lists
+  *
+  * This lets $L3 be the combined list of the elements in the elements
+  * in $LL.
+  *
+  * @example =
+  * > ?- append_list([[1, 2], [3], [4, 5]],X).
+  * X: < 1, 2, 3, 4, 5 >
+  * @end_example
+%*/
+append_list([], []).
+append_list([$L1|$LL], $L3) :- append_list($LL, $L2), append($L1, $L2, $L3).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = delete(+$List1, +$Elem, -$List2)
+  * @desc      = remove specified elements from a list
+  * @param     = +$List1 / list : input list
+  * @param     = +$Elem / bot   : an element to be removed
+  * @param     = -$List2 / list : output
+  *
+  * This removes elements $Elem from $List and returns to $List2.
+  *
+  * @example =
+  * > ?- delete([1, 2, 2, 4, 5], 2, X).
+  * X: < 1, 4, 5 >
+  * @end_example
+%*/
+delete([],_,[]).
+delete([A|R1],A,R2) :- !, delete(R1,A,R2).
+delete([X|R1],A,[X|R2]) :- delete(R1,A,R2). 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = reverse(?$L1, ?$L2)
+  * @desc      = Reverse of a list
+  * @param     = ?$L1 / list : Original ordered list
+  * @param     = ?$L2 / list : Reversed ordered list
+  *
+  * This is true when $L1 and $L2 have the same elements but in reversed
+  * orders each other.
+  *
+  * @example =
+  * > ?- reverse([1, 2, 3, 4], X).
+  * X: < 4, 3, 2, 1 >
+%*/
+reverse($L1, $L2) :- revappend($L1, [], $L2).
+
+%/**
+  * @predicate = last(?$L, ?$X)
+  * @desc      = Get the last element of a list
+  * @param     = ?$L / list : Input list
+  * @param     = ?$X / bot : The last element of the list
+  *
+  * This lets $X be the last element in $L.
+  *
+  * @example =
+  * > ?- last([1, 2, 3, 4], X).
+  * X: 4
+  * @end_example
+%*/
+last([$X|$L], $Y) :- last($L, $X, $Y).
+
+last([], $X, $X).
+last([$X|$L], _, $Y) :- last($L, $X, $Y).
+
+%/**
+  * @predicate = member(?$X, +$L)
+  * @desc      = Get an element of a list
+  * @param     = ?$X / bot : a list element
+  * @param     = +$L / list : a list
+  *
+  * This is true when $X is unified with an element in $L.
+  *
+  * @example =
+  * > ?- member(X, [1, 2, 3]).
+  * X: 1
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 2
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 3
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * no
+  * @end_example
+%*/
+member($X, [$X|_]).
+member($X, [_|$L]) :- member($X, $L).
+
+%/**
+  * @predicate = member_e(?$X, +$L)
+  * @desc      = 'equivalent' version of <a href="#member/2">'member/2'</a>
+  * @param     = ?$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #member/2
+  * This is true when $X is equivalent to an element in $L.
+%*/
+member_e($X, [$Y|_]) :- equivalent($X, $Y).
+member_e($X, [_|$L]) :- member_e($X, $L).
+
+%/**
+  * @predicate = member_i(?$X, +$L)
+  * @desc      = 'identical' version of <a href="#member/2">'member/2'</a>
+  * @param     = ?$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #member/2
+  * This is true when $X is identical to an element in $L.
+%*/
+member_i($X, [$Y|_]) :- identical($X, $Y).
+member_i($X, [_|$L]) :- member_i($X, $L).
+%/**
+  * @predicate = member_s(?$X, +$L)
+  * @desc      = 'subsume' version of <a href="#member/2">'member/2'</a>
+  * @param     = ?$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #member/2
+  * This is true when $X subsumes an element in $L.
+%*/
+member_s($X, [$Y|_]) :- subsume($X, $Y).
+member_s($X, [_|$L]) :- member_s($X, $L).
+
+%/**
+  * @predicate = member_sd(?$X, +$L)
+  * @desc      = 'subsumed' version of <a href="#member/2">'member/2'</a>
+  * @param     = ?$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #member/2
+  * This is true when $X is subsumed by an element in $L.
+%*/
+member_sd($X, [$Y|_]) :- subsume($Y, $X).
+member_sd($X, [_|$L]) :- member_sd($X, $L).
+
+%/**
+  * @predicate = memberchk(+$X, +$L)
+  * @desc      = check an item is an element of a list
+  * @param     = +$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #member/2
+  *
+  * This is true when $X is unified with an element in $L.  This does not
+  * succeeds more than once.
+  *
+  * @example =
+  * > ?- memberchk(X, [1, 2, 3, 4]).
+  * X: 1
+  * @end_example
+%*/
+memberchk($X, [$X|_]) :- !.
+memberchk($X, [_|$L]) :- memberchk($X, $L).
+
+%/**
+  * @predicate = memberchk_e(+$X, +$L)
+  * @desc      = 'equivalent' version of <a href="#memberchk/2">'memberchk/2'</a>
+  * @param     = +$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #memberchk/2
+  * This is true when $X is equivalent to an element in $L.  This does not
+  * succeeds more than once.
+%*/
+memberchk_e($X, [$Y|_]) :- equivalent($X, $Y), !.
+memberchk_e($X, [_|$L]) :- memberchk_e($X, $L).
+
+%/**
+  * @predicate = memberchk_i(+$X, +$L)
+  * @desc      = 'identical' version of <a href="#memberchk/2">'memberchk/2'</a>
+  * @param     = +$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #memberchk/2
+  * This is true when $X is identical to an element in $L.  This does not
+  * succeed more than once.
+%*/
+memberchk_i($X, [$Y|_]) :- identical($X, $Y), !.
+memberchk_i($X, [_|$L]) :- memberchk_i($X, $L).
+
+%/**
+  * @predicate = memberchk_s(+$X, +$L)
+  * @desc      = 'subsume' version of <a href="#memberchk/2">'memberchk/2'</a>
+  * @param     = +$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #memberchk/2
+  * This is true when $X subsume an element in $L.  This does not
+  * succeed more than once.
+%*/
+memberchk_s($X, [$Y|_]) :- subsume($X, $Y), !.
+memberchk_s($X, [_|$YY]) :- memberchk_s($X, $YY).
+
+%/**
+  * @predicate = memberchk_sd(+$X, +$L)
+  * @desc      = 'subsumed' version of <a href="#memberchk/2">'memberchk/2'</a>
+  * @param     = +$X / bot : a list element
+  * @param     = +$L / list : a list
+  * @see       = #memberchk/2
+  * This is true when $X is subsumed by an element in $L.  This does not
+  * succeed more than once.
+%*/
+memberchk_sd($X, [$Y|_]) :- subsume($Y, $X), !.
+memberchk_sd($X, [_|$YY]) :- memberchk_sd($X, $YY).
+
+%/**
+  * @predicate = member_2(?$X1, +$L1, ?$X2, +$L2)
+  * @desc      = Get the corresponding elements from two lists
+  * @param     = ?$X1 / bot : a list element
+  * @param     = +$L1 / list : a list
+  * @param     = ?$X2 / bot : a list element
+  * @param     = +$L2 / list : a list
+  * @see       = #member/2
+  *
+  * This is true when $X1 and $X2 are unified with an element in $L1 and
+  * $L2 respectively.  Where $X1 and $X2 are from the heads of $L1 and $L2
+  * must be the same.
+  *
+  * @example =
+  * > ?- member_2(X, [1, 2], Y, [4, 5]).
+  * X: 1
+  * Y: 4
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 2
+  * Y: 5
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * no
+  * @end_example
+%*/
+member_2($X1, [$X1|_], $X2, [$X2|_]).
+member_2($X1, [_|$L1], $X2, [_|$L2]) :- member_2($X1, $L1, $X2, $L2).
+
+%/**
+  * @predicate = fast_member(+$L, ?$X)
+  * @desc      = fast version of <a href="#member/2">'member/2'</a>
+  * @param     = +$L / list : a list
+  * @param     = ?$X / bot : a list element
+  * @see       = #member/2
+  *
+  * This is true when $X is unified with an element in $L.  This is
+  * the same as 'member', but the order of the arguments is changed and
+  * this is faster.
+  *
+  * @example =
+  * > ?- fast_member([1, 2, 3], X).
+  * X: 1
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 2
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 3
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * no
+  * @end_example
+%*/
+fast_member([$Y|$L], $X) :- ($X = $Y ; fast_member($L, $X)).
+
+%/**
+  * @predicate = fast_member_2(+$L1, ?$X1, +$L2, ?$X2)
+  * @desc      = fast version of <a href="#member_2/4">'member_2/4'</a>
+  * @param     = +$L1 / list : list
+  * @param     = ?$X1 / bot : list element
+  * @param     = +$L2 / list : list
+  * @param     = ?$X2 / bot : list element
+  * @see       = #member_2/4
+  * @see       = #fast_member/2
+  *
+  * This is true when $X1 and $X2 are unified with elements in $L1 and
+  * $L2 respectively.  Where $X1 and $X2 are from the heads of $L1 and $L2
+  * must be the same.  This is the same as 'member_2', but the order of the
+  * arguments is changed and this is faster.
+  *
+  * @example =
+  * > ?- fast_member_2([1, 2], X, [3, 4], Y).
+  * X: 1
+  * Y: 3
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * X: 2
+  * Y: 4
+  * Enter ';' for more choices, otherwise press ENTER --> ;
+  * no
+  * @end_example
+%*/
+fast_member_2([$Y1|$L1], $X1, [$Y2|$L2], $X2) :-
+    (($X1 = $Y1, $X2 = $Y2) ;
+     fast_member_2($L1, $X1, $L2, $X2)).
+
+%/**
+  * @predicate = assoc(+$X, +$L, -$Y)
+  * @desc      = association list
+  * @param     = +$X / bot           : key
+  * @param     = +$L / list of ',/2' : association list
+  * @param     = -$Y / bot           : data
+  *
+  * This lets $Y be the second element of the pair whose first element
+  * is unified with $X.  The 2-element pair (',/2') is the first proper
+  * one in $L.  This does not succeed more than once.
+  *
+  * @example =
+  * > ?- assoc(1, [(1, "a"), (2, "b")], X).
+  * X: "a"
+  * @end_example
+%*/
+assoc($X, [($X, $R)|_], $R) :- !.
+assoc($X, [_|$L], $R) :- assoc($X, $L, $R).
+
+%/**
+  * @predicate = assoc_e(+$X, +$L, -$Y)
+  * @desc      = 'equivalent' version of <a href="#assoc/3">'assoc/3'</a>
+  * @param     = +$X / bot           : key
+  * @param     = +$L / list of ',/2' : association list
+  * @param     = -$Y / bot           : data
+  * @see       = #assoc/3
+  *
+  * This lets $Y be the second element of the pair whose first element
+  * is equivalent to $X.  The 2-element pair (',/2') is the first proper
+  * one in $L.  This does not succeed more than once.
+%*/
+assoc_e($X, [($Y, $R)|_], $R) :- equivalent($X, $Y), !.
+assoc_e($X, [_|$L], $R) :- assoc_e($X, $L, $R).
+
+%/**
+  * @predicate = assoc_i(+$X, +$L, -$Y)
+  * @desc      = 'identical' version of <a href="#assoc/3">'assoc/3'</a>
+  * @param     = +$X / bot           : key
+  * @param     = +$L / list of ',/2' : association list
+  * @param     = -$Y / bot           : data
+  * @see       = #assoc/3
+  *
+  * This lets $Y be the second element of the pair whose first element
+  * is identical to $X.  The 2-element pair (',/2') is the first proper
+  * one in $L.  This does not succeed more than once.
+%*/
+assoc_i($X, [($Y, $R)|_], $R) :- identical($X, $Y), !.
+assoc_i($X, [_|$L], $R) :- assoc_i($X, $L, $R).
+
+%/**
+  * @predicate = remove_duplicates(+$L1, -$L2)
+  * @desc      = remove duplicated elements from a list
+  * @param     = +$L1 / list : an original list
+  * @param     = -$L2 / list : output list
+  *
+  * This lets $L2 be the result of removing all equivalent duplicate
+  * elements in $L1.
+  *
+  * @example =
+  * > ?- remove_duplicates([1, 2, 3, 2, 4], X).
+  * X: < 1, 3, 2, 4 >
+  * @end_example
+%*/
+remove_duplicates([], []).
+remove_duplicates([$X|$L1], $L2) :-
+    memberchk_e($X, $L1),
+    !,
+    remove_duplicates($L1, $L2).
+remove_duplicates([$X|$L1], [$X|$L2]) :-
+    remove_duplicates($L1, $L2).
+
+%/**
+  * @predicate = listcommon(+$L1, +$L2, -$L3)
+  * @desc      = common part of two lists
+  * @param     = +$L1 / list : list 1
+  * @param     = +$L2 / list : list 2
+  * @param     = -$L3 / list : common part of the lists
+  * @author    = NISHIDA Kenji (nishiken@is.s.u-tokyo.ac.jp)
+  *
+  * This lets $L3 be a list of all the elements that have equivalent
+  * elements both in $L1 and in $L2.
+  *
+  * @example =
+  * > ?- listcommon([1, 2, 3, 4], [5, 4, 3], X).
+  * X: < 3, 4 >
+  * @end_example
+%*/
+listcommon([], _, []).
+listcommon([$A|$L1], $L2, [$A|$L3]) :-
+    memberchk_e($A, $L2), !, listcommon($L1, $L2, $L3).
+listcommon([_|$L1], $L2, $L3) :-
+    listcommon($L1, $L2, $L3).
+
+%/**
+  * @predicate = flatten_list(+$L1, -$L2)
+  * @desc      = flatten a list
+  * @param     = +$L1 / list : input list
+  * @param     = -$L2 / list : output list
+  *
+  * This lets $L2 be a flattened list of $L1.
+  *
+  * @example =
+  * > ?- flatten_list([1, [2, [3, 4], 5]], X).
+  * X: < 1, 2, 3, 4, 5 >
+  * @end_example
+%*/
+flatten_list($L1, $L3) :-
+    flatten_reverse_list($L1, [], $L2),
+    reverse($L2, $L3).
+
+flatten_reverse_list([], $L, $L).
+flatten_reverse_list([[]|$L1], $L2, $L3) :-
+    !,
+    flatten_reverse_list($L1, $L2, $L3).
+flatten_reverse_list([(cons & $CAR)|$L1], $L2, $L3) :-
+    !,
+    flatten_reverse_list($CAR, [], $L4),
+    append($L4, $L2, $L5),
+    flatten_reverse_list($L1, $L5, $L3).
+flatten_reverse_list([$CAR|$L1], $L2, $L3) :-
+    flatten_reverse_list($L1, [$CAR|$L2], $L3).
+
+%/**
+  * @predicate = make_n_list(+$N, +$X, -$L)
+  * @desc      = make an n-length list
+  * @param     = +$N / integer (>= 0) : length of a list
+  * @param     = +$X / bot            : a list element
+  * @param     = -$L / list           : output
+  *
+  * This lets $L be a list whose length is $N and all the elements are
+  * equivalent to $X.
+  *
+  * @example =
+  * > ?- make_n_list(5, "hoge", X).
+  * X: < "hoge", "hoge", "hoge", "hoge", "hoge" >
+  * @end_example
+%*/
+make_n_list(0, _, []) :- !.
+make_n_list($N1, $X, [$X|$L]) :-
+    $N2 is $N1 - 1,
+    copy($X, $Y),
+    make_n_list($N2, $Y, $L).
+
+%/**
+  * @predicate = make_num_list(+$FROM, +$BEFORE, -$RESULT)
+  * @desc      = make a list of integers
+  * @param     = +$FROM / integer   : a start of a list
+  * @param     = +$BEFORE / integer : an end of the list
+  * @param     = -$RESULT / list of integers : output
+  *
+  * This lets $RESULT be a list whose elements are the integers from
+  * $FROM before $BEFORE.
+  *
+  * @example =
+  * > ?- make_num_list(2, 5, X).
+  * X: < 2, 3, 4 >
+  * @end_example
+%*/
+make_num_list($FROM1, $BEFORE, [$FROM1|$RESULT]) :-
+    $FROM1 =\= $BEFORE,
+    !,
+    $FROM2 is $FROM1 + 1,
+    make_num_list($FROM2, $BEFORE, $RESULT).
+make_num_list(_, _, []).
+
+%/**
+  * @predicate = length(+$L, -$N)
+  * @desc      = length of a list
+  * @param     = +$L / list    : input list
+  * @param     = -$N / integer : length of the list
+  *
+  * This lets $N be the length of $L.
+  *
+  * @example =
+  * > ?- length([3, 3, 3, 3], X).
+  * X: 4
+  * @end_example
+%*/
+length([], 0).
+length([_|$R], $N) :- length($R, $M), $N is $M + 1.
+
+%/**
+  * @predicate = nth_elem(+$LIST, +$N, -$ELEM)
+  * @desc      = get an n-th element of a list
+  * @param     = +$LIST / list : a list
+  * @param     = +$N / integer : index
+  * @param     = -$ELEM / bot  : an element of the list
+  *
+  * This returns $Nth element of the list $LIST as $ELEM.
+  *
+  * @example =
+  * > ?- nth([2, 4, 6, 8], 2, X).
+  * X: 6
+  * @end_example
+%*/
+nth([$L|_], 0, $L).
+nth([_|$LS], $N1, $X) :-
+    $N1 > 0,
+    $N2 is $N1 - 1,
+    nth($LS, $N2, $X).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = set_difference(+$Set1, +$Set2, -$Diff)
+  * @desc      = get the difference of two sets
+  * @param     = +$Set1 / list : Set 1
+  * @param     = +$Set2 / list : Set 2
+  * @param     = +$Diff / list : Difference of the sets
+  *
+  * This returns the elements of $Set1 not included in $Set2.
+  *
+  * @example =
+  * > ?- set_difference([1, 2, 3, 4], [6, 4, 2], X).
+  * X: < 1, 3 >
+  * @end_example
+%*/
+set_difference([], _, []).
+set_difference([$ELEM|$LIST1], $LIST2, $LIST3) :-
+    memberchk($ELEM, $LIST2),
+    !,
+    set_difference($LIST1, $LIST2, $LIST3).
+set_difference([$ELEM|$LIST1], $LIST2, [$ELEM|$LIST3]) :-
+    set_difference($LIST1, $LIST2, $LIST3).
+
+%/**
+  * @predicate = set_difference_e(+$Set1, +$Set2, -$Diff)
+  * @desc      = 'equivalent' version of <a href="#set_difference/3">'set_difference/3'</a>
+  * @param     = +$Set1 / list : Set 1
+  * @param     = +$Set2 / list : Set 2
+  * @param     = +$Diff / list : Difference of the sets
+  * @see       = #set_difference/3
+  * This returns the elements of $Set1 not included in $Set2.
+%*/
+set_difference_e([], _, []).
+set_difference_e([$ELEM|$LIST1], $LIST2, $LIST3) :-
+    memberchk_e($ELEM, $LIST2),
+    !,
+    set_difference_e($LIST1, $LIST2, $LIST3).
+set_difference_e([$ELEM|$LIST1], $LIST2, [$ELEM|$LIST3]) :-
+    set_difference_e($LIST1, $LIST2, $LIST3).
+
+%/**
+  * @predicate = set_difference_i(+$Set1, +$Set2, -$Diff)
+  * @desc      = 'identical' version of <a href="#set_difference/3">'set_difference/3'</a>
+  * @param     = +$Set1 / list : Set 1
+  * @param     = +$Set2 / list : Set 2
+  * @param     = +$Diff / list : Difference of the sets
+  * @see       = #set_difference/3
+  * This returns the elements of $Set1 not included in $Set2.
+%*/
+set_difference_i([], _, []).
+set_difference_i([$ELEM|$LIST1], $LIST2, $LIST3) :-
+    memberchk_i($ELEM, $LIST2),
+    !,
+    set_difference_i($LIST1, $LIST2, $LIST3).
+set_difference_i([$ELEM|$LIST1], $LIST2, [$ELEM|$LIST3]) :-
+    set_difference_i($LIST1, $LIST2, $LIST3).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = input_list(+$STRING, -$LIST)
+  * @param     = +$STRING/string : a lisp list
+  * @param     = -$LIST/list     : a lilfes list
+  * @jparam    = +$STRING/string : Lisp 形式のリスト
+  * @jparam    = -$LIST/list     : LiLFeS 形式のリスト
+  * @see       = #output_list/2
+  * @desc      = convert a lisp list into a lilfes list
+  * @jdesc     = Lisp 形式のリストを LiLFeS 形式のリストへ変換する
+  * Convert a string into a lilfes list
+  * @japanese  =
+  * Lisp 形式のリストを LiLFeS 形式のリストへ変換する．
+  * @end_japanese
+%*/
+%/**
+  * @predicate = output_list(+$LIST, -$STRING)
+  * @param     = +$LIST/list     : a lilfes list
+  * @param     = -$STRING/string : a lisp list
+  * @jparam    = +$LIST/list     : LiLFeS 形式のリスト
+  * @jparam    = -$STRING/string : Lisp 形式のリスト
+  * @see       = #lisp_to_lilfes/2
+  * @desc      = convert a lilfes list into a string
+  * @jdesc     = LiLFeS 形式のリストを Lisp 形式のリストに変換する
+  * Convert a lilfes list into a lisp list
+  * @japanese  =
+  * LiLFeS 形式のリストを Lisp 形式のリストに変換する．
+  * @end_japanese
+%*/
+
+slice_list <- [pred].
+slice_list([], _, [], []).
+slice_list([$CHAR|$CHARLIST], $CHAR, [], $CHARLIST) :- !.
+slice_list([$CHAR|$CHARLIST], $C, [$CHAR|$LIST1], $LIST2) :-
+    slice_list($CHARLIST, $C, $LIST1, $LIST2).
+
+slice_list_escape <- [pred].
+slice_list_escape([], _, _, [], []).
+slice_list_escape([$ESC, $CHAR|$CHARLIST], $C, $ESC, [$CHAR|$LIST1], $LIST2) :-
+    !,
+    slice_list_escape($CHARLIST, $C, $ESC, $LIST1, $LIST2).
+slice_list_escape([$CHAR|$CHARLIST], $CHAR, _, [], $CHARLIST) :-
+    !.
+slice_list_escape([$CHAR|$CHARLIST], $C, $ESC, [$CHAR|$LIST1], $LIST2) :-
+    slice_list_escape($CHARLIST, $C, $ESC, $LIST1, $LIST2).
+
+lisp_to_lilfes_sub <- [pred].
+lisp_to_lilfes_sub([], $WORD, $LIST, []) :-
+    ($WORD = [] ->
+     $LIST = [] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR]).
+lisp_to_lilfes_sub([32|$CHARLIST], $WORD, $LIST, $REST) :-  % space
+    !,
+    ($WORD = [] ->
+     $LIST = $RESTLIST ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([10|$CHARLIST], $WORD, $LIST, $REST) :-  % return
+    !,
+    ($WORD = [] ->
+     $LIST = $RESTLIST ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([34|$CHARLIST1], $WORD, $LIST1, $REST) :-  % double quotation
+    !,
+    ($WORD = [] ->
+     $LIST1 = $LIST2 ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST1 = [$STR|$LIST2]),
+    slice_list_escape($CHARLIST1, 34, 92, $CHARLIST2, $CHARLIST3),
+    listtostr($CHARLIST2, $STR2),
+    $LIST2 = [$STR2|$RESTLIST],
+    lisp_to_lilfes_sub($CHARLIST3, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([59|$CHARLIST1], $WORD, $LIST, $REST) :-  % semi-colon
+    !,
+    ($WORD = [] ->
+     $LIST = $RESTLIST ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR|$RESTLIST]),
+    slice_list($CHARLIST1, 10, _, $CHARLIST2),
+    lisp_to_lilfes_sub($CHARLIST2, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([40|$CHARLIST], $WORD, $LIST, $REST) :-  % left paren
+    !,
+    lisp_to_lilfes_sub($CHARLIST, [], $SUBLIST, $CHARLIST1),
+    ($WORD = [] ->
+     $LIST = [$SUBLIST|$RESTLIST] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR, $SUBLIST|$RESTLIST]),
+    lisp_to_lilfes_sub($CHARLIST1, [], $RESTLIST, $REST).
+lisp_to_lilfes_sub([41|$CHARLIST], $WORD, $LIST, $CHARLIST) :-  % right paren
+    !,
+    ($WORD = [] ->
+     $LIST = [] ;
+     reverse($WORD, $R_LIST),
+     listtostr($R_LIST, $STR),
+     $LIST = [$STR]).
+lisp_to_lilfes_sub([92, $CHAR|$CHARLIST], $WORD, $LIST, $REST) :-  % backslash
+    !,
+    lisp_to_lilfes_sub($CHARLIST, [$CHAR, 92|$WORD], $LIST, $REST).
+lisp_to_lilfes_sub([$CHAR|$CHARLIST], $WORD, $LIST, $REST) :-  % default
+    lisp_to_lilfes_sub($CHARLIST, [$CHAR|$WORD], $LIST, $REST).
+
+% Exported predicates
+lisp_to_lilfes($STRING, $LIST) :-
+    strtolist($STRING, $CHARLIST),
+    lisp_to_lilfes_sub($CHARLIST, [], $LISTS, []),
+    member($LIST, $LISTS).
+
+input_list($String, $List) :-
+    lisp_to_lilfes($String, $List).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+lilfes_to_lisp_elements <- [pred].
+lilfes_to_lisp_elements([], "") :- !.
+lilfes_to_lisp_elements([$ELEM], $STRING) :-
+    !,
+    lilfes_to_lisp($ELEM, $STRING).
+lilfes_to_lisp_elements([$ELEM|$LIST], $STRING) :-
+    !,
+    lilfes_to_lisp($ELEM, $STR1),
+    lilfes_to_lisp_elements($LIST, $STR2),
+    strcat($STR1, " ", $STR_),
+    strcat($STR_, $STR2, $STRING).
+lilfes_to_lisp($LILFES, $STRING) :-
+    type_subsume(list, $LILFES),
+    !,
+    lilfes_to_lisp_elements($LILFES, $STR),
+    strcat("(", $STR, $STR1),
+    strcat($STR1, ")", $STRING).
+lilfes_to_lisp($LILFES, $STRING) :-
+    is_string($LILFES),
+    !,
+    $STRING = $LILFES.
+lilfes_to_lisp($LILFES, $STRING) :-
+    typetostr($LILFES, $STRING).
+
+output_list($List, $String) :-
+    lilfes_to_lisp($List, $String).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = dlength(+Head, +Tail, -N)
+  * @param     = +Head/list
+  * @param     = +Tail/list
+  * @param     = -N/integer
+  * @desc      = length of a difference list
+  * Returns the length of the difference list between Head and Tail.
+%*/
+
+dlength(H, T, 0) :-			identical(H, T), !.
+
+dlength([_|Hr], T, N) :-	dlength(Hr, T, Nr), N is Nr + 1.
+
+%/**
+  * @predicate = dmember(+LHead, +LTail, ?E)
+  * @param     = +LHead: head of the difference list
+  * @param     = +LTail: tail (end) of the difference list
+  * @param     = ?E: the element to search for
+  * @desc      = member of a difference list
+  * as with member, but searches in a difference list given by 'LHead' and 'LTail'
+%*/
+
+dmember(LH, LT, _) :- identical(LH, LT), !, fail.
+
+dmember([LE|LR], LT, E) :- E = LE; dmember(LR, LT, E).
+
+%/**
+  * @predicate = dmember_2(+L1Head, +L1Tail, ?E1, +L2, ?E2)
+  * @param     = +L1Head: head of the first list (difference list)
+  * @param     = +L1Tail: tail (end) of the first list
+  * @param     = ?E1: the element to search for in the first list
+  * @param     = +L2: second list
+  * @param     = ?E2: the element to search for in the second list
+  * @desc      = member_2 of a difference list
+  * as <a href="lists.html#fast_member_2">'fast_member_2'</a>,
+  * but the first list is considered a difference list
+  * It is not necessary to give the 2nd list as difference list as well,
+  * as both lists are processed in tandem.
+%*/
+
+dmember_2(L1H, L1T, _, _, _) :- identical(L1H, L1T), !, fail.
+
+dmember_2([L1E|L1R], L1T, E1, [L2E|L2R], E2) :- (E1 = L1E, E2 = L2E) ; dmember_2(L1R, L1T, E1, L2R, E2).
+

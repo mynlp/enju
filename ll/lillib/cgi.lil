@@ -1,0 +1,196 @@
+%/**
+  * @module    = lillib:cgi
+  * @cvs       = $Id: cgi.lil,v 1.3 2005-01-20 13:25:50 yusuke Exp $
+  * @copyright = Copyright (c) 2003-2005, MIYAO Yusuke
+  * @copyright = You may distribute this file under the terms of the Artistic License.
+  * @author    = MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
+  * @desc      = Tools for CGI
+  * This module provides useful tools to make CGI.
+%*/
+
+:- module("lillib:cgi").
+
+:- module_interface.
+
+encode_query_string <- [pred].
+decode_query_string <- [pred].
+decode_cgi_content <- [pred].
+decode_cgi <- [pred].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- module_implementation.
+
+:- ensure_loaded("lists").
+:- ensure_loaded("strings").
+:- ensure_loaded("io").
+
+%/**
+  * @predicate = encode_query_string(+$InStr, -$OutStr)
+  * @param     = +$InStr/string : input string
+  * @param     = -$OutStr/string : converted string
+  * @desc      = escape special characters in query string
+  * This predicate converts special characters in 
+  * an input string into escape characters.
+%*/
+
+encode_query_string($InStr, $OutStr) :-
+    (regex_subst("&", ["g"], "&amp;", $InStr, $Str1) ->
+     true ; $InStr = $Str1),
+    (regex_subst("<", ["g"], "&lt;", $Str1, $Str2) ->
+     true ; $Str2 = $Str1),
+    (regex_subst(">", ["g"], "&gt;", $Str2, $Str3) ->
+     true ; $Str3 = $Str2),
+    (regex_subst("""", ["g"], "&quot;", $Str3, $Str4) ->
+     true ; $Str4 = $Str3),
+    (regex_subst(" ", ["g"], "+", $Str4, $Str5) ->
+     true ; $Str5 = $Str4),
+    $OutStr = $Str5.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = decode_query_string(+$Query, -$Assoc)
+  * @param     = +$Query/string : query string
+  * @param     = -$Assoc/list of ',/2' : association list of key-value pairs
+  * @desc      = convert query string to association list
+  * This predicate decodes the query string of a CGI request, and makes 
+  * a list of pairs (key, value).
+%*/
+
+decode_hex <- [pred].
+decode_hex($Hex, $Val) :-
+    $Hex >= 48,
+    $Val1 is $Hex - 48,
+    ($Val1 >= 10 ->
+     $Val is $Val1 - 7,
+     $Val < 16
+     ;
+     $Val = $Val1).
+decode_hex_code <- [pred].
+decode_hex_code($H, $L, $Ch) :-
+    decode_hex($H, $H1),
+    decode_hex($L, $L1),
+    $Ch is $H1 * 16 + $L1.
+decode_special_sub <- [pred].
+decode_special_sub([], []).
+decode_special_sub([37, $H, $L|$InList], [$Ch|$OutList]) :-
+    decode_hex_code($H, $L, $Ch),
+    !,
+    decode_special_sub($InList, $OutList).
+decode_special_sub([$Ch|$InList], [$Ch|$OutList]) :-
+    decode_special_sub($InList, $OutList).
+decode_special_characters <- [pred].
+decode_special_characters($InStr, $OutStr) :-
+    strtolist($InStr, $InCharList),
+    decode_special_sub($InCharList, $OutCharList),
+    listtostr($OutCharList, $OutStr).
+
+decode_argument_list <- [pred].
+decode_argument_list([], []).
+decode_argument_list([$ArgStr|$ArgStrList], [($Key, $Value)|$Args]) :-
+    (regex_match("^(.+)=(.*)$", $ArgStr, [_, $Key, $Value1]) ->
+     (regex_subst("\+", ["g"], " ", $Value1, $Value2) ->
+      true ;
+      $Value2 = $Value1),
+     decode_special_characters($Value2, $Value)
+     ;
+     $Key = $ArgStr,
+     $Value = ""),
+    decode_argument_list($ArgStrList, $Args).
+
+decode_query_string($QueryString, $Assoc) :-
+    (regex_match("[^&]+", ["g"], $QueryString, $ArgStrList) ->
+     true ;
+     $Assoc = []),
+    decode_argument_list($ArgStrList, $Assoc).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = decode_cgi_content(+$Headers, +$Body, -$Assoc)
+  * @param     = +$Headers/list of ',/2' : association list of the header of a cgi request
+  * @param     = +$Body/string : body of a cgi request
+  * @param     = -$Assoc/list of ',/2' : association list of key-value pairs
+  * This predicate decodes the body of a CGI request, and makes
+  * a list of pairs (key, value).
+%*/
+
+decode_form_header <- [pred].
+decode_form_header($Body, $Headers, $RestBody) :-
+    formattostr("^([^\r\n]*)\r\n(.*)$", [], $Pattern),
+    regex_match($Pattern, $Body, [_, $Line, $Body1]),
+%printAVM(["line", $Line]),
+%printAVM($Body1),
+    ($Line = "" ->
+     $Headers = [],
+     $RestBody = $Body1 ;
+     regex_match("^([^ ]+) +(.+)$", $Line, [_, $Key, $Value]),
+     $Headers = [($Key, $Value)|$NextHeaders],
+     decode_form_header($Body1, $NextHeaders, $RestBody)).
+
+read_form_data <- [pred].
+read_form_data($Body, $Boundary, $Data, $RestBody) :-
+    formattostr("^(([^\r]|\r[^\n])*)\r\n(.*)$", [], $Pattern1),
+    regex_match($Pattern1, $Body, [_, $Data1, _, $Body1]),
+%printAVM($Pattern1),
+    formattostr("^~s(.*)$", [$Boundary], $Pattern2),
+    (regex_match($Pattern2, $Body1, [_, $RestBody]) ->
+     $Data = $Data1 ;
+     read_form_data($Body1, $Boundary, $Data2, $RestBody),
+     formattostr("\r\n", [], $Delim),
+     concatenate_string([$Data1, $Delim, $Data2], $Data)).
+
+decode_form_data <- [pred].
+decode_form_data($Body, $Boundary, $Assoc) :-
+    formattostr("^\r\n(.*)$", [], $Pattern),
+    regex_match($Pattern, $Body, [_, $Body1]),
+    !,
+%printAVM(["start decode", $Body1]),
+    decode_form_header($Body1, $Headers, $Body2),
+%printAVM(["header", $Body2]),
+%printAVM($Headers),
+    read_form_data($Body2, $Boundary, $Data, $RestBody),
+%printAVM(["Data", $RestBody]),
+%printAVM($Data),
+    (assoc("Content-Disposition:", $Headers, $Disposition),
+     regex_match("^form-data; name=""([^""]*)""", $Disposition, [_, $Name]) ->
+     $Assoc = [($Name, $Data)|$NextAssoc] ;
+     $Assoc = $NextAssoc),
+    decode_form_data($RestBody, $Boundary, $NextAssoc).
+decode_form_data($Body, _, []) :-
+    regex_match("^--", $Body).
+
+dispatch_content_type <- [pred].
+dispatch_content_type($ContentType, $Body, $Assoc) :-
+    regex_match("^multipart/form-data; boundary=(.+)$", $ContentType, [_, $Boundary]),
+    !,
+    strcat("--", $Boundary, $Boundary1),
+    formattostr("^~s(.*)$", [$Boundary1], $Pattern),
+    regex_match($Pattern, $Body, [_, $MainBody]),
+    decode_form_data($MainBody, $Boundary1, $Assoc).
+dispatch_content_type("application/x-www-form-urlencoded", $Body, $Assoc) :-
+    decode_query_string($Body, $Assoc).
+
+decode_cgi_content($Headers, $Body, $Assoc) :-
+    (assoc("Content-Type:", $Headers, $ContentType) ->
+     dispatch_content_type($ContentType, $Body, $Assoc) ;
+     $Assoc = []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%/**
+  * @predicate = decode_cgi(+$QueryString, +$Headers, +$Body, -$Assoc)
+  * @param     = +$QueryString/string : query string
+  * @param     = +$Headers/list of ',/2' : association list of the header of a cgi request
+  * @param     = +$Body/string : body of a cgi request
+  * @param     = -$Assoc/list of ',/2' : association list of key-value pairs
+  * This predicate decodes the query string and the body of 
+  * a CGI request.
+%*/
+
+decode_cgi($QueryString, $Headers, $Body, $Assoc) :-
+    decode_query_string($QueryString, $Assoc1),
+    decode_cgi_content($Headers, $Body, $Assoc2),
+    append($Assoc1, $Assoc2, $Assoc).
+

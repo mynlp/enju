@@ -1,0 +1,169 @@
+% -----------------------------------------------------------
+%  btest2.lil : before making builtin test code...
+%  Change log:
+%  1998.4.14 Created. / mino
+% -----------------------------------------------------------
+%--------------------------------------------------------------------
+:- module("test3").
+:- ensure_loaded("testmain").
+
+name <- bot.
+person <- bot + NAME\name.
+child <- person + MOTHER\person.
+%--------------------------------------------------------------------
+lilith <- name.
+yui <- name.
+kyouko <- name.
+rei <- name.
+asuka <- name.
+shinji <- name.
+kaoru <- name.
+%--------------------------------------------------------------------
+triangle <- bot.
+isosceles <- triangle.
+rightangled <- triangle.
+i_r_triangle <- isosceles, rightangled.
+square <- bot.
+%--------------------------------------------------------------------
+a <- bot.
+b <- a.
+p <- 'pred/2'.
+%--------------------------------------------------------------------
+succeeded <- bot.
+failed <- bot.
+test_ <- bot.
+case <- bot.
+completed <- bot.
+%--------------------------------------------------------------------
+setcharacters <- pred.
+test <- pred.
+t <- pred.
+
+
+%--------------------------------------------------------------------
+% strtolist(+STRING, -LIST) 
+% - string -> char code list
+test_item(strtolist,1,4).
+tt(strtolist,0) :- strtolist("Nice!",X), X=[78,105,99,101,33].
+tt(strtolist,1) :- strtolist("", X), X = [].
+ft(strtolist,0) :- strtolist(child,X), printAVM(X).
+ft(strtolist,1) :- strtolist(1,X), printAVM(X).
+ft(strtolist,2) :- strtolist("Ok!",child).
+ft(strtolist,3) :- strtolist("Ok!",100).
+
+%--------------------------------------------------------------------
+% listtostr(+LIST, -STRING) 
+% - char code list -> string
+test_item(listtostr,2,4).
+tt(listtostr,0) :- listtostr([78,105,99,101,33],X), X="Nice!".
+tt(listtostr,1) :- listtostr([],X), X="".
+ft(listtostr,0) :- listtostr(child,X), printAVM(X).
+ft(listtostr,1) :- listtostr(1,X), printAVM(X).
+ft(listtostr,2) :- listtostr(X,child).
+ft(listtostr,3) :- listtostr(list,100).
+
+%--------------------------------------------------------------------
+% strtotype(+STRING, -TYPE) 
+% - string -> type
+test_item(strtotype,2,5).
+tt(strtotype,0) :- strtotype("cons",X), equiv(X, cons).
+%tt(strtotype,1) :- strtotype_with_module("test3", "person", person).
+tt(strtotype,1) :- strtotype("test3", "person", person).
+ft(strtotype,0) :- strtotype(child,X).
+ft(strtotype,1) :- strtotype(1,X).
+ft(strtotype,2) :- strtotype("person",integer).
+ft(strtotype,3) :- strtotype("person",100).
+ft(strtotype,4) :- strtotype("Nice!",X).
+
+%--------------------------------------------------------------------
+% typetostr(+STRING, -LIST) 
+% - string -> type
+test_item(typetostr,4,2).
+tt(typetostr,0) :- typetostr(child,X), equiv(X, "child"). 
+tt(typetostr,1) :- typetostr(person,"person").
+tt(typetostr,2) :- typetostr("child",X), equiv(X, "string").
+tt(typetostr,3) :- typetostr(1,X), equiv(X, "integer").
+ft(typetostr,0) :- typetostr(child,"person").
+ft(typetostr,1) :- typetostr(person,100).
+
+%%--------------------------------------------------------------------
+%% strtoint(+STRING, -INT) 
+%% - string -> int
+test_item(strtoint,2,5).
+tt(strtoint,0) :- strtoint("123",X), equiv(X, 123).
+tt(strtoint,1) :- strtoint("-2345", X), equiv(X, -2345).
+ft(strtoint,0) :- strtoint("123",124).
+ft(strtoint,1) :- strtoint(child,X).
+ft(strtoint,2) :- strtoint(123,X).
+ft(strtoint,3) :- strtoint("123",child).
+ft(strtoint,4) :- strtoint("123","123").
+
+%%--------------------------------------------------------------------
+%% inttostr(+STRING, -LIST) 
+%% - int -> string
+test_item(inttostr,2,5).
+tt(inttostr,0) :- inttostr(123,X), equiv(X, "123").
+tt(inttostr,1) :- inttostr(-34567,X), equiv(X, "-34567").
+ft(inttostr,0) :- inttostr(123,"Out").
+ft(inttostr,1) :- inttostr("123",X).
+ft(inttostr,2) :- inttostr(child,X).
+ft(inttostr,3) :- inttostr(123,child).
+ft(inttostr,4) :- inttostr(123,123).
+
+%%--------------------------------------------------------------------
+%% printtostr(+X, -STRING) 
+%% - print -> string
+%/*
+test_item(printtostr,4,3).
+tt(printtostr,0) :- printtostr(123,X), equiv(X, "123").
+tt(printtostr,1) :- printtostr([1,2,3],X), printAVM(X).
+tt(printtostr,2) :- printtostr(person & NAME\yui,X), printAVM(X).
+tt(printtostr,3) :- printtostr("123",X), printAVM(X).
+ft(printtostr,0) :- printtostr(123,child).
+ft(printtostr,1) :- printtostr(123,123).
+ft(printtostr,2) :- printtostr(X,123).
+%*/
+
+%--------------------------------------------------------------------
+% is_string(+X) 
+% - is X string?
+test_item(is_string,2,5).
+tt(is_string,0) :- is_string("Hey!").
+tt(is_string,1) :- equal(X,""), is_string(X).
+ft(is_string,0) :- is_string(string).
+ft(is_string,1) :- is_string(integer).
+ft(is_string,2) :- is_string(123).
+ft(is_string,3) :- is_string(child).
+ft(is_string,4) :- is_string(child & NAME\yui).
+
+%--------------------------------------------------------------------
+% is_integer(+TYPE)
+% - find if TYPE is integer.
+test_item(is_integer,3,4).
+tt(is_integer,0) :- is_integer(1).
+tt(is_integer,1) :- X = -121, is_integer(X).
+tt(is_integer,2) :- X = Y, Y = 123, is_integer(X).
+ft(is_integer,0) :- is_integer([1]).
+ft(is_integer,1) :- is_integer(nil).
+ft(is_integer,2) :- is_integer("hahaha").
+ft(is_integer,3) :- is_integer(integer).
+
+%--------------------------------------------------------------------
+% strcat(+X, +Y, -Z) 
+% - concatenate two string X and Y int oZ?
+test_item(strcat,4,9).
+tt(strcat,0) :- strcat("hogehogehoge", "mogemogemoge", X), equiv(X, "hogehogehogemogemogemoge").
+tt(strcat,1) :- strcat("", "a", "a").
+tt(strcat,2) :- equal(Z, "spec"), strcat(Z, "", X), equiv(X, "spec").
+tt(strcat,3) :- X = string, strcat("", "", X), equiv(X, "").
+ft(strcat,0) :- strcat(string, "hey", _).
+ft(strcat,1) :- strcat("", string, _).
+ft(strcat,2) :- strcat(12, "hey", _).
+ft(strcat,3) :- strcat("hey", 12, _).
+ft(strcat,4) :- strcat("hogehoge", "", "hogehogep").
+ft(strcat,5) :- strcat("abc", "def", 23).
+ft(strcat,6) :- strcat([12], "A", _).
+ft(strcat,7) :- strcat("A", [23], _).
+ft(strcat,8) :- strcat("A","B",["AB"]).
+
+ 

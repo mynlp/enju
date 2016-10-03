@@ -1,0 +1,207 @@
+:- module("test4").
+:- ensure_loaded("testmain").
+
+complicated_unify <- bot.
+complex_constraints <- bot.
+complex_constraints2 <- bot.
+
+%:- module_implementation.
+
+a <- [bot] + [F\].
+b <- [a]   ./ constr\ F\ [1,_,_,_].
+c <- [b]   ./ constr\ F\ [_,2,_,_].
+d <- [b]   ./ constr\ F\ [_,_,3,_].
+e <- [b]   ./ constr\ F\ [_,4,_,_].
+f <- [c]   ./ constr\ F\ [_,_,_,5].
+g <- [c,d] ./ constr\ F\ [_,_,_,6].
+h <- [d]   ./ constr\ F\ [_,_,_,7].
+i <- [d,e] .
+j <- [a].
+k <- [d,j] ./ constr\ F\ [_,_,_,9].
+
+xa <- [bot] + [G\ a].
+xb <- [xa] + [G\ b].
+xc <- [xb] + [G\ c].
+xd <- [xb] + [G\ d].
+xe <- [xb] + [G\ e].
+xf <- [xc] + [G\ f].
+xg <- [xc, xd].
+xh <- [xd] + [G\ h].
+xi <- [xd, xe].
+xj <- [xa] + [G\ j].
+xk <- [xd, xj].
+
+
+%--------------------------------------------------------------------
+
+test_item(complicated_unify,5, 2).
+
+tt(complicated_unify, 0) :- [3, X] = [Y, 4], equiv(X, 4), equiv(Y, 3).
+tt(complicated_unify, 1) :- [A & [1,B], B] = [C, D & [C,4]], identical(A, C), identical(B, D), equivalent(C, Z &[1,[Z ,4]]).
+tt(complicated_unify, 2) :- A = A & [1, 2], equiv(A, [1,2]).
+tt(complicated_unify, 3) :- A & [Y, 3 | B] = [1, X | A ], identical(A, B), equiv(A, Z & [1,3|Z]).
+tt(complicated_unify, 4) :- X = [A & [1,2], B & [2,3] | C & [ B, A | C ]], AA = [1,2], BB = [2,3], CC = [BB, AA | DD], CC = DD, XX = [AA, BB | CC], equiv(X, XX).
+
+ft(complicated_unify, 0) :- [2, 3, 4] = [2, 3].
+ft(complicated_unify, 1) :- [2, A, 4] = [A, 3, 4].
+
+%--------------------------------------------------------------------
+
+
+test_item(complex_constraints, 82, 25).
+
+tt(complex_constraints, 0) :- X = g & F\ Y, equiv(Y, [1,2,3,6]).
+tt(complex_constraints, 1) :- X = xg & G\ F\ Y, equiv(Y, [1,2,3,6]).
+
+tt(complex_constraints, 2) :- equal(X, a & F\ Y), X = d, equiv(Y, [1,_,3,_]).
+tt(complex_constraints, 3) :- equal(X, b & F\ Y), X = d, equiv(Y, [1,_,3,_]).
+tt(complex_constraints, 4) :- equal(X, c & F\ Y), X = d, equiv(Y, [1,2,3,6]).
+tt(complex_constraints, 5) :- equal(X, d & F\ Y), X = d, equiv(Y, [1,_,3,_]).
+tt(complex_constraints, 6) :- equal(X, e & F\ Y), X = d, equiv(Y, [1,4,3,_]).
+tt(complex_constraints, 7) :- equal(X, g & F\ Y), X = d, equiv(Y, [1,2,3,6]).
+tt(complex_constraints, 8) :- equal(X, h & F\ Y), X = d, equiv(Y, [1,_,3,7]).
+tt(complex_constraints, 9) :- equal(X, i & F\ Y), X = d, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,10) :- equal(X, a & F\ Y), X = i, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,11) :- equal(X, d & F\ Y), X = j, equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,12) :- equal(X, a & F\ Y), Z = d, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,13) :- equal(X, b & F\ Y), Z = d, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,14) :- equal(X, c & F\ Y), Z = d, X = Z, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,15) :- equal(X, d & F\ Y), Z = d, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,16) :- equal(X, e & F\ Y), Z = d, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,17) :- equal(X, g & F\ Y), Z = d, X = Z, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,18) :- equal(X, h & F\ Y), Z = d, X = Z, equiv(Y, [1,_,3,7]).
+tt(complex_constraints,19) :- equal(X, i & F\ Y), Z = d, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,20) :- equal(X, a & F\ Y), Z = i, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,21) :- equal(X, d & F\ Y), Z = j, X = Z, equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,22) :- equal(X, xa & G\ F\ Y), X = xd, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,23) :- equal(X, xb & G\ F\ Y), X = xd, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,24) :- equal(X, xc & G\ F\ Y), X = xd, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,25) :- equal(X, xd & G\ F\ Y), X = xd, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,26) :- equal(X, xe & G\ F\ Y), X = xd, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,27) :- equal(X, xg & G\ F\ Y), X = xd, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,28) :- equal(X, xh & G\ F\ Y), X = xd, equiv(Y, [1,_,3,7]).
+tt(complex_constraints,29) :- equal(X, xi & G\ F\ Y), X = xd, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,30) :- equal(X, xa & G\ F\ Y), X = xi, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,31) :- equal(X, xd & G\ F\ Y), X = xj, equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,32) :- equal(X, xa & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,33) :- equal(X, xb & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,34) :- equal(X, xc & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,35) :- equal(X, xd & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,_,3,_]).
+tt(complex_constraints,36) :- equal(X, xe & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,37) :- equal(X, xg & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,2,3,6]).
+tt(complex_constraints,38) :- equal(X, xh & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,_,3,7]).
+tt(complex_constraints,39) :- equal(X, xi & G\ F\ Y), Z = xd, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,40) :- equal(X, xa & G\ F\ Y), Z = xi, X = Z, equiv(Y, [1,4,3,_]).
+tt(complex_constraints,41) :- equal(X, xd & G\ F\ Y), Z = xj, X = Z, equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,42) :- equal(X, a & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,43) :- equal(X, b & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,44) :- equal(X, c & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,2,3,6]).
+tt(complex_constraints,45) :- equal(X, d & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,46) :- equal(X, e & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,47) :- equal(X, g & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,2,3,6]).
+tt(complex_constraints,48) :- equal(X, h & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,_,3,7]).
+tt(complex_constraints,49) :- equal(X, i & F\ Y), X = d & F\ Z, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,50) :- equal(X, a & F\ Y), X = i & F\ Z, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,51) :- equal(X, d & F\ Y), X = j & F\ Z, identical(Y, Z), equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,52) :- equal(X, a & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,53) :- equal(X, b & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,54) :- equal(X, c & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,2,3,6]).
+tt(complex_constraints,55) :- equal(X, d & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,_,3,_]).
+tt(complex_constraints,56) :- equal(X, e & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,57) :- equal(X, g & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,2,3,6]).
+tt(complex_constraints,58) :- equal(X, h & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,_,3,7]).
+tt(complex_constraints,59) :- equal(X, i & F\ Y), V = d & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,60) :- equal(X, a & F\ Y), V = i & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,4,3,_]).
+tt(complex_constraints,61) :- equal(X, d & F\ Y), V = j & F\ Z, V = X, identical(Y, Z), equiv(Y, [1,_,3,9]).
+
+tt(complex_constraints,62) :- equal(X, a), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,63) :- equal(X, b), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,64) :- equal(X, c), X = d & F\ Z, equiv(Z, [1,2,3,6]).
+tt(complex_constraints,65) :- equal(X, d), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,66) :- equal(X, e), X = d & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,67) :- equal(X, g), X = d & F\ Z, equiv(Z, [1,2,3,6]).
+tt(complex_constraints,68) :- equal(X, h), X = d & F\ Z, equiv(Z, [1,_,3,7]).
+tt(complex_constraints,69) :- equal(X, i), X = d & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,70) :- equal(X, a), X = i & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,71) :- equal(X, d), X = j & F\ Z, equiv(Z, [1,_,3,9]).
+
+tt(complex_constraints,72) :- equal(Z, list), equal(X, a), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,73) :- equal(Z, list), equal(X, b), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,74) :- equal(Z, list), equal(X, c), X = d & F\ Z, equiv(Z, [1,2,3,6]).
+tt(complex_constraints,75) :- equal(Z, list), equal(X, d), X = d & F\ Z, equiv(Z, [1,_,3,_]).
+tt(complex_constraints,76) :- equal(Z, list), equal(X, e), X = d & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,77) :- equal(Z, list), equal(X, g), X = d & F\ Z, equiv(Z, [1,2,3,6]).
+tt(complex_constraints,78) :- equal(Z, list), equal(X, h), X = d & F\ Z, equiv(Z, [1,_,3,7]).
+tt(complex_constraints,79) :- equal(Z, list), equal(X, i), X = d & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,80) :- equal(Z, list), equal(X, a), X = i & F\ Z, equiv(Z, [1,4,3,_]).
+tt(complex_constraints,81) :- equal(Z, list), equal(X, d), X = j & F\ Z, equiv(Z, [1,_,3,9]).
+
+
+
+ft(complex_constraints, 0) :- equal(X, f & F\ list), X = d.
+ft(complex_constraints, 1) :- equal(X, f & F\ list), Z = d, X = Z.
+ft(complex_constraints, 2) :- equal(X, xf & G\ F\ list), X = xd.
+ft(complex_constraints, 3) :- equal(X, xf & G\ F\ list), Z = xd, X = Z.
+ft(complex_constraints, 4) :- equal(X, f & F\ list), X = d & F\ list.
+ft(complex_constraints, 5) :- equal(X, f & F\ list), V = d & F\ list, V = X.
+ft(complex_constraints, 6) :- equal(X, f), X = d & F\ list.
+
+ft(complex_constraints, 7) :- equal(X, c & F\ [_,_,_,0]), X = d.
+ft(complex_constraints, 8) :- equal(X, c & F\ [_,_,_,0]), Z = d, X = Z.
+ft(complex_constraints, 9) :- equal(X, xc & G\ F\ [_,_,_,0]), X = xd.
+ft(complex_constraints,10) :- equal(X, xc & G\ F\ [_,_,_,0]), Z = xd, X = Z.
+ft(complex_constraints,11) :- equal(X, c & F\ [_,_,_,0]), X = d & F\ list.
+ft(complex_constraints,12) :- equal(X, c & F\ [_,_,_,0]), V = d & F\ list, V = X.
+ft(complex_constraints,13) :- equal(X, c), X = d & F\ [_,_,_,0].
+ft(complex_constraints,14) :- equal(Y, [_,_,_,0]), equal(X, c), X = d & F\ Y.
+
+ft(complex_constraints,15) :- equal(X, d & F\ [_,_,_,0]), X = j.
+ft(complex_constraints,16) :- equal(X, d & F\ [_,_,_,0]), Z = j, X = Z.
+ft(complex_constraints,17) :- equal(X, xd & G\ F\ [_,_,_,0]), X = xj.
+ft(complex_constraints,18) :- equal(X, xd & G\ F\ [_,_,_,0]), Z = xj, X = Z.
+ft(complex_constraints,19) :- equal(X, d & F\ [_,_,_,0]), X = j & F\ list.
+ft(complex_constraints,20) :- equal(X, d & F\ [_,_,_,0]), V = j & F\ list, V = X.
+ft(complex_constraints,21) :- equal(X, d), X = j & F\ [_,_,_,0].
+ft(complex_constraints,22) :- equal(Y, [_,_,_,0]), equal(X, d), X = j & F\ Y.
+
+ft(complex_constraints,23) :- equal(X, f & F\ [_,_,_,0]).
+ft(complex_constraints,24) :- X = f & F\ [_,_,_,0].
+
+
+
+%--------------------------------------------------------------------
+
+complex_constraint2 <- bot.
+
+test_item(complex_constraints2, 3, 2).
+
+bool <- [bot].
+plus <- [bool].
+minus <- [bool].
+
+z01 <- [bot] + [X\, Y\].
+
+z0 <- [z01] ./ constr\ (X\ Z & Y\ Z).
+
+nonlocal <- [bot] + [SLASH\ z01].
+
+synsem_min <- [bot] + [NONLOCAL\ nonlocal, OPT\ bool].
+unexpressed <- [synsem_min] ./ constr\ NONLOCAL\ SLASH\ z0.
+
+olist <- [list].
+ocons <- [olist, cons] ./ constr\(hd\('unexpressed' & 'OPT'\'plus') & tl\ olist).
+onil <- [olist,nil].
+
+
+tt(complex_constraints2,0) :- X = ocons, X = hd\ NONLOCAL\ SLASH\ (X\ A & Y\ B), identical(A, B).
+tt(complex_constraints2,1) :- X = ocons, X = hd\ NONLOCAL\ SLASH\ X\ A,X = hd\ NONLOCAL\ SLASH\ Y\ B, identical(A, B).
+tt(complex_constraints2,2) :- equal(X, ocons), X = hd\ Y, equiv(Y, unexpressed & OPT\ plus). 
+ft(complex_constraints2,0) :- X = ocons, X = hd\ NONLOCAL\ SLASH\ (X\ 234 & Y\ 345).
+ft(complex_constraints2,1) :- X = ocons, X = hd\ NONLOCAL\ SLASH\ X\ 234,X = hd\ NONLOCAL\ SLASH\ Y\ 345.
+
+
