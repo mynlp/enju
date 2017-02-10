@@ -1,76 +1,16 @@
-Enju License Information
-
 Copyright (c) 2005-2010, Tsujii Laboratory, The University of Tokyo.
-All rights reserved.
 
-NON-EXCLUSIVE ACADEMIC USE LICENSE FOR ENJU
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-1. Definitions.
-1.1. "Binary Code" means the machine-readable, compiled code for the Software that is ready to run on a computer.
-1.2. "Commercial Use" means sale, lease, license, distribution or otherwise making the Software available to a third party.
-1.3. "Derivative Work" means any derivative work including any modification, enhancement, upgrade, or improvement to the Software, or using any Enju modules or itineraries, or accessing other components of Enju, in Your own software.
-1.4. "License" means this document.
-1.5. "Software" means the Enju software in Binary Code form, including Enju modules and Enju itineraries.
-1.6. "Source Code" means a set of files that contain the human-readable, program commands for the Software that are compiled to form the Binary Code.
-1.7. "Research Use" means use of the Software for Your non-profit research, development, educational or personal and individual use, and expressly excludes Commercial Use.
-1.8. "You" (or "Your") means an individual or legal entity exercising rights under, and complying with all of the terms of, this License. For legal entities, "You" includes any entity that controls, is controlled by, or is under common control with You. For purposes of this License, "control" means ownership, directly or indirectly, of more than fifty percent (50%) of the equity capital of the legal entity.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-2. License Grant and Restrictions.
-2.1. Subject to Your compliance with the terms and conditions of this License, Tsujii Laboratory, the University of Tokyo, hereby grants You a non-exclusive, non-transferable, restricted license to:
-2.1.1. Use the Software for Your Research Use; and
-2.1.2. Create Derivative Works of the Software, by adding modules and
-itineraries to Enju, by embedding Enju modules or itineraries in Your own software, or by accessing components of Enju in Your own software, for Your Research Use.
-2.2. You shall not decompile, disassemble, decrypt, extract or otherwise
-reverse-engineer the Software or otherwise attempt to derive the Source
-Code of the Software.
-2.3. You shall not distribute and not make Commercial Use of the Software or Derivative Works of the Software without having executed an appropriate license with Tsujii Laboratory, the University of Tokyo. Should You wish to make Commercial Use of the Software or Derivative Works of the Software, You shall contact Tsujii Laboratory, the University of Tokyo at www-tsujii@is.s.u-tokyo.ac.jp to determine whether a license for Commercial Use of the Software or Derivative Works of the Software may be available.
-2.4. The Software is owned by Tsujii Laboratory, the University of Tokyo, and Tsujii Laboratory, the University of Tokyo retains all right, title, and interest in and to the Software.
-2.5. Nothing in this License shall be construed as conferring any license under any of Tsujii Laboratory, the University of Tokyo's or any third party's intellectual property rights, whether by estoppel, implication, or otherwise.
-2.6. You shall clearly mark and rename all Derivative Works of the Software to notify users that such works are a modified version of the Software.
-2.7. You shall reproduce the following notice on all Derivative Works:
-2.7.1. "This software uses or is derived from Enju software, Enju modules, and/or Enju itineraries, developed at the Tsujii Laboratory, the University of Tokyo. (c) Copyright 2007 the University of Tokyo."
-2.8. For any reports or published results obtained using the Software or Derivative Works of the Software, You are encouraged to acknowledge use of the Software by the following citation:
-2.8.1. Tsujii Laboratory.  2007.  Enju - A practical HPSG parser. http://www-tsujii.is.s.u-tokyo.ac.jp/enju/index.html
-2.8.2. You are encouraged to supply one copy of each such report or publication to Tsujii Laboratory, the University of Tokyo at www-tsujii@is.s.u-tokyo.ac.jp.
-
-3. Confidential Information.
-3.1. You acknowledge that the Software is proprietary to Tsujii Laboratory, the University of Tokyo. You agree to protect the Software from unauthorized disclosure, use, or release and to treat the Software with at least the same level of care as You use to protect Your own proprietary computer programs and/or confidential information, but in no event less than a reasonable standard of care.
-3.2. If You become aware of any unauthorized licensing, copying or use of the Software, You shall promptly notify Tsujii Laboratory, the University of Tokyo in writing at www-tsujii@is.s.u-tokyo.ac.jp
-3.3. You agree to use the Software only in the manner and for the specific uses authorized in this License.
-
-4. Feedback/Contributions.
-4.1. Because the Software is being distributed pursuant to the License for Research Use, Tsujii Laboratory, the University of Tokyo encourages licensees of the Software to provide feedback on the design of the Software. Tsujii Laboratory, the University of Tokyo also encourages licensees of the Software to provide information regarding their experience with integrating the Software into their research. Please submit such feedback to yusuke@is.s.u-tokyo.ac.jp.
-4.2. Tsujii Laboratory, the University of Tokyo encourages contributions from users of the Software that might be used or incorporated by Tsujii Laboratory, the University of Tokyo, in its sole discretion, into future versions or revisions of the Software. Licensees who contribute code agree that such code may be distributed by Tsujii Laboratory, the University of Tokyo under the terms of this License and may be required to sign an agreement with Tsujii Laboratory, the University of Tokyo before Tsujii Laboratory, the University of Tokyo can accept the code. Please contact www-tsujii@is.s.u-tokyo.ac.jp for a copy of such agreement.
-
-5. Limitation of Warranties.
-5.1. EXCEPT AS EXPRESSLY SET FORTH IN THIS LICENSE, TO THE FULLEST EXTENT ALLOWED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS," AND Tsujii Laboratory, the University of Tokyo DISCLAIMS ALL EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS AND WARRANTIES, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
-5.2. THIS LIMITATION OF WARRANTY IS AN ESSENTIAL PART OF THIS LICENSE. NO USE OF THE SOFTWARE IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
-5.3. ANY MATERIAL DOWNLOADED IS AT YOUR OWN DISCRETION AND RISK, AND YOU ARE SOLELY RESPONSIBLE FOR ANY DAMAGE TO YOUR COMPUTER SYSTEM OR LOSS OF DATA THAT RESULTS FROM THE DOWNLOAD OF SUCH MATERIAL, INCLUDING ANY DAMAGES RESULTING FROM COMPUTER VIRUSES.
-
-6. Indemnification.
-You shall indemnify Tsujii Laboratory, the University of Tokyo (including its fellows, officers, employees, students, and agents) against any and all claims, losses, damages, and/or liability of whatsoever nature, as well as costs and expenses (including legal expenses and reasonable attorneys' fees) arising out of or related to Your use, or inability to use, the Software or Derivative Works of the Software, regardless of theory of liability, whether for breach or in tort (including negligence).
-
-7. Limitation of Liability.
-7.1. You assume the entire risk as to the quality, results, performance, and/or non-performance of the Software and Derivative Works of the Software. You shall have the sole responsibility to adequately protect and backup Your data or equipment used in connection with the Software and Derivative Works of the Software. Should the Software or Derivative Works of the Software prove defective in any manner, You assume the entire cost of any necessary, servicing, repair or correction.
-7.2. In no event shall Tsujii Laboratory, the University of Tokyo (including its fellows, officers, employees, students, and agents) be responsible or liable for any direct, indirect, special, incidental, punitive, consequential or other damages whatsoever (including lost profits, business, revenue, use, data, or other economic advantage) in connection with, or arising out of, or related to this License, regardless of the theory of liability, whether for breach or in tort (including negligence), even if Tsujii Laboratory, the University of Tokyo may have been previously advised of the possibility of such damage.
-7.3. Liability for damages shall be limited and excluded as set forth in this Section 7, even if any remedy provided for in this License fails of its essential purpose.
-
-8. Termination.
-8.1. This License is effective until terminated, as provided herein, or until all intellectual property rights in the Software expire.
-8.2. You may terminate this License at any time by destroying all copies of the Software and Derivative Works of the Software.
-8.3. This License, and the rights granted hereunder, will terminate automatically, and without any further notice from or action by Tsujii Laboratory, the University of Tokyo, if You fail to comply with any obligation of this License.
-8.4. Upon termination, You must immediately cease use of and destroy all copies of the Software and Derivative Works of the Software and verify such destruction in writing.
-8.5. The provisions set forth in Sections 3, 5, 6, 7, 9, and 10 shall survive termination or expiration of this License.
-
-9. Export Controls.
-The Software delivered under this License and any Derivative Works of the Software may be subject to Japanese export control laws and may be subject to export or import regulations in other countries. You agree to comply strictly with all such laws and regulations and acknowledge that You have the responsibility, at Your own expense, to obtain such licenses to export, re-export, or import as may be required.
-
-10. Miscellaneous.
-10.1. Governing Law. This License shall be governed by the laws of Japan, without regard to any conflict of laws provisions.
-10.2. Severability. If any provision of this License is held to be invalid or unenforceable by a court of competent jurisdiction, such invalidity or unenforceability shall not in any way affect the validity or enforceability of the remaining provisions.
-10.3. Assignment. You may not assign or otherwise transfer any of Your rights or obligations under this License, without the prior written consent of Tsujii Laboratory, the University of Tokyo.
-10.4. Entire Agreement. This License represents the parties' entire agreement relating to the Software. Except as otherwise provided herein, no modification of this Agreement is binding unless in writing and signed by an authorized representative of each party.
-10.5. Waiver. The failure of either party to enforce any provision of this License shall not constitute a wavier of that right or future enforcement of that or any other provision.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 
 Portions of this software are based in part on the LiLFeS software.
