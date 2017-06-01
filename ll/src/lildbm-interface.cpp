@@ -64,7 +64,7 @@ using std::vector;
         
         module* m_ldbm;
         type *ldbm_info, *ldbm_info_env, *ldbm_info_db;
-        type *ldbm_iterator, *ldbm_pbi_iterator, *ldbm_dti_iterator;
+        type *ldbm_iterator;
         type *ldbm_handle, *ldbm_handle_env, *ldbm_handle_file, *ldbm_handle_index;
         feature *ldbm_db_f, *ldbm_entry_id_f, *ldbm_handle_id_f;
 
@@ -1047,8 +1047,6 @@ using std::vector;
         using lildbm::ldbm_info_db;
 
         using lildbm::ldbm_iterator;
-        using lildbm::ldbm_pbi_iterator;
-        using lildbm::ldbm_dti_iterator;
 
         using lildbm::ldbm_handle;
         using lildbm::ldbm_handle_env;

@@ -12,7 +12,7 @@
     #define HAS_TR1_UNORDERED_MAP
   #endif
 #elif defined(__GNUC__)
-  #if __cplusplus >= 201103L && defined(__GLIBCXX__) && __GLIBCXX__ > 20090421
+  #if __cplusplus >= 201103L
     #define HAS_STD_UNORDERED_MAP
   #elif GCC_VERSION >= 40201
     #define HAS_TR1_UNORDERED_MAP

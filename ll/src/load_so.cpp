@@ -5,7 +5,7 @@
  * @desc        = the implementation of load_so/1
  * @jdesc        = load_so/1 述語の実装
  * the implementation of load_so/1
- * @japanese
+ * @japanese =
  * load_so/1 述語の実装
  * @end_japanese
 */
