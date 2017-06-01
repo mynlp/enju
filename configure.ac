@@ -27,6 +27,10 @@ AC_DEFINE_UNQUOTED(MAYZ_COPYRIGHT, "$MAYZ_COPYRIGHT", [Copyright of MAYZ])
 
 AC_CANONICAL_HOST
 
+dnl comment out if you want to rebuild configure, Makefile.in etc.
+AM_MAINTAINER_MODE
+
+
 dnl ######################################################################
 dnl   Checks for programs.
 AC_PROG_CC
