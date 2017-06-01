@@ -1,10 +1,10 @@
 dnl ######################################################################
 dnl
-dnl   $Id: configure.in,v 1.56 2010-06-10 08:38:10 hkhana Exp $
+dnl   $Id: configure.ac,v 1.56 2010-06-10 08:38:10 hkhana Exp $
 dnl   Copyright (c) 2000, MIYAO Yusuke
 dnl   You may distribute under the terms of the Artistic License.
 dnl
-dnl   Name: configure.in
+dnl   Name: configure.ac
 dnl   Author: MIYAO Yusuke (yusuke@is.s.u-tokyo.ac.jp)
 dnl   Time-stamp: <2000-05-10 13:15:15 yusuke>
 dnl   Purpose: Script for autoconf
@@ -22,6 +22,10 @@ AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_DEFINE_UNQUOTED(LILFES_PACKAGE, "$PACKAGE", [Name of package])
 AC_DEFINE_UNQUOTED(LILFES_VERSION, "$VERSION", [Version number of package])
+
+dnl comment out if you want to rebuild configure, Makefile.in etc.
+AM_MAINTAINER_MODE
+
 
 AC_CONFIG_MACRO_DIR([m4])
 

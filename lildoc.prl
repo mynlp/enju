@@ -14,7 +14,7 @@
 ######################################################################
 
 # To Do
-# 1. Type ����Ϥ���褦�ˤ��롥
+# 1. Type を出力するようにする．
 
 use strict;
 
@@ -142,39 +142,39 @@ while ( my $arg = shift @ARGV ) {
 
 # Messages
 if ( $language eq "japanese" ) {
-  %label = ( "Illegal input" => "���ϥե�����̾���ְ�äƤ��ޤ�",
-	     "Illegal output" => "���ϥե�����̾���ְ�äƤ��ޤ�",
-	     "Many arguments" => "������¿�����ޤ�",
-	     "Cannot open" => "�ե����뤬�����ޤ���",
-	     "Unknown source language" => "�������θ��줬ʬ����ޤ���",
-	     "Unknown keyword" => "������ɤ��ְ�äƤ��ޤ�",
-	     "Module not found" => "\@module ������ɤ����Ĥ���ޤ���",
-	     "Description not found" => "lildoc �ѤΥ����Ȥ����Ĥ���ޤ���",
-	     "No class" => "module, type, predicate, interface, variable �Τɤ줫��������Ƥ�������",
-	     "Input directory" => "���ϥǥ��쥯�ȥ�",
-	     "Input file" => "���ϥե�����",
-	     "Output file" => "���ϥե�����",
-	     "Package" => "�ѥå�����",
-	     "Module" => "�⥸�塼��",
-	     "Packages" => "�ѥå�����",
-	     "Modules" => "�⥸�塼��",
-	     "Contents" => "�ܼ�",
-	     "Example" => "������",
-	     "Ensure loaded" => "�ɤ߹��ޤ��⥸�塼��",
-	     "Copyright" => "���",
-	     "Format" => "��",
-	     "Arguments" => "����",
-	     "Note" => "����",
-	     "Deprecated" => "���",
-	     "Version" => "�С������",
-	     "Since" => "�о줷���С������",
-	     "Author" => "����",
-	     "See also" => "��Ϣ����",
-	     "type" => "�����",
-	     "interface" => "���󥿥ե�����",
-	     "predicate" => "�Ҹ�",
-	     "variable" => "�ѿ�",
-	     "Mail to" => "�����ȤϤ�����",
+  %label = ( "Illegal input" => "入力ファイル名が間違っています",
+	     "Illegal output" => "出力ファイル名が間違っています",
+	     "Many arguments" => "引数が多すぎます",
+	     "Cannot open" => "ファイルが開けません",
+	     "Unknown source language" => "ソースの言語が分かりません",
+	     "Unknown keyword" => "キーワードが間違っています",
+	     "Module not found" => "\@module キーワードが見つかりません",
+	     "Description not found" => "lildoc 用のコメントが見つかりません",
+	     "No class" => "module, type, predicate, interface, variable のどれかを定義してください",
+	     "Input directory" => "入力ディレクトリ",
+	     "Input file" => "入力ファイル",
+	     "Output file" => "出力ファイル",
+	     "Package" => "パッケージ",
+	     "Module" => "モジュール",
+	     "Packages" => "パッケージ",
+	     "Modules" => "モジュール",
+	     "Contents" => "目次",
+	     "Example" => "使用例",
+	     "Ensure loaded" => "読み込まれるモジュール",
+	     "Copyright" => "著作権",
+	     "Format" => "書式",
+	     "Arguments" => "引数",
+	     "Note" => "注意",
+	     "Deprecated" => "削除",
+	     "Version" => "バージョン",
+	     "Since" => "登場したバージョン",
+	     "Author" => "著者",
+	     "See also" => "関連項目",
+	     "type" => "型定義",
+	     "interface" => "インタフェース",
+	     "predicate" => "述語",
+	     "variable" => "変数",
+	     "Mail to" => "コメントはこちら",
 	     "UNKNOWN" => "UNKNOWN"
 	   );
 } else {
@@ -297,88 +297,88 @@ if ( $#ARGV == -1 ) {
 # Help message
 if ( $help_mode ) {
 print <<END_OF_HELP;
-�Ȥ���
+使い方
   perl lildoc.prl [options] module [html]
   perl lildoc.prl [options] directory [html]
   options:
-    -h              ���Τإ�ץ�å�������ɽ�����ޤ���
-    -e              �Ѹ�Υɥ�����Ȥ���Ϥ��ޤ���
-    -j              ���ܸ�Υɥ�����Ȥ���Ϥ��ޤ���
-    -v              ɸ�२�顼���Ϥ˥�å�������ɽ�����ޤ���
-    -s              ��å�������ɽ�����ޤ���
-    -n              �ɥ�����Ȥ���Ϥ��ޤ���
-    -p              �⥸�塼��δ�ñ��������ɸ����Ϥ�ɽ�����ޤ���
-    -r              �ǥ��쥯�ȥ��Ƶ�Ū�ˤ��ɤ�ɥ�����Ȥ�
-                    �������ޤ���
-    -t              �ѥå�������̾������ꤷ�ޤ���
-    -d directory    �⥸�塼��õ���ѥ�����ꤷ�ޤ���
-    -b directory    �ɥ�����ȤΥ롼�ȥ��ɥ쥹(URL)����ꤷ�ޤ���
-    -o directory    ���ϥǥ��쥯�ȥ����ꤷ�ޤ���
-    -c file         CSS �ե��������ꤷ�ޤ���
-    -i file         ����ǥå����� html �ե��������ꤷ�ޤ���
-    -f file         ���ϥե�����Υץ�ե��å�������ꤷ�ޤ���
-    --              ����ʹߤϥ��ץ����Ȥ���ǧ������ޤ���
-LiLFeS �Υ⥸�塼��ޤ��ϥǥ��쥯�ȥ���Υ⥸�塼�����Ϥ���
-�Ҹ�ʤɤ� html �ޥ˥奢���ư�������ޤ���
-�⥸�塼��ϡ��ʲ��ν��֤Ǹ�������ޤ���
-  1. -d ���ץ����ǻ��ꤵ�줿�ǥ��쥯�ȥ�
-  2. �����ȥǥ��쥯�ȥ�
-  3. LILFES_PATH �Ķ��ѿ��ǻ��ꤵ�줿�ǥ��쥯�ȥ�
-  4. �⥸�塼��Υǥե���ȥѥ�(/usr/local/share/lilfes/)
-html ���ά�����Ȥ��ϡ�module �γ�ĥ�Ҥ� .html ���Ѥ���̾����
-���Ϥ���ޤ���
-directory ����ꤷ���Ȥ��ϡ����Υǥ��쥯�ȥ�� index.html ��
-���Ϥ���ޤ���
+    -h              このへルプメッセージを表示します．
+    -e              英語のドキュメントを出力します．
+    -j              日本語のドキュメントを出力します．
+    -v              標準エラー出力にメッセージを表示します．
+    -s              メッセージを表示しません．
+    -n              ドキュメントを出力しません．
+    -p              モジュールの簡単な説明を標準出力に表示します．
+    -r              ディレクトリを再帰的にたどりドキュメントを
+                    作成します．
+    -t              パッケージの名前を指定します．
+    -d directory    モジュール探索パスを指定します．
+    -b directory    ドキュメントのルートアドレス(URL)を指定します．
+    -o directory    出力ディレクトリを指定します．
+    -c file         CSS ファイルを指定します．
+    -i file         インデックスの html ファイルを指定します．
+    -f file         出力ファイルのプレフィックスを指定します．
+    --              これ以降はオプションとして認識されません．
+LiLFeS のモジュールまたはディレクトリ中のモジュールを解析し，
+述語などの html マニュアルを自動作成します．
+モジュールは，以下の順番で検索されます．
+  1. -d オプションで指定されたディレクトリ
+  2. カレントディレクトリ
+  3. LILFES_PATH 環境変数で指定されたディレクトリ
+  4. モジュールのデフォルトパス(/usr/local/share/lilfes/)
+html を省略したときは，module の拡張子を .html に変えた名前に
+出力されます．
+directory を指定したときは，そのディレクトリの index.html に
+出力されます．
 
-LiLFeS �ץ������ν���
-  /** ���� */ �ޤǤ����̤ʥ����ȤȤ��ƽ�������ޤ���
-  �������
+LiLFeS プログラムの書き方
+  /** から */ までが特別なコメントとして処理されます．
+  この中に
     \@keyword = value
-  �Ȥ����Ԥ�����ȡ�keyword �˱����ƥޥ˥奢�����ʸ����������ޤ���
-  ����ʳ��ιԤϤ��Τޤ�����ʸ�Ȥ��ƻȤ��ޤ���
+  という行があると，keyword に応じてマニュアル中の文が生成されます．
+  それ以外の行はそのまま説明文として使われます．
 
-ɬ�פʥ������
-  ��Ĥ� /** ... */ �֥��å�����ǡ��ʲ��Υ�����ɤΤ���
-  �ɤ줫��Ĥ������ꤷ�ʤ���Фʤ�ޤ���
-\@module      �⥸�塼���������񤯤Ȥ��˻Ȥ��ޤ���
-\@type        ����������񤯤Ȥ��˻Ȥ��ޤ���
-             (�ޤ���������Ƥ��ޤ���)
-\@interface   ���󥿥ե�����(�Ҹ�η������������Ƥ�����)��
-             ������񤯤Ȥ��˻Ȥ��ޤ���
-\@predicate   �Ҹ��������񤯤Ȥ��˻Ȥ��ޤ���
-\@variable    �ѿ���������񤯤Ȥ��˻Ȥ��ޤ���
+必要なキーワード
+  一つの /** ... */ ブロックの中で，以下のキーワードのうち
+  どれか一つだけ指定しなければなりません．
+\@module      モジュールの説明を書くときに使います．
+\@type        型の説明を書くときに使います．
+             (まだ実装されていません)
+\@interface   インタフェース(述語の型定義だけされているもの)の
+             説明を書くときに使います．
+\@predicate   述語の説明を書くときに使います．
+\@variable    変数の説明を書くときに使います．
 
-����¾�Υ������
-  �ʲ��Υ�����ɤ��Ѥ��뤳�Ȥ��Ǥ��ޤ����ͤ���Ǥ�<i>�ʤɤ�
-  html �������Ѥ��뤳�Ȥ��Ǥ��ޤ���
-\@copyright   ����˴ؤ�������񤭤ޤ���ʣ�������ǽ�Ǥ���
-             \@module �Τߤ�ͭ���Ǥ���
-\@cvs         CVS �� ID �ʤɤ�񤭤ޤ����Ȥꤢ����̵�뤵��ޤ���
-             ʣ������Ǥ��ޤ���
-\@desc        û������ʸ��񤭤ޤ����ܼ��˻Ȥ��ޤ���ʣ������
-             ��ǽ�Ǥ���
-\@param       ������������񤭤ޤ���variable/value: description
-             �Ȥ����դ��˽񤭤ޤ����б����� variable ��
-             \@interface (�ޤ��� \@predicate �ޤ��� \@variable)
-             �˽񤫤�Ƥ��ʤ���Фʤ�ޤ��󡥤������ʣ������
-             ��ǽ�Ǥ���
-\@note        �ä����դ��뤳�Ȥ�񤭤ޤ���ʣ������Ǥ��ޤ���
-\@author      ���Υ⥸�塼��(�ޤ��ϽҸ�ʤ�)�κ�Ԥ�񤭤ޤ���
-             �᡼�륢�ɥ쥹��ۡ���ڡ������ɥ쥹�ϼ�ưŪ��
-             ��󥯤��Ѵ�����ޤ���ʣ������Ǥ��ޤ���
-\@version     �С����������񤭤ޤ���
-\@since       ���Υ⥸�塼��(�ޤ��ϽҸ�ʤ�)���ǽ�˺��줿
-             �С�������񤭤ޤ���
-\@see         ¾�Υ⥸�塼��ؤΥ�󥯤���ޤ����⥸�塼��̾
-             ��񤯤ȡ���ưŪ�˥�󥯤��Ѵ�����ޤ����Ҹ�����
-             �������Ȥ��ϡ�# �Ƕ��ڤäƽҸ�̾����ꤷ�ޤ���" ��
-             �Ϥ�ȥ�󥯤Ϻ���ޤ���ʣ�����ꤹ�뤳�Ȥ�
-             �Ǥ��ޤ���
-\@deprecated  ���Υ⥸�塼��(�ޤ��ϽҸ�ʤ�)�����Ǥ˺�����줿
-             (�ޤ���¾�Υ⥸�塼����֤������餿�˾���
-             �����Ȥ�񤭤ޤ���
-\@example     LiLFeS �ץ����������񤭤ޤ���\@end_example �ޤ�
-             �����Τޤ޽��Ϥ���ޤ���
+その他のキーワード
+  以下のキーワードを用いることができます．値の中では<i>などの
+  html タグを用いることができます．
+\@copyright   著作権に関する事項を書きます．複数指定可能です．
+             \@module のみに有効です．
+\@cvs         CVS の ID などを書きます．とりあえず無視されます．
+             複数指定できます．
+\@desc        短い説明文を書きます．目次に使われます．複数指定
+             可能です．
+\@param       引数の説明を書きます．variable/value: description
+             というふうに書きます．対応する variable が
+             \@interface (または \@predicate または \@variable)
+             に書かれていなければなりません．もちろん複数指定
+             可能です．
+\@note        特に注意することを書きます．複数指定できます．
+\@author      このモジュール(または述語など)の作者を書きます．
+             メールアドレスやホームページアドレスは自動的に
+             リンクに変換されます．複数指定できます．
+\@version     バージョン情報を書きます．
+\@since       このモジュール(または述語など)が最初に作られた
+             バージョンを書きます．
+\@see         他のモジュールへのリンクを作ります．モジュール名
+             を書くと，自動的にリンクに変換されます．述語を指定
+             したいときは，# で区切って述語名を指定します．" で
+             囲むとリンクは作られません．複数指定することが
+             できます．
+\@deprecated  このモジュール(または述語など)がすでに削除された
+             (または他のモジュールに置き換えらた）場合は
+             コメントを書きます．
+\@example     LiLFeS プログラムの例を書きます．\@end_example まで
+             がそのまま出力されます．
 
 END_OF_HELP
   exit;
@@ -843,7 +843,7 @@ print OUT<<END_OF_OUTPUT;
 <html>
 
 <head>
-<meta http-equiv=\"Content-Type\" content=\"text/html; charset=euc-jp\">
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">
 <link rel=\"stylesheet\" type=\"text/css\" href=\"$url_base/$css_file\">
 <title>Package \"$package_name\" - LiLFeS Users Manual</title>
 
@@ -1014,7 +1014,7 @@ print OUT<<END_OF_OUTPUT;
 <html>
 
 <head>
-<meta http-equiv=\"Content-Type\" content=\"text/html; charset=euc-jp\">
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">
 <link rel=\"stylesheet\" type=\"text/css\" href=\"$url_base/$css_file\">
 <title>Module \"$module_name\" - LiLFeS Users Manual</title>
 </head>
