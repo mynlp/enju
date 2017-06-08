@@ -16,7 +16,7 @@ Makefile$(PACKAGE):
 	autoheader
 	automake --add-missing --foreign
 	autoconf
-	./configure
+	./configure --enable-maintainer-mode
 
 all-clean: clean
 	rm -rf Makefile stamp-h stamp-h.in config.h config.cache config.status config.log config.h.in configure Makefile.in aclocal.m4

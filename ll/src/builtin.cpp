@@ -671,13 +671,13 @@ static void init()
 	t_notuni    = t0 = new type("\\=",module::CoreModule()); t0->SetAsChildOf(t_pred[2]);						t0->Fix();
 	t_macro     = t0 = new type(":=",module::CoreModule());  t0->SetAsChildOf(t_pred[2]);						t0->Fix();
 
-	type *t_lilfesfilecons, *t_lilfesfileinfo;
+	type *t_lilfesfileinfo;
 	feature *ln, *ll, *li;
 	f_lilfesfilename = ln = new feature("lilfesfilename\\", module::BuiltinModule(), 10);
 	f_lilfesfileline = ll = new feature("lilfesfileline\\", module::BuiltinModule(), 11);
 	t_lilfesfileinfo = t0 = new type("lilfesfileinfo",module::BuiltinModule());  t0->SetAsChildOf(bot); t0->AddFeature(ln, t_stg); t0->AddFeature(ll, t_int); t0->Fix();
 	f_lilfesfileinfo = li = new feature("lilfesfileinfo\\", module::BuiltinModule(), 1);
-	t_lilfesfilecons = t0 = new type("lilfesfilecons",module::BuiltinModule());  t0->SetAsChildOf(c); t0->AddFeature(li, t_lilfesfileinfo); t0->Fix();
+	t0 = new type("lilfesfilecons",module::BuiltinModule());  t0->SetAsChildOf(c); t0->AddFeature(li, t_lilfesfileinfo); t0->Fix();
 
 	{
 		procedure *p = new procedure(module::CoreModule()->Search("=/2"), 2);

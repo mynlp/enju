@@ -653,28 +653,28 @@ set_difference_i([$ELEM|$LIST1], $LIST2, [$ELEM|$LIST3]) :-
   * @predicate = input_list(+$STRING, -$LIST)
   * @param     = +$STRING/string : a lisp list
   * @param     = -$LIST/list     : a lilfes list
-  * @jparam    = +$STRING/string : Lisp ·Á¼°¤Î¥ê¥¹¥È
-  * @jparam    = -$LIST/list     : LiLFeS ·Á¼°¤Î¥ê¥¹¥È
+  * @jparam    = +$STRING/string : Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆ
+  * @jparam    = -$LIST/list     : LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆ
   * @see       = #output_list/2
   * @desc      = convert a lisp list into a lilfes list
-  * @jdesc     = Lisp ·Á¼°¤Î¥ê¥¹¥È¤ò LiLFeS ·Á¼°¤Î¥ê¥¹¥È¤ØÊÑ´¹¤¹¤ë
+  * @jdesc     = Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆã‚’ LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆã¸å¤‰æ›ã™ã‚‹
   * Convert a string into a lilfes list
   * @japanese  =
-  * Lisp ·Á¼°¤Î¥ê¥¹¥È¤ò LiLFeS ·Á¼°¤Î¥ê¥¹¥È¤ØÊÑ´¹¤¹¤ë¡¥
+  * Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆã‚’ LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆã¸å¤‰æ›ã™ã‚‹ï¼
   * @end_japanese
 %*/
 %/**
   * @predicate = output_list(+$LIST, -$STRING)
   * @param     = +$LIST/list     : a lilfes list
   * @param     = -$STRING/string : a lisp list
-  * @jparam    = +$LIST/list     : LiLFeS ·Á¼°¤Î¥ê¥¹¥È
-  * @jparam    = -$STRING/string : Lisp ·Á¼°¤Î¥ê¥¹¥È
+  * @jparam    = +$LIST/list     : LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆ
+  * @jparam    = -$STRING/string : Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆ
   * @see       = #lisp_to_lilfes/2
   * @desc      = convert a lilfes list into a string
-  * @jdesc     = LiLFeS ·Á¼°¤Î¥ê¥¹¥È¤ò Lisp ·Á¼°¤Î¥ê¥¹¥È¤ËÊÑ´¹¤¹¤ë
+  * @jdesc     = LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆã‚’ Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆã«å¤‰æ›ã™ã‚‹
   * Convert a lilfes list into a lisp list
   * @japanese  =
-  * LiLFeS ·Á¼°¤Î¥ê¥¹¥È¤ò Lisp ·Á¼°¤Î¥ê¥¹¥È¤ËÊÑ´¹¤¹¤ë¡¥
+  * LiLFeS å½¢å¼ã®ãƒªã‚¹ãƒˆã‚’ Lisp å½¢å¼ã®ãƒªã‚¹ãƒˆã«å¤‰æ›ã™ã‚‹ï¼
   * @end_japanese
 %*/
 

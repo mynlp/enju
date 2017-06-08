@@ -20,26 +20,26 @@
 %/**
   * @predicate = moriv_console
   * @desc      = Invoke GUI interpreter on MoriV.
-  * @jdesc     = MoriV¾å¤ÇGUI¥¤¥ó¥¿¥×¥ê¥¿¤òµ¯Æ°¤·¤Ş¤¹¡£
+  * @jdesc     = MoriVä¸Šã§GUIã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’èµ·å‹•ã—ã¾ã™ã€‚
 %*/
 moriv_console <- [pred].
 %/**
   * @predicate = moriv_console_debug
   * @desc      = Invoke GUI interpreter on MoriV with debug messages.
-  * @jdesc     = MoriV¾å¤ÇGUI¥¤¥ó¥¿¥×¥ê¥¿¤òµ¯Æ°¤·¡¢¥¿¡¼¥ß¥Ê¥ë¤Ë¥Ç¥Ğ¥Ã¥°¥á¥Ã¥»¡¼¥¸¤òÉ½¼¨¤·¤Ş¤¹¡£
+  * @jdesc     = MoriVä¸Šã§GUIã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’èµ·å‹•ã—ã€ã‚¿ãƒ¼ãƒŸãƒŠãƒ«ã«ãƒ‡ãƒãƒƒã‚°ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã¾ã™ã€‚
 %*/
 moriv_console_debug <- [pred].
 
 %/**
   * @predicate = cgi_console
   * @desc      = Invoke GUI interpreter on Mozilla FireFox.
-  * @jdesc     = Mozilla FireFox¾å¤ÇGUI¥¤¥ó¥¿¥×¥ê¥¿¤òµ¯Æ°¤·¤Ş¤¹¡£
+  * @jdesc     = Mozilla FireFoxä¸Šã§GUIã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’èµ·å‹•ã—ã¾ã™ã€‚
 %*/
 cgi_console <- [pred].
 %/**
   * @predicate = cgi_console_debug
   * @desc      = Invoke GUI interpreter on Mozilla FireFox.
-  * @jdesc     = Mozilla FireFox¾å¤ÇGUI¥¤¥ó¥¿¥×¥ê¥¿¤òµ¯Æ°¤·¡¢¥¿¡¼¥ß¥Ê¥ë¤Ë¥Ç¥Ğ¥Ã¥°¥á¥Ã¥»¡¼¥¸¤òÉ½¼¨¤·¤Ş¤¹¡£
+  * @jdesc     = Mozilla FireFoxä¸Šã§GUIã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’èµ·å‹•ã—ã€ã‚¿ãƒ¼ãƒŸãƒŠãƒ«ã«ãƒ‡ãƒãƒƒã‚°ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã¾ã™ã€‚
 %*/
 cgi_console_debug <- [pred].
 
@@ -745,8 +745,8 @@ cgi_console_debug :-
 
 %%%%%%%% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% db_load¤ËÉ¬Í×¤Ê¥â¥¸¥å¡¼¥ë¤òÆ°Åª¤ËÆÉ¤ß¹ş¤á¤ë¤è¤¦¤Ë¤¹¤ë¡£
-% ½ĞÎÏ·ë²Ì¤ÎÍúÎò¤ò»Ä¤¹¡£
+% db_loadã«å¿…è¦ãªãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’å‹•çš„ã«èª­ã¿è¾¼ã‚ã‚‹ã‚ˆã†ã«ã™ã‚‹ã€‚
+% å‡ºåŠ›çµæœã®å±¥æ­´ã‚’æ®‹ã™ã€‚
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

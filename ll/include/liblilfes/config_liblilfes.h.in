@@ -1,4 +1,4 @@
-/* include/liblilfes/config_liblilfes.h.in.  Generated from configure.in by autoheader.  */
+/* include/liblilfes/config_liblilfes.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
@@ -195,8 +195,7 @@
 /* Version number of package */
 #undef LILFES_VERSION
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Name of package */

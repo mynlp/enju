@@ -5,7 +5,10 @@
  * @copyright = You may distribute this file under the terms of the Artistic License.
  * @desc    = Miscellaneous
  * @jdesc   = その他
+ * Miscellaneous predicates
+ * @japanese =
  * その他の組込み述語です．
+ * @end_japanese
 */
 
 #include "builtin.h"

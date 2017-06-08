@@ -7,7 +7,7 @@ namespace up { namespace conv {
     type* convParseStatus(up::ParseStatus status)
     {
         lilfes::module* parser_module = lilfes::module::SearchModule( "mayz:parser" );
-        if (! parser_module ) { RUNWARN("get_parse_status/1: parser module \"mayz:parser\" not loaded yet"); return false; }
+        if (! parser_module ) { RUNWARN("get_parse_status/1: parser module \"mayz:parser\" not loaded yet"); return NULL; }
 
         switch ( status ) {
             case up::NOT_PARSED_YET:        return parser_module->Search( "not_parsed_yet" );

@@ -153,5 +153,5 @@ lex.o: lex.cc FlexLexer.h
 doc :
 	@PERL@ ../lildoc.prl -e -s -b . -t "Builtin" -o ../manual -c style-builtin.css -f builtin- . builtin-index.html
 jdoc :
-	@PERL@ ../lildoc.prl -j -s -b . -t "�Ȥ߹��߽Ҹ�" -o ../manual -c style-builtin.css -f builtin- . builtin-index.ja.html
+	@PERL@ ../lildoc.prl -j -s -b . -t "組み込み述語" -o ../manual -c style-builtin.css -f builtin- . builtin-index.ja.html
 
