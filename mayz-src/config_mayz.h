@@ -1,5 +1,5 @@
 /* mayz-src/config_mayz.h.  Generated from config_mayz.h.in by configure.  */
-/* mayz-src/config_mayz.h.in.  Generated from configure.in by autoheader.  */
+/* mayz-src/config_mayz.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Copyright of Enju */
 #define ENJU_COPYRIGHT "Copyright (c) 2005-2010, Tsujii Laboratory, The University of Tokyo.\nAll rights reserved."
@@ -20,7 +20,7 @@
 #define HAVE_LIBBZ2 1
 
 /* Define to 1 if you have the `curses' library (-lcurses). */
-#define HAVE_LIBCURSES 1
+/* #undef HAVE_LIBCURSES */
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #define HAVE_LIBDL 1
@@ -79,8 +79,7 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Copyright of MAYZ */

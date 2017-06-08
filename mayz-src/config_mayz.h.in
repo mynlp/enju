@@ -1,4 +1,4 @@
-/* mayz-src/config_mayz.h.in.  Generated from configure.in by autoheader.  */
+/* mayz-src/config_mayz.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Copyright of Enju */
 #undef ENJU_COPYRIGHT
@@ -78,8 +78,7 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Copyright of MAYZ */
