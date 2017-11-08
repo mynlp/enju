@@ -20,7 +20,7 @@
 #define HAVE_LIBBZ2 1
 
 /* Define to 1 if you have the `curses' library (-lcurses). */
-/* #undef HAVE_LIBCURSES */
+#define HAVE_LIBCURSES 1
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #define HAVE_LIBDL 1
