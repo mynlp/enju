@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Enju - An English parser</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1><img src="images/enju.png" alt="Enju - A fast, accurate, and deep parser for English"/></h1>
+
+	<ul>
+	  <li><a href="index.html">About</a></li>
+	  <li><a href="examples.html">Examples</a></li>
+	  <li><a href="howtouse.html">How to use</a></li>
+	  <li><a href="references.html">References</a></li>
+          <li><a href="https://github.com/mynlp/enju">View on GitHub</a></li>
+	</ul>
+	
+      </header>
+
+      <section>
+        <h1>
+	  <a id="examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h1>
+
+	<p>
+	Unlike conventional parsers, the Enju parser can output
+	predicate argument structures in addition to parse trees.
+	</p>
+
+	<p>
+	By running Enju without any command-line arguments, the parser
+	outputs only predicate-argument relations. They look similar
+	to labeled dependency structures, and are easy to use. Actual
+	examples of predicate argument structures are shown
+	below. Each line in the output represents a predicate-argument
+	relation between two words. For instance, the second line in
+	the first example indicates that there is an "ARG1 (logical
+	subject)" relation between the predicate "run" and the
+	argument "he". Note that the same semantic relations holding
+	among the three words, "he", "run", and "company", are
+	obtained from sentences written in different syntactic
+	structures.
+	</p>
+
+	<h3>Sentence 1: He runs the company.</h3>
+	<p>
+	<table>
+	  <tbody>
+	    <tr>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>-1</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>runs</td>
+	      <td>run</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>1</td>
+	    </tr>
+	    <tr>
+	      <td>runs</td>
+	      <td>run</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>1</td>
+	      <td>verb_arg12</td>
+	      <td>ARG1</td>
+	      <td>He</td>
+	      <td>he</td>
+	      <td>PRP</td>
+	      <td>PRP</td>
+	      <td>0</td>
+	    </tr>
+	    <tr>
+	      <td>runs</td>
+	      <td>run</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>1</td>
+	      <td>verb_arg12</td>
+	      <td>ARG2</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>3</td>
+	    </tr>
+	    <tr>
+	      <td>the</td>
+	      <td>the</td>
+	      <td>DT</td>
+	      <td>DT</td>
+	      <td>2</td>
+	      <td>det_arg1</td>
+	      <td>ARG1</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>3</td>
+	    </tr>
+	  </tbody>
+	</table>
+	</p>
+	
+	<h3>Sentence 2: The company that he runs is small.</h3>
+	<p>
+	<table>
+	  <tbody>
+	    <tr>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>-1</td>
+	      <td>ROOT</td>
+	      <td>ROOT</td>
+	      <td>is</td>
+	      <td>be</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>5</td>
+	    </tr>
+	    <tr>
+	      <td>is</td>
+	      <td>be</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>5</td>
+	      <td>verb_arg12</td>
+	      <td>ARG1</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>1</td>
+	    </tr>
+	    <tr>
+	      <td>is</td>
+	      <td>be</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>5</td>
+	      <td>verb_arg12</td>
+	      <td>ARG2</td>
+	      <td>small</td>
+	      <td>small</td>
+	      <td>JJ</td>
+	      <td>JJ</td>
+	      <td>6</td>
+	    </tr>
+	    <tr>
+	      <td>small</td>
+	      <td>small</td>
+	      <td>JJ</td>
+	      <td>JJ</td>
+	      <td>6</td>
+	      <td>adj_arg1</td>
+	      <td>ARG1</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>1</td>
+	    </tr>
+	    <tr>
+	      <td>The</td>
+	      <td>the</td>
+	      <td>DT</td>
+	      <td>DT</td>
+	      <td>0</td>
+	      <td>det_arg1</td>
+	      <td>ARG1</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>1</td>
+	    </tr>
+	    <tr>
+	      <td>that</td>
+	      <td>that</td>
+	      <td>IN</td>
+	      <td>IN</td>
+	      <td>2</td>
+	      <td>relative_arg1</td>
+	      <td>ARG1</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>1</td>
+	    </tr>
+	    <tr>
+	      <td>runs</td>
+	      <td>run</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>4</td>
+	      <td>verb_arg12</td>
+	      <td>ARG1</td>
+	      <td>he</td>
+	      <td>he</td>
+	      <td>PRP</td>
+	      <td>PRP</td>
+	      <td>3</td>
+	    </tr>
+	    <tr>
+	      <td>runs</td>
+	      <td>run</td>
+	      <td>VBZ</td>
+	      <td>VB</td>
+	      <td>4</td>
+	      <td>verb_arg12</td>
+	      <td>ARG2</td>
+	      <td>company</td>
+	      <td>company</td>
+	      <td>NN</td>
+	      <td>NN</td>
+	      <td>1</td>
+	    </tr>
+	  </tbody>
+	</table>
+	</p>
+	
+      </section>
+
+      <hr/>
+
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/mynlp">mynlp</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>

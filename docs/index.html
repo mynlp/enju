@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Enju - An English parser</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1><img src="images/enju.png" alt="Enju - A fast, accurate, and deep parser for English"/></h1>
+
+	<ul>
+	  <li><a href="index.html">About</a></li>
+	  <li><a href="examples.html">Examples</a></li>
+	  <li><a href="howtouse.html">How to use</a></li>
+	  <li><a href="references.html">References</a></li>
+          <li><a href="https://github.com/mynlp/enju">View on GitHub</a></li>
+	</ul>
+	
+      </header>
+
+      <section>
+        <h1><a id="about-enju" class="anchor" href="#about-enju" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>About Enju</h1>
+
+	<img class="example" src="images/parsetree.png" alt="example parse tree" />
+
+	<p>Enju is an accurate natural language parser for English. With a
+	  wide-coverage probabilistic HPSG grammar [1-7] and an efficient
+	  parsing algorithm [8-11], this parser can effectively analyze
+	  syntactic/semantic structures of English sentences and provide a
+	  user with phrase structures and predicate-argument structures. Those
+	  outputs would be especially useful for high-level NLP applications,
+	  including information extraction, automatic summarization, question
+	  answering, and machine translation, where the "meaning" of a
+	  sentence plays a central role.
+	</p>
+
+	<p>This repository also includes the code for the Japanese CCG
+	parser [19-21] and the Chinese HPSG parser [17-18].  The
+	Japanese CCG parser is available
+	as <a href="https://github.com/mynlp/jigg">Jigg</a>.</p>
+	
+
+	<p>The main features of the Enju parser are:</p>
+
+	<ul>
+	  <li>Accurate deep analysis — the parser can output both phrase structures and predicate-argument structures. The accuracy of predicate-argument relations is around 90% for newswire articles and biomedical papers.</li>
+	  <li>High speed — parsing speed is less than 500 msec. per sentence by default (faster than most Penn Treebank parsers), and less than 50 msec. when using the high-speed setting (<code>mogura</code>).</li>
+	</ul>
+
+	<p>Other useful features are:</p>
+
+	<ul>
+	  <li>Output parse results in an XML format: specify the option <code>-xml</code>. The parser adds XML tags to an original text, and it is useful when parse results are merged with other processing results (e.g. named entities). A stand-off format is also available (specify <code>-so</code>).</li>
+	  <li>Use a parsing model for the biomedical domain: specify the option <code>-genia</code>.</li>
+	  <li>Use a parsing model for the literature domain: specify the option <code>-brown</code>.</li>
+	  <li>Use a supertagger: run <code>mogura -super</code>
+	  </li>
+	  <li>Convert Enju XML output into Penn Treebank-style output [15,16]: run <code>enju2ptb/convert &lt; ENJU_XML_OUTPUT &gt; PTB_STYLE_OUTPUT</code>
+	  </li>
+	  <li>Let a POS tagger output ambigous POS tags: specify the option <code>-A</code>. Parsing accuracy improves, while parsing speed gets slower.</li>
+	  <li>Output n-best parse results: specify the option <code>-N</code>. This is an experimental function, and parsing speed gets slower.</li>
+	</ul>
+      </section>
+
+      <hr/>
+
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/mynlp">mynlp</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>

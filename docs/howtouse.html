@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Enju - An English parser</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1><img src="images/enju.png" alt="Enju - A fast, accurate, and deep parser for English"/></h1>
+
+	<ul>
+	  <li><a href="index.html">About</a></li>
+	  <li><a href="examples.html">Examples</a></li>
+	  <li><a href="howtouse.html">How to use</a></li>
+	  <li><a href="references.html">References</a></li>
+          <li><a href="https://github.com/mynlp/enju">View on GitHub</a></li>
+	</ul>
+	
+      </header>
+
+      <section>
+        <h1>
+	  <a id="howtouse" class="anchor" href="#howtouse" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>How to use Enju</h1>
+
+	<p>To parse sentences, put a file (having <strong>one sentence per line</strong>) to the standard input. For example, when you have the file "RAWTEXT" that contains:</p>
+	<p><code> He runs the company.<br />
+	    The company that he runs is small.<br />
+	</code></p>
+	<p>Run the following command.</p>
+	<p><code>% enju &lt; RAWTEXT &gt; RESULTS </code></p>
+	<p>Parsing results are output to the file "RESULTS". The demo page shows you some examples of parsing results.</p>
+	<p>You can alternatively use a high-speed parser by using the command "mogura"</p>
+	<p><code> % mogura &lt; RAWTEXT &gt; RESULTS </code></p>
+	<p>These commands work in mostly the same way.</p>
+	<p>When you want to parse texts already tagged with Penn Treebank-style POS tags,</p>
+	<p><code> % enju -nt &lt; TAGGEDTEXT &gt; RESULTS<br />
+	</code></p>
+	<p>The default output of the parser is a set of predicate-argument relations. Alternatively, you can get both the phrase structures and predicate-argument relations either in a quasi-XML format or in a stand-off format.</p>
+	<p><code> % enju -xml &lt; RAWTEXT &gt; RESULTS<br />
+	    % enju -so &lt; RAWTEXT &gt; RESULTS </code></p>
+	<p>You can also use Enju as a CGI server.</p>
+	<p><code> % enju -cgi PORT_NUMBER </code></p>
+	<p>You can access to the port <code>PORT_NUMBER</code> with a CGI query, and receive parsing results in the XML format.</p>
+	<p><code> http://localhost:PORT_NUMBER/cgi-lilfes/enju?sentence=he+runs+the+company </code></p>
+	<p>For further details on the output formats, see the manuals.<a href="http://kmcs.nii.ac.jp/%7Eyusuke/enju/enju-manual/enju-output-spec.html"><br />
+	</a></p>
+	<ul>
+	  <li><a href="https://github.com/mynlp/enju/tree/master/enju-manual/index.html">Enju Manual (in English)</a></li>
+	  <li><a href="https://github.com/mynlp/enju/tree/master/enju-manual/enju-output-spec.html">Enju Output Specifications</a> (Details of the output formats)</li>
+	  <li><a href="https://github.com/mynlp/enju/tree/master/enju-manual/enju-xml-format.html">Enju XML Format</a> (Example-based explanation of the Enju XML format for various linguistic constructions)</li>
+	</ul>
+	<p></p>
+      </section>
+
+      <hr/>
+
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/mynlp">mynlp</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
