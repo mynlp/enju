@@ -277,5 +277,5 @@ dnl    Finish...
 AC_PREFIX_DEFAULT(/usr/local)
 AM_CONFIG_HEADER(mayz-src/config_mayz.h)
 AC_CONFIG_SUBDIRS(ll)
-AC_OUTPUT(Makefile enju-devel/Makefile enju-manual/Makefile enju-src/Makefile enju/Makefile mayz-manual/Makefile mayz-src/Makefile mayz/Makefile mogura-src/Makefile mogura-devel/Makefile mogura/Makefile enju2ptb/Makefile enju2ptb/src/Makefile enju2ptb/script/Makefile windows/Makefile)
+AC_OUTPUT(Makefile enju-devel/Makefile docs/enju-manual/Makefile enju-src/Makefile enju/Makefile docs/mayz-manual/Makefile mayz-src/Makefile mayz/Makefile mogura-src/Makefile mogura-devel/Makefile mogura/Makefile enju2ptb/Makefile enju2ptb/src/Makefile enju2ptb/script/Makefile windows/Makefile)
 

@@ -9,11 +9,11 @@
 ################################################################################
 
 SUBDIRS = ll \
-          mayz-manual \
+          docs/mayz-manual \
           mayz-src \
           mayz \
           enju-devel \
-          enju-manual \
+          docs/enju-manual \
           enju-src \
           enju \
           mogura-devel \
