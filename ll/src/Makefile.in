@@ -963,65 +963,6 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 @BISON_USE_PARSER_H_TRUE@yacc.hh: yacc.h
 @BISON_USE_PARSER_H_TRUE@	cp $< $@
 
-# rewritten the rule to adapt flex 2.5.4a with GCC 3.2
-# %.cc: %.ll
-# 	$(LEX) $(AM_LFLAGS) $(LFLAGS) `test -f $< || echo '$(srcdir)/'`$<
-# 	@echo "Converting $(LEX) output $(LEX_OUTPUT_ROOT).c to $@."
-# 	@sed -e '/^#/s|$(LEX_OUTPUT_ROOT)\.c|$@|' -e '/FLEX_STD/!s/^class istream;$$/#include <iostream>/' -e 's/\([^A-Za-z0-9:_]\)\([io]stream\)\([^A-Za-z0-9_]\)/\1std::\2\3/g' -e 's/<FlexLexer.h>/"FlexLexer.h"/' $(LEX_OUTPUT_ROOT).c >$@
-# 	rm -f $(LEX_OUTPUT_ROOT).c
-# 	@echo "Patching FlexLexer.h."
-# 	@rm -rf FlexLexer.h
-# 	@sed -e '1s/^/\/\* Automatically patched by Makefile. do not edit\*\//' -e 's/#include <iostream.h>/#include <iostream>/' -e '/FLEX_STD/!s/\([^A-Za-z0-9:]\)\([io]stream\)\([^A-Za-z0-9]\)/\1std::\2\3/g' <`echo "#include <FlexLexer.h>" | $(CXXCPP) -x c++ $(CPPFLAGS) -M - 2>/dev/null | sed -ne 's/^.*[ ]\([^ ]*FlexLexer.h[^ ]*\).*$$/\1/g' -e '/FlexLexer/p'` >FlexLexer.h 
-
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@lex.cc FlexLexer.h: lex.ll
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	$(LEX) $(AM_LFLAGS) $(LFLAGS) `test -f $< || echo '$(srcdir)/'`$<
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	@echo "Converting $(LEX) output $(LEX_OUTPUT_ROOT).c to $@."
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	@sed -e '/^#/s|$(LEX_OUTPUT_ROOT)\.c|$@|' -e '/FLEX_STD/!s/^class istream;$$/#include <iostream>/' -e 's/\([^A-Za-z0-9:_]\)\([io]stream\)\([^A-Za-z0-9_]\)/\1std::\2\3/g' -e 's/<FlexLexer.h>/"FlexLexer.h"/' $(LEX_OUTPUT_ROOT).c >$@
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	rm -f $(LEX_OUTPUT_ROOT).c
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	@echo "Patching FlexLexer.h."
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	@rm -rf FlexLexer.h
-@IS_GXX_TRUE@@IS_OLD_FLEX_TRUE@	sed -e '1s/^/\/\* Automatically patched by Makefile. do not edit\*\//' -e 's/#include <iostream.h>/#include <iostream>/' -e '/FLEX_STD/!s/\([^A-Za-z0-9:]\)\([io]stream\)\([^A-Za-z0-9]\)/\1std::\2\3/g' <`echo "#include <FlexLexer.h>" | $(CXXCPP) -x c++ $(CPPFLAGS) -M - 2>/dev/null | sed -ne 's/^.*[ ]\([^ ]*FlexLexer.h[^ ]*\).*$$/\1/g' -e '/FlexLexer/p'` >FlexLexer.h ;
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@lex.cc FlexLexer.h: lex.ll
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	$(LEX) $(AM_LFLAGS) $(LFLAGS) `test -f $< || echo '$(srcdir)/'`$<
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	@echo "Converting $(LEX) output $(LEX_OUTPUT_ROOT).c to $@."
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	@sed -e '/^#/s|$(LEX_OUTPUT_ROOT)\.c|$@|' -e '/FLEX_STD/!s/^class istream;$$/#include <iostream>/' -e 's/\([^A-Za-z0-9:_]\)\([io]stream\)\([^A-Za-z0-9_]\)/\1std::\2\3/g' -e 's/<FlexLexer.h>/"FlexLexer.h"/' $(LEX_OUTPUT_ROOT).c >$@
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	rm -f $(LEX_OUTPUT_ROOT).c
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	@echo "Patching FlexLexer.h."
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	@rm -rf FlexLexer.h
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	echo "#include <FlexLexer.h>" > tmp.cpp; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	$(CXXCPP) -M tmp.cpp 1> /dev/null 2>&1; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	rm -f tmp.cpp tmp.o; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	sed -e '1s/^/\/\* Automatically patched by Makefile. do not edit\*\//' -e 's/#include <iostream.h>/#include <iostream>/' -e '/FLEX_STD/!s/\([^A-Za-z0-9:]\)\([io]stream\)\([^A-Za-z0-9]\)/\1std::\2\3/g' < `sed -ne 's/^.*[ ]\([^ ]*FlexLexer\.h[^ ]*\)/\1/g' -e '/FlexLexer/p' tmp.u` > FlexLexer.h; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_TRUE@	rm -f tmp.u;
-
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@lex.cc FlexLexer.h: lex.ll
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	$(LEX) $(AM_LFLAGS) $(LFLAGS) `test -f $< || echo '$(srcdir)/'`$<
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	@echo "Converting $(LEX) output $(LEX_OUTPUT_ROOT).c to $@."
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	@sed -e '/^#/s|$(LEX_OUTPUT_ROOT)\.c|$@|' -e 's/<FlexLexer.h>/"FlexLexer.h"/' $(LEX_OUTPUT_ROOT).c >$@
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	rm -f $(LEX_OUTPUT_ROOT).c
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	@echo "Copying FlexLexer.h."
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	@rm -rf FlexLexer.h
-@IS_GXX_TRUE@@IS_OLD_FLEX_FALSE@	cat < `echo "#include <FlexLexer.h>" | $(CXXCPP) -x c++ $(CPPFLAGS) -M - 2>/dev/null | sed -ne 's/^.*[ ]\([^ ]*FlexLexer.h[^ ]*\).*$$/\1/g' -e '/FlexLexer/p'` >FlexLexer.h
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@lex.cc FlexLexer.h: lex.ll
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	$(LEX) $(AM_LFLAGS) $(LFLAGS) `test -f $< || echo '$(srcdir)/'`$<
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	@echo "Converting $(LEX) output $(LEX_OUTPUT_ROOT).c to $@."
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	@sed -e '/^#/s|$(LEX_OUTPUT_ROOT)\.c|$@|' -e 's/<FlexLexer.h>/"FlexLexer.h"/' $(LEX_OUTPUT_ROOT).c >$@
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	rm -f $(LEX_OUTPUT_ROOT).c
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	@echo "Copying FlexLexer.h."
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	@rm -rf FlexLexer.h
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	echo "#include <FlexLexer.h>" > tmp.cpp; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	$(CXXCPP) -M tmp.cpp 1> /dev/null 2>&1; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	rm -f tmp.cpp tmp.o; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	cat < `sed -ne 's/^.*[ ]\([^ ]*FlexLexer\.h[^ ]*\)/\1/g' -e '/FlexLexer/p' tmp.u` > FlexLexer.h; \
-@IS_GXX_FALSE@@IS_OLD_FLEX_FALSE@	rm -f tmp.u;
-
-lex.o: lex.cc FlexLexer.h
-
-# FlexLexer.h: Makefile
-# 	@echo "Patching FlexLexer.h."
-# 	@rm -rf FlexLexer.h
-# 	@sed -e '1s/^/\/\* Automatically patched by Makefile. do not edit\*\//' -e 's/#include <iostream.h>/#include <iostream>/' -e '/FLEX_STD/!s/\([^A-Za-z0-9:]\)\([io]stream\)\([^A-Za-z0-9]\)/\1std::\2\3/g' <`echo "#include <FlexLexer.h>" | $(CXXCPP) -x c++ $(CPPFLAGS) -M - 2>/dev/null | sed -ne 's/^.*[ ]\([^ ]*FlexLexer.h[^ ]*\).*$$/\1/g' -e '/FlexLexer/p'` >FlexLexer.h 
-
 doc :
 	@PERL@ ../lildoc.prl -e -s -b . -t "Builtin" -o ../manual -c style-builtin.css -f builtin- . builtin-index.html
 jdoc :
