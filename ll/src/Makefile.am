@@ -76,11 +76,6 @@ AM_LFLAGS = -8
 DEFS= @DEFS@ -DPKGDATADIR="\"$(pkgdatadir)\""
 #INCLUDES= -I$(srcdir)
 
-if BISON_USE_PARSER_H
-yacc.hh: yacc.h
-	cp $< $@
-endif
-
 doc :
 	@PERL@ ../lildoc.prl -e -s -b . -t "Builtin" -o ../manual -c style-builtin.css -f builtin- . builtin-index.html
 jdoc :
