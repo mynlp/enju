@@ -19,11 +19,7 @@
 #include <string>
 
 #ifndef IN_BISON_FILE
-#ifdef BISON_USE_PARSER_H_EXTENSION
-#include "yacc.h"
-#else
 #include "yacc.hh"
-#endif
 #endif
 #ifndef IN_LEX_LL
 #include "FlexLexer.h"
