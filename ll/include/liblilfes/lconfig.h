@@ -15,6 +15,10 @@
   #include "lconfig_win.h"
 #else
   #include "config_liblilfes.h"
+  #undef PACKAGE
+  #undef VERSION
+  #undef PACKAGE_VERSION
+  #undef PACKAGE_TARNAME
 #endif
 
 #include <iostream>

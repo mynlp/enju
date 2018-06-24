@@ -23,8 +23,6 @@
 #include <exception>
 #include <sstream>
 
-static const char rcsid[] = "$Id: main.cpp,v 1.25 2011-05-02 10:38:23 matuzaki Exp $";
-
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #else

@@ -28,10 +28,6 @@ using std::ostringstream;
 using std::setw;
 using std::string;
 
-
-
-static const char rcsid[] = "$Id: machine2.cpp,v 1.6 2011-05-02 10:38:23 matuzaki Exp $";
-
 machine::machine()
 	: local("local", 1024)
 {

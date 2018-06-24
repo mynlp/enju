@@ -32,11 +32,6 @@ using std::ostringstream;
 using std::setw;
 using std::string;
 
-
-
-static const char rcsid[] = "$Id: parse.cpp,v 1.13 2011-05-02 10:38:24 matuzaki Exp $";
-
-
 const char * const clause_cut_label = "_ CUT _";
 
 // For debugging

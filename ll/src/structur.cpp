@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: structur.cpp,v 1.14 2011-05-02 10:38:24 matuzaki Exp $";
-
 //#define DOASSERT
 
 #include "structur.h"

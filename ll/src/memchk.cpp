@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: memchk.cpp,v 1.4 2004-05-30 09:27:01 yusuke Exp $";
-
 #include "lconfig.h"
 
 //#define LILFES_DEBUG_MEMORY_LEAK

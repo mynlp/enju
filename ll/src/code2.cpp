@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: code2.cpp,v 1.8 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "code.h"
 #include "builtin.h"
 #include "machine.h"

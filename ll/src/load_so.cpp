@@ -32,8 +32,6 @@
 
 #ifdef WITH_DYNLOAD
 
-static const char rcsid[] = "$Id: load_so.cpp,v 1.3 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "builtin.h"
 #include "in.h"
 #include "module.h"

@@ -19,10 +19,6 @@ using std::ostream;
 using std::string;
 using std::strlen;
 
-
-static const char rcsid[] = "$Id: outform.cpp,v 1.4 2011-05-02 10:38:23 matuzaki Exp $";
-
-
 //////////////////////////////////////////////////////////////////////////////
 //
 //  class outform

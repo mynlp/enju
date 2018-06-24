@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: bitmap.cpp,v 1.7 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "bitmap.h"
 #include <cstring>
 #include <iostream>

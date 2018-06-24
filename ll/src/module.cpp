@@ -19,8 +19,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: module.cpp,v 1.18 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "module.h"
 #include "initial.h"
 #include "option.h"

@@ -12,9 +12,6 @@
 //  LiLFeS DB Manager
 //
 
-
-static const char rcsid[] = "$Id: lildbm.cpp,v 1.12 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "lildbm.h"
 
 #include <iostream>
