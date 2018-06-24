@@ -3,14 +3,6 @@
 
 SUBDIRS = ext include src lillib manual elisp unittest
 
-builddir = @builddir@
-
-AM_CXXFLAGS = @AM_CXXFLAGS@
-AM_CPPFLAGS = @AM_CPPFLAGS@
-AM_LDFLAGS = @AM_LDFLAGS@
-
-ACLOCAL_AMFLAGS = -I m4
-
 pkgdata_DATA = \
 	init.lil Artistic COPYING lildoc.prl \
 	index.html index.ja.html style.css lilfes.gif favicon.ico \

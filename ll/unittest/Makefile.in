@@ -100,9 +100,7 @@ check_PROGRAMS = bitmap_test$(EXEEXT) basic_test$(EXEEXT) \
 subdir = unittest
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -112,38 +110,34 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am_basic_test_OBJECTS = basic_test.$(OBJEXT)
 basic_test_OBJECTS = $(am_basic_test_OBJECTS)
-basic_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am__v_lt_1 = 
+basic_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_bitmap_test_OBJECTS = bitmap_test.$(OBJEXT)
 bitmap_test_OBJECTS = $(am_bitmap_test_OBJECTS)
-bitmap_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+bitmap_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_cell_test_OBJECTS = cell_test.$(OBJEXT)
 cell_test_OBJECTS = $(am_cell_test_OBJECTS)
-cell_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+cell_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_codelist_test_OBJECTS = codelist_test.$(OBJEXT)
 codelist_test_OBJECTS = $(am_codelist_test_OBJECTS)
-codelist_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+codelist_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_ftype_test_OBJECTS = ftype_test.$(OBJEXT)
 ftype_test_OBJECTS = $(am_ftype_test_OBJECTS)
-ftype_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+ftype_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_lregex_test_OBJECTS = lregex_test.$(OBJEXT)
 lregex_test_OBJECTS = $(am_lregex_test_OBJECTS)
-lregex_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+lregex_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_option_test_OBJECTS = option_test.$(OBJEXT)
 option_test_OBJECTS = $(am_option_test_OBJECTS)
-option_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+option_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_outform_test_OBJECTS = outform_test.$(OBJEXT)
 outform_test_OBJECTS = $(am_outform_test_OBJECTS)
-outform_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+outform_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_search_path_test_OBJECTS = search_path_test.$(OBJEXT)
 search_path_test_OBJECTS = $(am_search_path_test_OBJECTS)
-search_path_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+search_path_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 am_structur_test_OBJECTS = structur_test.$(OBJEXT)
 structur_test_OBJECTS = $(am_structur_test_OBJECTS)
-structur_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.la
+structur_test_DEPENDENCIES = $(top_srcdir)/src/liblilfes.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -162,18 +156,13 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
-LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CXXFLAGS) $(CXXFLAGS)
 AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
 am__v_CXX_1 = 
 CXXLD = $(CXX)
-CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
@@ -422,14 +411,7 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
-AM_CPPFLAGS = -isystem $(top_srcdir)/ext/gtest/include -I$(top_srcdir)/include/liblilfes $(GTEST_CPPFLAGS)
-AM_CXXFLAGS = $(GTEST_CXXFLAGS)
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
-AM_LDFLAGS = $(GTEST_LDFLAGS) $(GTEST_LIBS) \
-	     $(top_srcdir)/ext/gtest/lib/libgtest_main.la \
-	     $(top_srcdir)/ext/gtest/lib/libgtest.la
-
-AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -446,15 +428,11 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DLLTOOL = @DLLTOOL@
-DSYMUTIL = @DSYMUTIL@
-DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-FGREP = @FGREP@
 GREP = @GREP@
 GTEST_CPPFLAGS = @GTEST_CPPFLAGS@
 GTEST_CXXFLAGS = @GTEST_CXXFLAGS@
@@ -466,27 +444,17 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-LD = @LD@
 LDFLAGS = @LDFLAGS@
 LEX = @LEX@
 LEXLIB = @LEXLIB@
 LEX_OUTPUT_ROOT = @LEX_OUTPUT_ROOT@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBTOOL = @LIBTOOL@
-LIPO = @LIPO@
-LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
-MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
-NM = @NM@
-NMEDIT = @NMEDIT@
-OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
-OTOOL = @OTOOL@
-OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -500,22 +468,18 @@ PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
 RANLIB = @RANLIB@
-SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
-WL_RPATH = @WL_RPATH@
 YACC = @YACC@
 YFLAGS = @YFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 acx_pthread_config = @acx_pthread_config@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
@@ -562,50 +526,56 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+AM_CPPFLAGS = -isystem $(top_srcdir)/ext/gtest/include -I$(top_srcdir)/include/liblilfes $(GTEST_CPPFLAGS)
+AM_CXXFLAGS = $(GTEST_CXXFLAGS)
+AM_LDFLAGS = $(GTEST_LDFLAGS) $(GTEST_LIBS) \
+	     $(top_srcdir)/ext/gtest/lib/libgtest_main.a \
+	     $(top_srcdir)/ext/gtest/lib/libgtest.a
+
 bitmap_test_SOURCES = \
 	bitmap_test.cpp
 
-bitmap_test_LDADD = $(top_srcdir)/src/liblilfes.la
+bitmap_test_LDADD = $(top_srcdir)/src/liblilfes.a
 basic_test_SOURCES = \
 	basic_test.cpp
 
-basic_test_LDADD = $(top_srcdir)/src/liblilfes.la
+basic_test_LDADD = $(top_srcdir)/src/liblilfes.a
 cell_test_SOURCES = \
 	cell_test.cpp
 
-cell_test_LDADD = $(top_srcdir)/src/liblilfes.la
+cell_test_LDADD = $(top_srcdir)/src/liblilfes.a
 codelist_test_SOURCES = \
 	codelist_test.cpp
 
-codelist_test_LDADD = $(top_srcdir)/src/liblilfes.la
+codelist_test_LDADD = $(top_srcdir)/src/liblilfes.a
 ftype_test_SOURCES = \
 	ftype_test.cpp
 
-ftype_test_LDADD = $(top_srcdir)/src/liblilfes.la
+ftype_test_LDADD = $(top_srcdir)/src/liblilfes.a
 lregex_test_SOURCES = \
 	lregex_test.cpp
 
-lregex_test_LDADD = $(top_srcdir)/src/liblilfes.la
+lregex_test_LDADD = $(top_srcdir)/src/liblilfes.a
 option_test_SOURCES = \
 	option_test.cpp
 
-option_test_LDADD = $(top_srcdir)/src/liblilfes.la
+option_test_LDADD = $(top_srcdir)/src/liblilfes.a
 outform_test_SOURCES = \
 	outform_test.cpp
 
-outform_test_LDADD = $(top_srcdir)/src/liblilfes.la
+outform_test_LDADD = $(top_srcdir)/src/liblilfes.a
 search_path_test_SOURCES = \
 	search_path_test.cpp
 
-search_path_test_LDADD = $(top_srcdir)/src/liblilfes.la
+search_path_test_LDADD = $(top_srcdir)/src/liblilfes.a
 structur_test_SOURCES = \
 	structur_test.cpp
 
-structur_test_LDADD = $(top_srcdir)/src/liblilfes.la
+structur_test_LDADD = $(top_srcdir)/src/liblilfes.a
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .log .o .obj .test .test$(EXEEXT) .trs
+.SUFFIXES: .cpp .log .o .obj .test .test$(EXEEXT) .trs
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -637,13 +607,7 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 $(am__aclocal_m4_deps):
 
 clean-checkPROGRAMS:
-	@list='$(check_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
+	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
 
 basic_test$(EXEEXT): $(basic_test_OBJECTS) $(basic_test_DEPENDENCIES) $(EXTRA_basic_test_DEPENDENCIES) 
 	@rm -f basic_test$(EXEEXT)
@@ -717,20 +681,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
-
-.cpp.lo:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
-@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
-@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
-
-mostlyclean-libtool:
-	-rm -f *.lo
-
-clean-libtool:
-	-rm -rf .libs _libs
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -1081,8 +1031,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
-	mostlyclean-am
+clean-am: clean-checkPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -1137,8 +1086,7 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
 pdf: pdf-am
 
@@ -1153,17 +1101,16 @@ uninstall-am:
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-TESTS check-am clean \
-	clean-checkPROGRAMS clean-generic clean-libtool cscopelist-am \
-	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	clean-checkPROGRAMS clean-generic cscopelist-am ctags ctags-am \
+	distclean distclean-compile distclean-generic distclean-tags \
+	distdir dvi dvi-am html html-am info info-am install \
+	install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
 	recheck tags tags-am uninstall uninstall-am
 
 .PRECIOUS: Makefile
