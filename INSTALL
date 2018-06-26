@@ -28,7 +28,7 @@ Run:
   % make
 
 or
-  % aclocal; autoheader; automake --add-missing --foreign; autoconf
+  % aclocal; autoheader; automake --add-missing --foreign --copy; autoconf
   % ./configure
   % make
 
