@@ -24,12 +24,8 @@ For details, see "enju-manual/index.html".
 If you need to rebuild "configure" (e.g. when you modified Makefile.am)
 
 Run:
-  % ./configure --enable-maintainer-mode
-  % make
-
-or
   % aclocal; autoheader; automake --add-missing --foreign --copy; autoconf
-  % ./configure
+  % ./configure --enable-maintainer-mode
   % make
 
 ----------------------------------------------------------------------
