@@ -22,7 +22,7 @@ enju_SOURCES = ${ENJU_MAIN} enju.cc
 enju_CPPFLAGS = -I@top_srcdir@/ll/include -I@top_srcdir@/mayz-src -DENJU_PREFIX="\"${prefix}\"" -DENJU_DIR="\"${libdir}/enju\""
 enju_LDFLAGS = -L@top_srcdir@/ll/src -L@top_srcdir@/mayz-src
 # enju_LDADD = @WL_WHOLE@ @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.la @WL_NOWHOLE@
-enju_LDADD = @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.la
+enju_LDADD = @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.a
 
 enju_morph_SOURCES = stem.cc escape.cc enju-morph.cc
 

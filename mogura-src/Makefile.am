@@ -8,7 +8,7 @@
 ###########################################################################
 
 AM_CPPFLAGS = -I@top_srcdir@/ll/include
-AM_LDFLAGS = -L. -L@top_srcdir@/ll/src @AM_LDFLAGS@
+AM_LDFLAGS = -L. -L@top_srcdir@/ll/src #@AM_LDFLAGS@
 
 bin_PROGRAMS = mogura
 
@@ -78,17 +78,17 @@ cfg_compile_SOURCES = \
 mogura_CPPFLAGS = -I@top_srcdir@/ll/include -I@top_srcdir@/mayz-src -DENJU_PREFIX="\"${prefix}\"" -DENJU_DIR="\"${libdir}/enju\""
 
 mogura_LDFLAGS = -L@top_srcdir@/ll/src -L@top_srcdir@/mayz-src
-mogura_LDADD = @top_srcdir@/mayz-src/libmayz.a @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.la
+mogura_LDADD = @top_srcdir@/mayz-src/libmayz.a @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.a
 
 extract_event_LDFLAGS = -L@top_srcdir@/ll/src -L@top_srcdir@/mayz-src
-extract_event_LDADD = @top_srcdir@/mayz-src/libmayz.a @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.la
+extract_event_LDADD = @top_srcdir@/mayz-src/libmayz.a @top_srcdir@/mayz-src/libup.a @top_srcdir@/ll/src/liblilfes.a
 
 train_LDFLAGS  = -L@top_srcdir@/ll/src
-train_LDADD = @top_srcdir@/ll/src/liblilfes.la
+train_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 remove_useless_symbols_LDFLAGS  = -L@top_srcdir@/ll/src
-remove_useless_symbols_LDADD = @top_srcdir@/ll/src/liblilfes.la
+remove_useless_symbols_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 cfg_compile_LDFLAGS  = -L@top_srcdir@/ll/src -L@top_srcdir@/mayz-src
-cfg_compile_LDADD = @top_srcdir@/ll/src/liblilfes.la @top_srcdir@/mayz-src/libmayz.a
+cfg_compile_LDADD = @top_srcdir@/ll/src/liblilfes.a @top_srcdir@/mayz-src/libmayz.a
 

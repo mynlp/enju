@@ -10,9 +10,6 @@
 /* Version number of Enju */
 #define ENJU_VERSION "2.4.4"
 
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#define HAVE_DLFCN_H 1
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
@@ -26,7 +23,7 @@
 #define HAVE_LIBDL 1
 
 /* Define to 1 if you have the `nsl' library (-lnsl). */
-#define HAVE_LIBNSL 1
+/* #undef HAVE_LIBNSL */
 
 /* Define to 1 if you have the `readline' library (-lreadline). */
 #define HAVE_LIBREADLINE 1
@@ -78,10 +75,6 @@
 
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
-
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#define LT_OBJDIR ".libs/"
 
 /* Copyright of MAYZ */
 #define MAYZ_COPYRIGHT "Copyright (c) 2005-2010, Tsujii Laboratory, The University of Tokyo.\nAll rights reserved."

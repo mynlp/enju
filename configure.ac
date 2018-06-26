@@ -40,8 +40,8 @@ AC_PROG_CXXCPP
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
-AC_DISABLE_SHARED
-AC_PROG_LIBTOOL
+dnl AC_DISABLE_SHARED
+dnl AC_PROG_LIBTOOL
 AC_CHECK_PROG(PERL, perl, perl)
 AC_CHECK_PROG(SED, sed, sed)
 dnl ## use ll/src/lilfes ## AC_CHECK_PROG(LILFES, lilfes, lilfes)
@@ -192,35 +192,35 @@ LDFLAGS="$LDFLAGS_TMP"
 
 dnl -rpath
 
-AC_SUBST(WL_RPATH)
-AC_SUBST(AM_LDFLAGS)
-AM_LDFLAGS="$LDFLAGS"
+dnl AC_SUBST(WL_RPATH)
+dnl AC_SUBST(AM_LDFLAGS)
+dnl AM_LDFLAGS="$LDFLAGS"
 
-LDFLAGS_TMP="$LDFLAGS"
-LDFLAGS="$LDFLAGS_TMP -Wl,-rpath -Wl,/usr/local/lib"
-AC_CACHE_CHECK([whether $CXX accepts -Wl,-rpath -Wl,/usr/local/lib],
-	lilfes_cv_prog_cxx_wlrpath,
-[AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }], 
-lilfes_cv_prog_cxx_wlrpath=yes, lilfes_cv_prog_cxx_wlrpath=no)])
+dnl LDFLAGS_TMP="$LDFLAGS"
+dnl LDFLAGS="$LDFLAGS_TMP -Wl,-rpath -Wl,/usr/local/lib"
+dnl AC_CACHE_CHECK([whether $CXX accepts -Wl,-rpath -Wl,/usr/local/lib],
+dnl 	lilfes_cv_prog_cxx_wlrpath,
+dnl [AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }], 
+dnl lilfes_cv_prog_cxx_wlrpath=yes, lilfes_cv_prog_cxx_wlrpath=no)])
 
-if test "$lilfes_cv_prog_cxx_wlrpath" = yes; then
-  WL_RPATH="-Wl,-rpath -Wl,"
-else
-  LDFLAGS="$LDFLAGS_TMP -Wl,-R -Wl,/usr/local/lib"
-  AC_CACHE_CHECK([whether $CXX accepts -Wl,-R -Wl,/usr/local/lib],
-	  lilfes_cv_prog_cxx_wlR,
-  [AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }], 
-  lilfes_cv_prog_cxx_wlR=yes, lilfes_cv_prog_cxx_wlR=no)])
+dnl if test "$lilfes_cv_prog_cxx_wlrpath" = yes; then
+dnl   WL_RPATH="-Wl,-rpath -Wl,"
+dnl else
+dnl   LDFLAGS="$LDFLAGS_TMP -Wl,-R -Wl,/usr/local/lib"
+dnl   AC_CACHE_CHECK([whether $CXX accepts -Wl,-R -Wl,/usr/local/lib],
+dnl 	  lilfes_cv_prog_cxx_wlR,
+dnl   [AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }], 
+dnl   lilfes_cv_prog_cxx_wlR=yes, lilfes_cv_prog_cxx_wlR=no)])
   
-  if test "$lilfes_cv_prog_cxx_wlR" = yes; then
-    WL_RPATH="-Wl,-R -Wl,"
-  fi
-fi
+dnl   if test "$lilfes_cv_prog_cxx_wlR" = yes; then
+dnl     WL_RPATH="-Wl,-R -Wl,"
+dnl   fi
+dnl fi
 
-LDFLAGS="$LDFLAGS_TMP"
-if test -n "$WL_RPATH"; then
-  AM_LDFLAGS="$LDFLAGS ${WL_RPATH}'${prefix}/lib'"
-fi
+dnl LDFLAGS="$LDFLAGS_TMP"
+dnl if test -n "$WL_RPATH"; then
+dnl   AM_LDFLAGS="$LDFLAGS ${WL_RPATH}'${prefix}/lib'"
+dnl fi
 
 dnl ######################################################################
 dnl   Enable debugging facilities.

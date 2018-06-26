@@ -9,7 +9,7 @@
 ###########################################################################
 
 AM_CPPFLAGS = -I@top_srcdir@/ll/include
-AM_LDFLAGS = -L. -L@top_srcdir@/ll/src @AM_LDFLAGS@
+AM_LDFLAGS = -L. -L@top_srcdir@/ll/src #@AM_LDFLAGS@
 
 noinst_LIBRARIES = libmayz.a libup.a
 
@@ -87,7 +87,7 @@ libmayz_a_SOURCES = \
 	Word.cc
 #	WordCounter.cc
 
-treetrans_LDADD = @top_srcdir@/ll/src/liblilfes.la
+treetrans_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 treetrans_SOURCES = \
 	Initializer.cc \
@@ -97,7 +97,7 @@ treetrans_SOURCES = \
 	Word.cc \
 	treetrans_main.cc
 
-lexextract_LDADD = @top_srcdir@/ll/src/liblilfes.la
+lexextract_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 lexextract_SOURCES = \
 	Derivation.cc \
@@ -114,7 +114,7 @@ lexextract_SOURCES = \
 #	WordCounter.cc
 
 
-lexrefine_LDADD = @top_srcdir@/ll/src/liblilfes.la
+lexrefine_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 lexrefine_SOURCES = \
 	Initializer.cc \
@@ -122,7 +122,7 @@ lexrefine_SOURCES = \
 	TemplateTable.cc \
 	lexrefine_main.cc
 
-lexmerge_LDADD = @top_srcdir@/ll/src/liblilfes.la
+lexmerge_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 lexmerge_SOURCES = \
 	Initializer.cc \
@@ -130,11 +130,11 @@ lexmerge_SOURCES = \
 	TemplateTable.cc \
 	lexmerge_main.cc
 
-unimaker_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.la
+unimaker_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.a
 
 unimaker_SOURCES = unimaker_main.cc
 
-amisfilter_LDADD = @top_srcdir@/ll/src/liblilfes.la
+amisfilter_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 amisfilter_SOURCES = \
 	AmisFilter.cc \
@@ -154,9 +154,9 @@ forestmaker_SOURCES = \
 	Word.cc \
 	forestmaker_main.cc
 
-forestmaker_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.la
+forestmaker_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.a
 
-lex2html_LDADD = @top_srcdir@/ll/src/liblilfes.la
+lex2html_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 lex2html_SOURCES = \
 	Derivation.cc \
@@ -173,7 +173,7 @@ libup_a_SOURCES = \
 	AmisBuiltin.cc \
 	QuickCheck.cc
 
-up_LDADD = @top_srcdir@/ll/src/liblilfes.la
+up_LDADD = @top_srcdir@/ll/src/liblilfes.a
 
 up_SOURCES = \
 	$(libup_a_SOURCES) \
@@ -182,7 +182,7 @@ up_SOURCES = \
 super_SOURCES = \
     super_main.cc
 
-super_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.la
+super_LDADD = libup.a @top_srcdir@/ll/src/liblilfes.a
 
 #
 #  For test
