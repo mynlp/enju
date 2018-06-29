@@ -42,9 +42,6 @@ using std::strcmp;
 using std::string;
 using std::vector;
 
-
-static const char rcsid[] = "$Id: option.cpp,v 1.31 2011-05-02 10:38:23 matuzaki Exp $";
-
 /////////////////////////////////////////////////////////////////////////////
 // LiLFeS flags
   

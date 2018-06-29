@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: initial.cpp,v 1.3 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "initial.h"
 
 namespace lilfes {

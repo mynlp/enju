@@ -34,8 +34,6 @@
 ////  
 //////////////////////////////////////////////////////////////////////
 
-static const char rcsid[] = "$Id: stream.cpp,v 1.29 2011-05-02 10:38:24 matuzaki Exp $";
-
 #include "stream.h"
 #include "machine.h"
 #include "in.h"

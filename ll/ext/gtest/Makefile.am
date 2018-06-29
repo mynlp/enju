@@ -47,10 +47,10 @@ AM_LDFLAGS = $(GTEST_LDFLAGS)
 LDADD = $(GTEST_LIBS)
 
 # Build rules for libraries.
-check_LTLIBRARIES = lib/libgtest.la lib/libgtest_main.la
+check_LIBRARIES = lib/libgtest.a lib/libgtest_main.a
 
-lib_libgtest_la_SOURCES = src/gtest-all.cc
+lib_libgtest_a_SOURCES = src/gtest-all.cc
 
-lib_libgtest_main_la_SOURCES = src/gtest_main.cc
-lib_libgtest_main_la_LIBADD = lib/libgtest.la
+lib_libgtest_main_a_SOURCES = src/gtest_main.cc
+lib_libgtest_main_a_LIBADD = lib/libgtest.a
 

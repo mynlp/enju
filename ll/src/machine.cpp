@@ -24,8 +24,6 @@ using std::endl;
 using std::hex;
 using std::string;
 
-static const char rcsid[] = "$Id: machine.cpp,v 1.8 2011-05-02 10:38:23 matuzaki Exp $";
-
 ////////////////////////////////////////////////////////////////////////////
 //
 //  class core

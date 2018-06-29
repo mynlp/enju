@@ -3,12 +3,6 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
-/* Defines automake version */
-#undef AUTOMAKE_VERSION
-
-/* Use *.h extension for parser header file */
-#undef BISON_USE_PARSER_H_EXTENSION
-
 /* Defined if 64bit cell is enabled */
 #undef CELL_64BIT
 
@@ -194,10 +188,6 @@
 
 /* Version number of package */
 #undef LILFES_VERSION
-
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
 
 /* Name of package */
 #undef PACKAGE

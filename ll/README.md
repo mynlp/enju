@@ -39,7 +39,7 @@ See "manual/index.html" for details.
 
 Generate "configure" file by the following procedure:
 
-  % libtoolize --force; aclocal; autoheader; automake --add-missing --foreign; autoconf
+  % aclocal; autoheader; automake --add-missing --foreign --copy; autoconf
 
 and run the "configure" file with "--enable-maintainer-mode":
 

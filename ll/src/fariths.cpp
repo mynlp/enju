@@ -11,8 +11,6 @@
   * @end_japanese
 */
 
-static const char rcsid[] = "$Id: fariths.cpp,v 1.13 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "lconfig.h"
 #include "builtin.h"
 #include <climits>

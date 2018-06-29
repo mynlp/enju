@@ -42,9 +42,6 @@ using std::map;
 using std::ostringstream;
 using std::vector;
 
-
-static const char rcsid[] = "$Id: proc.cpp,v 1.11 2011-05-02 10:38:24 matuzaki Exp $";
-
 #define SSERIAL_INVALID (-1)
 //#define MINT_INVALID (-134217719)
 static const mint MINT_INVALID = ( static_cast<mint>(-1) << TAG_SHIFT );  // outside of "mint" range

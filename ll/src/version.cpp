@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: version.cpp,v 1.5 2011-05-02 10:38:24 matuzaki Exp $";
-
 #include "lconfig.h"
 
 namespace lilfes {

@@ -11,8 +11,6 @@
  * @end_japanese
 */
 
-static const char rcsid[] = "$Id: builtin.cpp,v 1.23 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "builtin.h"
 #include "in.h"
 #include "codelist.h"

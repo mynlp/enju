@@ -36,8 +36,6 @@
 #include <string>
 #include <utility>
 
-static const char rcsid[] = "$Id: profile.cpp,v 1.16 2011-05-02 10:38:24 matuzaki Exp $";
-
 #include <cmath>
 
 #ifdef HAVE_SYS_TIME_H

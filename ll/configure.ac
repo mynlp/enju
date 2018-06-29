@@ -16,6 +16,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 
 dnl ######################################################################
+
 AC_INIT([liblilfes], [1.4.0])
 AC_CONFIG_SRCDIR([src/version.cpp])
 AC_CONFIG_AUX_DIR([.])
@@ -23,39 +24,29 @@ AM_INIT_AUTOMAKE([subdir-objects])
 AC_DEFINE_UNQUOTED(LILFES_PACKAGE, "$PACKAGE", [Name of package])
 AC_DEFINE_UNQUOTED(LILFES_VERSION, "$VERSION", [Version number of package])
 
-dnl comment out if you want to rebuild configure, Makefile.in etc.
+dnl specify "--enable-maintainer-mode" when you want to rebuild configure, Makefile.in etc.
 AM_MAINTAINER_MODE
-
 
 AC_CONFIG_MACRO_DIR([m4])
 
-# Check for C++11
-AC_LANG_PUSH([C++])
-#AX_CXX_COMPILE_STDCXX_11([noext])
-AC_LANG_POP([C++])
-
 AC_CANONICAL_HOST
-
-AC_SUBST(AM_CPPFLAGS)
-AM_CPPFLAGS="-I/usr/local/include"
 
 dnl ######################################################################
 dnl   Checks for programs.
+
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_CXXCPP
 AC_PROG_INSTALL
-dnl AC_PROG_RANLIB
-dnl AC_LIBTOOL_DLOPEN
-AC_DISABLE_SHARED
-AC_PROG_LIBTOOL
+AC_PROG_RANLIB
 AC_PROG_MAKE_SET
-AC_CHECK_PROG(PERL, perl, perl)
+AC_CHECK_PROG(PERL, perl, perl)  # used by lildoc.prl
 
 dnl ########################################
 dnl   The following programs should be
 dnl   found with c++ compiler.
+
 AC_LANG_CPLUSPLUS
 AC_PROG_YACC
 AM_PROG_LEX
@@ -82,110 +73,12 @@ AC_SUBST([GTEST_CXXFLAGS])
 AC_SUBST([GTEST_LDFLAGS])
 AC_SUBST([GTEST_LIBS])
 
-dnl dnl ############################################################
-dnl dnl   Check for definition of yyFlexLexer::yywrap.
-dnl if test "$ac_cv_lib_fl_yywrap" = yes; then
-dnl   LIBS_TMP=$LIBS
-dnl   LIBS="$LIBS_TMP -lfl"
-dnl   dnl ############################################################
-dnl   dnl   Check for declaration of yyFlexLexer::yywrap.
-dnl   AC_MSG_CHECKING(whether yyFlexLexer::yywrap is declared)
-dnl   AC_TRY_COMPILE(
-dnl     [#include <FlexLexer.h>],
-dnl     [{int (yyFlexLexer::*method)() = &yyFlexLexer::yywrap;}],
-dnl     [AC_MSG_RESULT(yes);
-dnl      AC_DEFINE(HAVE_YYFLEXLEXER_YYWRAP, 1, [Defined if yyFlexLexer::yywrap is declared])],
-dnl     AC_MSG_RESULT(no))
-dnl   dnl ############################################################
-dnl   dnl   Check for implementation of yyFlexLexer::yywrap.
-dnl   dnl   The result should be no because yywrap would be virtual.
-dnl   AC_MSG_CHECKING(whether yyFlexLexer::yywrap is implemented)
-dnl   AC_TRY_RUN(
-dnl     [#include <FlexLexer.h>
-dnl      int main() {yyFlexLexer::yywrap(); return 0;}],
-dnl     [AC_MSG_RESULT(yes);
-dnl      AC_DEFINE(AVAILABLE_YYFLEXLEXER_YYWRAP, 1, [Defined if yyFlexLexer::yywrap is implemented])],
-dnl     AC_MSG_RESULT(no))
-dnl   LIBS=$LIBS_TMP
-dnl fi
-
-dnl ##################################
-dnl   Output variables which indicates the compilers are GNU or not
-AM_CONDITIONAL(IS_GCC, test "$GCC" = yes)
-AM_CONDITIONAL(IS_GXX, test "$GXX" = yes)
-dnl ##################################
-
-dnl ######################################################################
-dnl   Checks for compiler options.
-dnl ########################################
-
-AC_SUBST(AM_CXXFLAGS)
-AM_CXXFLAGS=""
-
-CXXFLAGS_TMP="$CXXFLAGS"
-
-dnl #######################################################
-dnl -f option is misinterpreted as a linker option on AIX
-dnl #######################################################
-if test "$GXX" = yes; then
-  CXXFLAGS=-fstrict-aliasing
-  AC_CACHE_CHECK(whether $CXX accepts $CXXFLAGS,
-	lilfes_cv_prog_cxx_strict_aliasing,
-  [AC_TRY_COMPILE([#include <iostream>],[{ std::cout << "hello, world"; }],
-  lilfes_cv_prog_cxx_strict_aliasing=yes, lilfes_cv_prog_cxx_strict_aliasing=no)])
-
-  if test "$lilfes_cv_prog_cxx_strict_aliasing" = yes; then
-    AM_CXXFLAGS="$AM_CXXFLAGS -fstrict-aliasing"
-  fi
-fi
-
-CXXFLAGS="-W -Wall"
-AC_CACHE_CHECK(whether $CXX accepts $CXXFLAGS,
-	lilfes_cv_prog_cxx_wall,
-[AC_TRY_COMPILE([#include <iostream>],[{ std::cout << "hello, world"; }],
-lilfes_cv_prog_cxx_wall=yes, lilfes_cv_prog_cxx_wall=no)])
-
-if test "$lilfes_cv_prog_cxx_wall" = yes; then
-  AM_CXXFLAGS="$AM_CXXFLAGS -W -Wall"
-fi
-
-CXXFLAGS="$CXXFLAGS_TMP"
-
-
-AC_SUBST(WL_RPATH)
-AC_SUBST(AM_LDFLAGS)
-AM_LDFLAGS="$LDFLAGS"
-
-LDFLAGS_TMP="$LDFLAGS"
-LDFLAGS="$LDFLAGS_TMP -Wl,-rpath -Wl,/usr/local/lib"
-AC_CACHE_CHECK([whether $CXX accepts -Wl,-rpath -Wl,/usr/local/lib],
-	lilfes_cv_prog_cxx_wlrpath,
-[AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }],
-lilfes_cv_prog_cxx_wlrpath=yes, lilfes_cv_prog_cxx_wlrpath=no)])
-
-if test "$lilfes_cv_prog_cxx_wlrpath" = yes; then
-  WL_RPATH="-Wl,-rpath -Wl,"
-else
-  LDFLAGS="$LDFLAGS_TMP -Wl,-R -Wl,/usr/local/lib"
-  AC_CACHE_CHECK([whether $CXX accepts -Wl,-R -Wl,/usr/local/lib],
-	  lilfes_cv_prog_cxx_wlR,
-  [AC_TRY_LINK([#include <iostream>],[{ std::cout << "hello, world"; }],
-  lilfes_cv_prog_cxx_wlR=yes, lilfes_cv_prog_cxx_wlR=no)])
-
-  if test "$lilfes_cv_prog_cxx_wlR" = yes; then
-    WL_RPATH="-Wl,-R -Wl,"
-  fi
-fi
-
-LDFLAGS="$LDFLAGS_TMP"
-AM_LDFLAGS="$LDFLAGS ${WL_RPATH}${prefix}/lib"
-
-
 dnl ######################################################################
 dnl   Checks for libraries.
 dnl ########################################
 dnl   The following libraries should be
 dnl   found with c++ compiler.
+
 AC_LANG_CPLUSPLUS
 AC_CHECK_LIB(fl, main)
 dnl AC_CHECK_LIB(kstat, main)
@@ -193,9 +86,11 @@ dnl AC_CHECK_LIB(nsl, main)
 dnl AC_CHECK_LIB(socket, socket)
 dnl AC_CHECK_LIB(wsock32, main)
 AC_CHECK_LIB(util, openpty)
+
 dnl ######################################################################
 dnl   libraries required for Solaris environments
 dnl ########################################
+
 AC_CHECK_LIB(socket, recv)
 AC_CHECK_LIB(nsl, gethostbyname)
 
@@ -204,55 +99,31 @@ dnl   Checks for header files.
 dnl ########################################
 dnl   The following libraries should be
 dnl   found with c++ compiler.
+
 AC_LANG_CPLUSPLUS
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-dnl AC_CHECK_HEADERS(fcntl.h limits.h malloc.h sys/socket.h sys/ioctl.h unistd.h cstring.h sys/time.h sys/resource.h netinet/tcp.h arpa/inet.h windows.h winsock.h search.h hash_map ext/hash_map sstream bzlib.h pty.h stropts.h)
-
 AC_CHECK_HEADERS(fcntl.h limits.h malloc.h unistd.h cstring.h sys/time.h time.h sys/resource.h hash_map ext/hash_map sstream pty.h stropts.h sys/socket.h winsock.h sys/ioctl.h util.h)
 
 dnl   Check for flex header
 AC_CHECK_HEADER(FlexLexer.h,,[AC_MSG_WARN([Cannot find FlexLexer.h, cannot re-compile lex.ll])])
-AC_MSG_CHECKING(flex version)
-if test "$LEX" = flex ; then
-   FLEX_VER=`$LEX --version`
-   FLEX_MAJOR=`echo $FLEX_VER |sed -n 's/^[[^0-9\.]]*\([[1-9]][[0-9]]*\)\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*.*$/\1/p'`
-   FLEX_MINOR=`echo $FLEX_VER |sed -n 's/^[[^0-9\.]]*[[1-9]][[0-9]]*\.\([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\1/p'`
-   FLEX_SUF=`echo $FLEX_VER |sed -n 's/^[[^0-9]]*[[1-9]][[0-9]]*\.[[0-9]][[0-9]]*\.\([[0-9]][[0-9]]*\).*$/\1/p'`
-   AC_MSG_RESULT([$FLEX_MAJOR.$FLEX_MINOR.$FLEX_SUF])
-else
-   AC_MSG_RESULT([none])
-fi
-AM_CONDITIONAL(IS_OLD_FLEX,
-	       [test -n "$FLEX_MAJOR" && test "$FLEX_MAJOR" -le 2 && test "$FLEX_MINOR" -le 5 && test "$FLEX_SUF" -le 4 ])
-dnl AM_CONDITIONAL(IS_OLD_FLEX, test 0 )
-
-automake_version=`automake --version | head -n 1 | cut '-d ' -f 4`
-AC_DEFINE_UNQUOTED([AUTOMAKE_VERSION], [$automake_version],
-                   [Defines automake version])
-
-if test "$automake_version" \< "1.12" ; then
-   #Use *.h extension for parser header file
-   bison_use_parser_h_extension=true
-   echo "Automake version < 1.12"
-   AC_DEFINE([BISON_USE_PARSER_H_EXTENSION], [1],
-             [Use *.h extension for parser header file])
-fi
-AM_CONDITIONAL(BISON_USE_PARSER_H, [test "$automake_version" \< "1.12"])
 
 dnl ######################################################################
 dnl   Checks for typedefs, structures, and compiler characteristics.
 dnl ########################################
 dnl   The following characteristics cannot
 dnl   be detected with c++ compiler
+
 AC_LANG_C
 AC_C_CONST
 AC_C_INLINE
 AC_C_BIGENDIAN
 AC_FUNC_ALLOCA
+
 dnl ########################################
 dnl   The following characteristics should
 dnl   be detected with c++ compiler
+
 AC_LANG_CPLUSPLUS
 AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(short int, *)
@@ -260,21 +131,10 @@ AC_CHECK_SIZEOF(int, *)
 AC_CHECK_SIZEOF(long int, *)
 AC_CHECK_SIZEOF(int*, *)
 
-dnl AC_MSG_CHECKING(whether $CXX accepts namespace)
-dnl AC_CACHE_VAL(lilfes_cv_prog_cxx_namespace, [AC_TRY_COMPILE(`cat config/namespace.h`,, lilfes_cv_prog_cxx_namespace=yes, lilfes_cv_prog_cxx_namespace=no)])
-dnl if test "$lilfes_cv_prog_cxx_namespace" = yes; then
-dnl   AC_MSG_RESULT(yes)
-dnl   AC_DEFINE(USE_NAMESPACE, 1, [Define whether it uses namespace])
-dnl else
-dnl   AC_MSG_RESULT(no)
-dnl fi
-
 dnl ######################################################################
 dnl   Checks for library functions.
-dnl AC_CHECK_FUNCS(strstr kill getpgrp getpgid getpid getppid lfind lsearch grantpt openpty)
+
 AC_CHECK_FUNCS(strstr kill lfind lsearch grantpt openpty gettimeofday ctime)
-
-
 
 dnl ######################################################################
 dnl   Checks for compiling options.
@@ -538,6 +398,7 @@ fi
 
 dnl ######################################################################
 dnl    Finish...
+
 AC_PREFIX_DEFAULT(/usr/local)
 AM_CONFIG_HEADER(include/liblilfes/config_liblilfes.h)
 AC_OUTPUT([Makefile ext/Makefile ext/gtest/Makefile src/Makefile include/Makefile include/liblilfes/Makefile lillib/Makefile manual/Makefile elisp/Makefile unittest/Makefile])

@@ -14,9 +14,6 @@ namespace lilfes {
 
 using std::string;
 
-
-static const char rcsid[] = "$Id: basic.cpp,v 1.3 2011-05-02 10:38:23 matuzaki Exp $";
-
 string int2str(int i)
 {
 	if( i < 0 )

@@ -6,9 +6,6 @@
  *
  */
 
-
-static const char rcsid[] = "$Id: compile.cpp,v 1.5 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "lconfig.h"
 #include "ftype.h"
 #include "code.h"

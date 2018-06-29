@@ -7,8 +7,9 @@
 #*
 
 AM_CPPFLAGS = -I@top_srcdir@/include -I@top_srcdir@/include/liblilfes -I$(srcdir)
+AM_CXXFLAGS = -W -Wall
 
-lib_LTLIBRARIES = liblilfes.la
+lib_LIBRARIES = liblilfes.a
 
 bin_PROGRAMS = lilfes
 
@@ -18,7 +19,7 @@ pkginclude_HEADERS = \
 	yacc.hh \
 	FlexLexer.h
 
-liblilfes_la_SOURCES = \
+liblilfes_a_SOURCES = \
 	yacc.yy \
 	lex.ll \
 	\
@@ -63,18 +64,17 @@ liblilfes_la_SOURCES = \
 	version.cpp \
         utility.cpp \
         xml.cpp \
-		load_so.cpp
+	load_so.cpp
 
-lilfes_SOURCES = main.cpp #$(liblilfes_la_SOURCES)
+lilfes_SOURCES = main.cpp
 lilfes_CXXFLAGS = $(AM_CXXFLAGS)
 
-lilfes_LDADD = liblilfes.la
+lilfes_LDADD = liblilfes.a
 
 AM_YFLAGS = -d -v
 AM_LFLAGS = -8
 
 DEFS= @DEFS@ -DPKGDATADIR="\"$(pkgdatadir)\""
-#INCLUDES= -I$(srcdir)
 
 doc :
 	@PERL@ ../lildoc.prl -e -s -b . -t "Builtin" -o ../manual -c style-builtin.css -f builtin- . builtin-index.html

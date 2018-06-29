@@ -21,6 +21,14 @@ where $INSTALL_DIR is the directory to install Enju.
 For details, see "enju-manual/index.html".
 
 ----------------------------------------------------------------------
+If you need to rebuild "configure" (e.g. when you modified Makefile.am)
+
+Run:
+  % aclocal; autoheader; automake --add-missing --foreign --copy; autoconf
+  % ./configure --enable-maintainer-mode
+  % make
+
+----------------------------------------------------------------------
 If you want to create grammar data from scratch:
 
 0. Install "amis" (used for the training of disambiguation models)
@@ -30,4 +38,9 @@ If you want to create grammar data from scratch:
   % tar xvzf WordNet-X.X.tar.gz
   % tar xvzf penn.tar.gz
 
-2. Run "make"
+2. Run:
+  % ./configure --with-enju-grammar
+  % make
+
+The grammar files will be created in "DATA".
+

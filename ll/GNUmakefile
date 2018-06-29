@@ -11,8 +11,7 @@ include Makefile
 Makefile$(PACKAGE):
 	@echo Makefile does not exist. running autotools...
 	rm -rf aclocal.m4 config.cache config.status
-	libtoolize --force --automake
-	aclocal -I m4
+	aclocal
 	autoheader
 	automake --add-missing --foreign
 	autoconf

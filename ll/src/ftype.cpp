@@ -6,8 +6,6 @@
  *
  */
 
-static const char rcsid[] = "$Id: ftype.cpp,v 1.7 2011-05-02 10:38:23 matuzaki Exp $";
-
 #include "ftype.h"
 #include "structur.h"
 #include "builtin.h"
